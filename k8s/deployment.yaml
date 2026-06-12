@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ytdown
+  namespace: ytdown
+  labels:
+    app: ytdown
+spec:
+  # Status pobierania jest w pamięci procesu — na razie 1 replika.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ytdown
+  template:
+    metadata:
+      labels:
+        app: ytdown
+    spec:
+      containers:
+        - name: ytdown
+          image: ghcr.io/OWNER/ytdown:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: ytdown
+          # env:
+          #   - name: YTDOWN_COOKIES_BROWSER
+          #     value: "chrome"
+          # volumeMounts:
+          #   - name: cookies
+          #     mountPath: /secrets
+          #     readOnly: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 10Gi
+        # - name: cookies
+        #   secret:
+        #     secretName: ytdown-cookies

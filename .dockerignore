@@ -1,0 +1,14 @@
+.git
+.github
+backend/.venv
+.venv
+bin
+certs
+*.pem
+.env
+__pycache__
+*.pyc
+deploy
+README.md
+start.sh
+scripts

@@ -1,0 +1,67 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/ytdown' }}
+      PUBLIC_PORT: ${{ secrets.PUBLIC_PORT || '8082' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate secrets
+        run: |
+          test -n "$DEPLOY_USER" || (echo "Missing DEPLOY_USER" && exit 1)
+          test -n "${{ secrets.DEPLOY_SSH_KEY }}" || (echo "Missing DEPLOY_SSH_KEY" && exit 1)
+          test -n "$DEPLOY_HOST" || (echo "Missing DEPLOY_HOST (IP VPS)" && exit 1)
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$DEPLOY_PORT" "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Rsync to server
+        run: |
+          rsync -avz --delete \
+            --exclude '.git' \
+            --exclude 'backend/.venv' \
+            --exclude 'bin' \
+            --exclude 'certs' \
+            --exclude 'downloads' \
+            --exclude '.env' \
+            -e "ssh -i ~/.ssh/deploy_key -p $DEPLOY_PORT -o StrictHostKeyChecking=accept-new" \
+            ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
+
+      - name: Remote deploy
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "chmod +x ${DEPLOY_PATH}/deploy/scripts/*.sh && \
+             APP_DIR='${DEPLOY_PATH}' PUBLIC_PORT='${PUBLIC_PORT}' bash '${DEPLOY_PATH}/deploy/scripts/deploy-single.sh'"
+
+      - name: Health check
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if curl -sf "http://${DEPLOY_HOST}:${PUBLIC_PORT}/api/health"; then
+              echo ""
+              echo "==> Deploy OK: http://${DEPLOY_HOST}:${PUBLIC_PORT}"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Health check failed"
+          exit 1

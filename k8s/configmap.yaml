@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ytdown
+  namespace: ytdown
+data:
+  YTDOWN_HOST: "0.0.0.0"
+  YTDOWN_PORT: "8080"
+  # YTDOWN_FFMPEG_DIR: "/usr/bin"

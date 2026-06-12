@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+backend/.venv/
+.venv/
+*.egg-info/
+
+# Local binaries (use system ffmpeg on server)
+bin/
+
+# Secrets & local config
+.env
+certs/
+*.pem
+
+# Downloads on server
+downloads/*
+!downloads/.gitkeep
+/tmp/ytdown_*/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
