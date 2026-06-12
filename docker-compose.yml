@@ -29,7 +29,7 @@ services:
       DOMAIN: ${DOMAIN:-yts.cool}
       ACME_EMAIL: ${ACME_EMAIL:-}
     volumes:
-      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/caddy/Caddyfile.runtime:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

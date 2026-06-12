@@ -61,6 +61,10 @@ jobs:
       - name: Health check
         run: |
           for i in 1 2 3 4 5 6 8 9 10 11 12; do
+            if curl -sf "http://${DEPLOY_HOST}/api/health" -H "Host: ${DOMAIN}"; then
+              echo ""
+              echo "==> Caddy OK na serwerze (IP: ${DEPLOY_HOST})"
+            fi
             if curl -sf "https://${DOMAIN}/api/health"; then
               echo ""
               echo "==> Deploy OK: https://${DOMAIN}"
@@ -68,5 +72,7 @@ jobs:
             fi
             sleep 10
           done
-          echo "Health check failed (sprawdź DNS A → ${DEPLOY_HOST} oraz porty 80/443)"
+          echo "Health check failed"
+          echo "  DNS: yts.cool A → ${DEPLOY_HOST} (usuń inne rekordy A)"
+          echo "  Test: curl -v http://${DEPLOY_HOST}/api/health -H 'Host: ${DOMAIN}'"
           exit 1
