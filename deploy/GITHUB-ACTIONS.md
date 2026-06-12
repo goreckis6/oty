@@ -13,7 +13,8 @@ Trigger: **push na `main`** lub **Actions → Deploy → Run workflow**
 | `DEPLOY_HOST` | `167.233.112.233` | ✅ IP Twojego VPS |
 | `DEPLOY_PORT` | `22` | opcjonalnie |
 | `DEPLOY_PATH` | `/opt/ytdown` | opcjonalnie |
-| `PUBLIC_PORT` | `3000` | opcjonalnie (domyślnie 3000) |
+| `DOMAIN` | `yts.cool` | opcjonalnie (domyślnie yts.cool) |
+| `ACME_EMAIL` | `admin@example.com` | opcjonalnie (Let's Encrypt) |
 
 > Stare sekrety `LB_HOST` i `WORKERS` **nie są już używane**.
 
@@ -34,22 +35,26 @@ Lub skrypt: `deploy/scripts/setup-deploy-ssh.sh` (bez `LB_HOST` / `WORKERS`).
 ## Co robi workflow
 
 1. `rsync` kodu na VPS
-2. `docker compose up -d --build`
-3. health check: `http://DEPLOY_HOST:3000/api/health`
+2. `docker compose up -d --build` (app + Caddy z auto-HTTPS)
+3. health check: `https://yts.cool/api/health`
+
+## DNS (przed pierwszym deployem)
+
+Ustaw rekord **A** w DNS domeny:
+
+```
+yts.cool  →  IP Twojego VPS (np. 167.233.112.233)
+```
+
+W panelu Hetzner Cloud Firewall dodaj reguły **TCP 80** i **TCP 443** (oraz SSH 22).
 
 ## Pierwszy raz na VPS
 
-```bash
-ufw allow 3000/tcp
-ufw allow OpenSSH
-ufw enable
-```
-
-Docker instaluje się automatycznie przy pierwszym deployu.
+Firewall konfiguruje się przy deployu (`ufw allow 80, 443`). Docker instaluje się automatycznie.
 
 ## Aplikacja po deployu
 
-**http://167.233.112.233:3000**
+**https://yts.cool**
 
 ## Rozbudowa o LB (później)
 

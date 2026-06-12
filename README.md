@@ -129,13 +129,17 @@ rsync -avz --exclude '.git' --exclude 'backend/.venv' --exclude 'bin' --exclude 
 ssh root@TWOJE_IP 'cd /opt/ytdown && bash deploy/scripts/deploy-single.sh'
 ```
 
-### 3. Firewall
+### 3. DNS i firewall
 
-```bash
-ufw allow 3000/tcp && ufw allow OpenSSH && ufw enable
+```
+yts.cool  A  →  IP VPS
 ```
 
-Otwórz: **http://TWOJE_IP:3000**
+```bash
+ufw allow 80/tcp && ufw allow 443/tcp && ufw allow OpenSSH && ufw enable
+```
+
+Deploy uruchamia **Caddy** (auto-HTTPS). Otwórz: **https://yts.cool**
 
 ### Przydatne komendy
 

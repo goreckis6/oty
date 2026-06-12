@@ -4,8 +4,10 @@ services:
     image: ytdown:local
     container_name: ytdown
     restart: unless-stopped
+    expose:
+      - "8080"
     ports:
-      - "${YTDOWN_PUBLIC_PORT:-3000}:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       WORKER_ID: ${WORKER_ID:-w1}
       YTDOWN_DOWNLOADS_DIR: /downloads
@@ -14,3 +16,25 @@ services:
       # YTDOWN_COOKIES_BROWSER: chrome
     volumes:
       - ./downloads:/downloads
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: ytdown-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:-yts.cool}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - ytdown
+
+volumes:
+  caddy_data:
+  caddy_config:

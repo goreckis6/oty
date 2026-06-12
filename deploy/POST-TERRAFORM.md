@@ -14,10 +14,10 @@ DEPLOY_HOST = 167.233.112.233
 
 ```bash
 rsync -avz --exclude '.git' --exclude 'downloads' ./ root@IP:/opt/ytdown/
-ssh root@IP 'cd /opt/ytdown && PUBLIC_PORT=3000 bash deploy/scripts/deploy-single.sh'
+ssh root@IP 'cd /opt/ytdown && DOMAIN=yts.cool bash deploy/scripts/deploy-single.sh'
 ```
 
-Otwórz: **http://167.233.112.233:3000**
+Ustaw DNS: **yts.cool** → IP VPS. Otwórz: **https://yts.cool**
 
 ## GitHub Actions
 
@@ -31,10 +31,17 @@ Sekrety w [goreckis6/oty](https://github.com/goreckis6/oty/):
 
 Szczegóły: **[GITHUB-ACTIONS.md](GITHUB-ACTIONS.md)**
 
-## Firewall
+## DNS i firewall
+
+```
+yts.cool  A  →  IP VPS
+```
 
 ```bash
-ufw allow 3000/tcp
+ufw allow 80/tcp
+ufw allow 443/tcp
 ufw allow OpenSSH
 ufw enable
 ```
+
+Caddy (w docker-compose) wystawia HTTPS automatycznie.

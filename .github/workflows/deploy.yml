@@ -20,7 +20,8 @@ jobs:
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/ytdown' }}
-      PUBLIC_PORT: ${{ secrets.PUBLIC_PORT || '3000' }}
+      DOMAIN: ${{ secrets.DOMAIN || 'yts.cool' }}
+      ACME_EMAIL: ${{ secrets.ACME_EMAIL || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -55,17 +56,17 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o ServerAliveInterval=30 "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "chmod +x ${DEPLOY_PATH}/deploy/scripts/*.sh && \
-             APP_DIR='${DEPLOY_PATH}' PUBLIC_PORT='${PUBLIC_PORT}' bash -x '${DEPLOY_PATH}/deploy/scripts/deploy-single.sh'"
+             APP_DIR='${DEPLOY_PATH}' DOMAIN='${DOMAIN}' ACME_EMAIL='${ACME_EMAIL}' bash -x '${DEPLOY_PATH}/deploy/scripts/deploy-single.sh'"
 
       - name: Health check
         run: |
-          for i in 1 2 3 4 5 6 8 9 10; do
-            if curl -sf "http://${DEPLOY_HOST}:${PUBLIC_PORT}/api/health"; then
+          for i in 1 2 3 4 5 6 8 9 10 11 12; do
+            if curl -sf "https://${DOMAIN}/api/health"; then
               echo ""
-              echo "==> Deploy OK: http://${DEPLOY_HOST}:${PUBLIC_PORT}"
+              echo "==> Deploy OK: https://${DOMAIN}"
               exit 0
             fi
-            sleep 5
+            sleep 10
           done
-          echo "Health check failed"
+          echo "Health check failed (sprawdź DNS A → ${DEPLOY_HOST} oraz porty 80/443)"
           exit 1

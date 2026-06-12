@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Deploy na jednym VPS (bez load balancera).
+# Deploy na jednym VPS (bez load balancera) — Caddy + HTTPS na domenie.
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/ytdown}"
-PUBLIC_PORT="${PUBLIC_PORT:-3000}"
+DOMAIN="${DOMAIN:-yts.cool}"
+ACME_EMAIL="${ACME_EMAIL:-}"
 
 cd "$APP_DIR"
 mkdir -p downloads
@@ -21,9 +22,20 @@ install_docker() {
   sleep 3
 }
 
-install_docker
+setup_firewall() {
+  if ! command -v ufw >/dev/null; then
+    return 0
+  fi
+  echo "==> Firewall (80, 443, SSH)..."
+  ufw allow OpenSSH >/dev/null 2>&1 || true
+  ufw allow 80/tcp >/dev/null 2>&1 || true
+  ufw allow 443/tcp >/dev/null 2>&1 || true
+}
 
-export YTDOWN_PUBLIC_PORT="$PUBLIC_PORT"
+install_docker
+setup_firewall
+
+export DOMAIN ACME_EMAIL
 
 echo "==> Docker build & start (może potrwać 2–5 min przy pierwszym razie)..."
 if ! docker compose up -d --build; then
@@ -32,12 +44,12 @@ if ! docker compose up -d --build; then
   exit 1
 fi
 
-echo "==> Czekam na health..."
+echo "==> Czekam na health (app)..."
 for i in $(seq 1 30); do
-  if curl -sf "http://127.0.0.1:${PUBLIC_PORT}/api/health" >/dev/null; then
-    curl -s "http://127.0.0.1:${PUBLIC_PORT}/api/health"
+  if curl -sf "http://127.0.0.1:8080/api/health" >/dev/null; then
+    curl -s "http://127.0.0.1:8080/api/health"
     echo ""
-    echo "==> Deploy na serwerze OK"
+    echo "==> Deploy na serwerze OK — https://${DOMAIN}"
     exit 0
   fi
   sleep 5
