@@ -105,15 +105,43 @@ def _resolve_cookie_file() -> str | None:
     return None
 
 
+def _runtime_binary_paths(runtime: str) -> tuple[str, ...]:
+    env_path = os.environ.get(f"YTDOWN_{runtime.upper()}_PATH", "").strip()
+    if env_path:
+        return (env_path,)
+    if runtime == "node":
+        return ("/usr/bin/node", "/usr/local/bin/node", "node", "nodejs")
+    if runtime == "deno":
+        return ("/usr/local/bin/deno", "/usr/bin/deno", "deno")
+    return (runtime,)
+
+
+def _runtime_available(runtime: str) -> bool:
+    for candidate in _runtime_binary_paths(runtime):
+        if "/" in candidate:
+            if Path(candidate).is_file():
+                return True
+        elif shutil.which(candidate):
+            return True
+    return False
+
+
 def _detect_js_runtimes() -> dict[str, dict]:
     explicit = os.environ.get("YTDOWN_JS_RUNTIMES", "").strip()
     if explicit:
-        return {name.strip().lower(): {} for name in explicit.split(",") if name.strip()}
+        names = [name.strip().lower() for name in explicit.split(",") if name.strip()]
+    else:
+        names = ["deno", "node"]
 
     runtimes: dict[str, dict] = {}
-    for runtime, binaries in (("deno", ("deno",)), ("node", ("node", "nodejs"))):
-        if any(shutil.which(binary) for binary in binaries):
-            runtimes[runtime] = {}
+    for runtime in names:
+        if _runtime_available(runtime):
+            config: dict[str, str] = {}
+            for candidate in _runtime_binary_paths(runtime):
+                if "/" in candidate and Path(candidate).is_file():
+                    config["path"] = candidate
+                    break
+            runtimes[runtime] = config
     return runtimes
 
 
