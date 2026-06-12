@@ -3,7 +3,7 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/ytdown}"
-PUBLIC_PORT="${PUBLIC_PORT:-8082}"
+PUBLIC_PORT="${PUBLIC_PORT:-3000}"
 
 cd "$APP_DIR"
 mkdir -p downloads

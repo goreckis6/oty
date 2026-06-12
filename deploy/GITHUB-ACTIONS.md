@@ -13,7 +13,7 @@ Trigger: **push na `main`** lub **Actions → Deploy → Run workflow**
 | `DEPLOY_HOST` | `167.233.112.233` | ✅ IP Twojego VPS |
 | `DEPLOY_PORT` | `22` | opcjonalnie |
 | `DEPLOY_PATH` | `/opt/ytdown` | opcjonalnie |
-| `PUBLIC_PORT` | `8082` | opcjonalnie (domyślnie 8082) |
+| `PUBLIC_PORT` | `3000` | opcjonalnie (domyślnie 3000) |
 
 > Stare sekrety `LB_HOST` i `WORKERS` **nie są już używane**.
 
@@ -35,12 +35,12 @@ Lub skrypt: `deploy/scripts/setup-deploy-ssh.sh` (bez `LB_HOST` / `WORKERS`).
 
 1. `rsync` kodu na VPS
 2. `docker compose up -d --build`
-3. health check: `http://DEPLOY_HOST:8082/api/health`
+3. health check: `http://DEPLOY_HOST:3000/api/health`
 
 ## Pierwszy raz na VPS
 
 ```bash
-ufw allow 8082/tcp
+ufw allow 3000/tcp
 ufw allow OpenSSH
 ufw enable
 ```
@@ -49,7 +49,7 @@ Docker instaluje się automatycznie przy pierwszym deployu.
 
 ## Aplikacja po deployu
 
-**http://167.233.112.233:8082**
+**http://167.233.112.233:3000**
 
 ## Rozbudowa o LB (później)
 

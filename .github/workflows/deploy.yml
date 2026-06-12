@@ -20,7 +20,7 @@ jobs:
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/ytdown' }}
-      PUBLIC_PORT: ${{ secrets.PUBLIC_PORT || '8082' }}
+      PUBLIC_PORT: ${{ secrets.PUBLIC_PORT || '3000' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5

@@ -14,10 +14,10 @@ DEPLOY_HOST = 167.233.112.233
 
 ```bash
 rsync -avz --exclude '.git' --exclude 'downloads' ./ root@IP:/opt/ytdown/
-ssh root@IP 'cd /opt/ytdown && PUBLIC_PORT=8082 bash deploy/scripts/deploy-single.sh'
+ssh root@IP 'cd /opt/ytdown && PUBLIC_PORT=3000 bash deploy/scripts/deploy-single.sh'
 ```
 
-Otwórz: **http://167.233.112.233:8082**
+Otwórz: **http://167.233.112.233:3000**
 
 ## GitHub Actions
 
@@ -34,7 +34,7 @@ Szczegóły: **[GITHUB-ACTIONS.md](GITHUB-ACTIONS.md)**
 ## Firewall
 
 ```bash
-ufw allow 8082/tcp
+ufw allow 3000/tcp
 ufw allow OpenSSH
 ufw enable
 ```

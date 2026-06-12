@@ -132,10 +132,10 @@ ssh root@TWOJE_IP 'cd /opt/ytdown && bash deploy/scripts/deploy-single.sh'
 ### 3. Firewall
 
 ```bash
-ufw allow 8082/tcp && ufw allow OpenSSH && ufw enable
+ufw allow 3000/tcp && ufw allow OpenSSH && ufw enable
 ```
 
-Otwórz: **http://TWOJE_IP:8082**
+Otwórz: **http://TWOJE_IP:3000**
 
 ### Przydatne komendy
 
@@ -163,7 +163,7 @@ cp deploy/env.example .env   # opcjonalnie
 ./start.sh
 ```
 
-Otwórz `http://127.0.0.1:8082`.
+Otwórz `http://127.0.0.1:3000`.
 
 ### YouTube bot detection
 
