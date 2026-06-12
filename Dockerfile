@@ -6,7 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     YTDOWN_PORT=8080
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg ca-certificates nodejs \
+    && apt-get install -y --no-install-recommends ffmpeg ca-certificates nodejs curl unzip \
+    && curl -fsSL https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip -o /tmp/deno.zip \
+    && unzip -q /tmp/deno.zip -d /usr/local/bin \
+    && rm -f /tmp/deno.zip \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

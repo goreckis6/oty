@@ -22,7 +22,7 @@ jobs:
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/ytdown' }}
       DOMAIN: ${{ secrets.DOMAIN || 'yts.cool' }}
       ACME_EMAIL: ${{ secrets.ACME_EMAIL || '' }}
-      DEPLOY_MODE: ${{ secrets.DEPLOY_MODE || 'native' }}
+      DEPLOY_MODE: ${{ secrets.DEPLOY_MODE || 'docker' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5

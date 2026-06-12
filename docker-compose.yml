@@ -14,6 +14,8 @@ services:
       YTDOWN_HOST: "0.0.0.0"
       YTDOWN_PORT: "8080"
       YTDOWN_YOUTUBE_CLIENTS: ${YTDOWN_YOUTUBE_CLIENTS:-web,android,ios}
+      YTDOWN_JS_RUNTIMES: ${YTDOWN_JS_RUNTIMES:-deno,node}
+      YTDOWN_REMOTE_COMPONENTS: ${YTDOWN_REMOTE_COMPONENTS:-ejs:github}
       YTDOWN_SLEEP_INTERVAL_REQUESTS: ${YTDOWN_SLEEP_INTERVAL_REQUESTS:-1}
       # YTDOWN_COOKIES_FILE: /etc/ytdown/cookies.txt
       # YTDOWN_COOKIES_BROWSER: chrome  # tylko lokalnie, nie w Dockerze

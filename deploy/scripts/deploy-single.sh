@@ -7,7 +7,7 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/ytdown}"
 DOMAIN="${DOMAIN:-yts.cool}"
 ACME_EMAIL="${ACME_EMAIL:-}"
-DEPLOY_MODE="${DEPLOY_MODE:-native}"
+DEPLOY_MODE="${DEPLOY_MODE:-docker}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -76,9 +76,17 @@ EOF
   fi
 }
 
+stop_native_stack() {
+  echo "==> Zatrzymuję native stack (porty 8080/80/443)..."
+  systemctl stop ytdown 2>/dev/null || true
+  systemctl disable ytdown 2>/dev/null || true
+  systemctl stop caddy 2>/dev/null || true
+}
+
 install_docker
 setup_firewall
 free_web_ports
+stop_native_stack
 generate_caddyfile
 
 export DOMAIN ACME_EMAIL
