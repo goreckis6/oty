@@ -48,14 +48,15 @@ jobs:
             ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
 
       - name: Remote deploy
+        timeout-minutes: 15
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o ServerAliveInterval=30 "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "chmod +x ${DEPLOY_PATH}/deploy/scripts/*.sh && \
-             APP_DIR='${DEPLOY_PATH}' PUBLIC_PORT='${PUBLIC_PORT}' bash '${DEPLOY_PATH}/deploy/scripts/deploy-single.sh'"
+             APP_DIR='${DEPLOY_PATH}' PUBLIC_PORT='${PUBLIC_PORT}' bash -x '${DEPLOY_PATH}/deploy/scripts/deploy-single.sh'"
 
       - name: Health check
         run: |
-          for i in 1 2 3 4 5 6; do
+          for i in 1 2 3 4 5 6 8 9 10; do
             if curl -sf "http://${DEPLOY_HOST}:${PUBLIC_PORT}/api/health"; then
               echo ""
               echo "==> Deploy OK: http://${DEPLOY_HOST}:${PUBLIC_PORT}"
