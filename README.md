@@ -175,7 +175,14 @@ Otwórz `http://127.0.0.1:3000`.
 
 ### YouTube bot detection
 
-Backend symuluje Chrome (nagłówki HTTP + kilka klientów YouTube: `web`, `mweb`, `tv_embedded`…).
+Od **yt-dlp 2025.10** YouTube wymaga **Node.js lub Deno** na serwerze (rozwiązywanie JS challenge).
+
+Native deploy instaluje `nodejs` automatycznie. Sprawdź po deployu:
+
+```bash
+curl -s https://yts.cool/api/health
+# oczekiwane: "js_runtimes": ["node"], "yt_dlp_version": "2026.6.9"
+```
 
 **Lokalnie** (cookies z przeglądarki):
 

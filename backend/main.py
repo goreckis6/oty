@@ -30,7 +30,7 @@ CHROME_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
-DEFAULT_YOUTUBE_CLIENTS = "web,web_creator,mweb,tv_embedded,android"
+DEFAULT_YOUTUBE_CLIENTS = "web,android,ios"
 COOKIE_FILE_CANDIDATES = (
     "/etc/ytdown/cookies.txt",
     "/app/secrets/cookies.txt",
@@ -77,6 +77,11 @@ def normalize_url(url: str) -> str:
 
 
 def friendly_error(message: str) -> str:
+    if "player response" in message.lower() or "challenge solving" in message.lower():
+        return (
+            "YouTube wymaga Node.js lub Deno na serwerze (yt-dlp EJS). "
+            "Na VPS: apt install nodejs && systemctl restart ytdown"
+        )
     if "Sign in to confirm" in message or "bot" in message.lower():
         return (
             "YouTube zablokował pobieranie. Dodaj plik cookies z przeglądarki "
@@ -98,6 +103,25 @@ def _resolve_cookie_file() -> str | None:
         if Path(candidate).is_file():
             return candidate
     return None
+
+
+def _detect_js_runtimes() -> dict[str, dict]:
+    explicit = os.environ.get("YTDOWN_JS_RUNTIMES", "").strip()
+    if explicit:
+        return {name.strip().lower(): {} for name in explicit.split(",") if name.strip()}
+
+    runtimes: dict[str, dict] = {}
+    for runtime, binaries in (("deno", ("deno",)), ("node", ("node", "nodejs"))):
+        if any(shutil.which(binary) for binary in binaries):
+            runtimes[runtime] = {}
+    return runtimes
+
+
+def _remote_components() -> list[str]:
+    raw = os.environ.get("YTDOWN_REMOTE_COMPONENTS", "ejs:github")
+    if not raw or raw.lower() in ("none", "off", "false"):
+        return []
+    return [part.strip() for part in raw.split(",") if part.strip()]
 
 
 def _youtube_player_clients() -> list[str]:
@@ -136,6 +160,14 @@ def base_ydl_opts(job_id: str | None = None) -> dict[str, Any]:
             }
         },
     }
+
+    js_runtimes = _detect_js_runtimes()
+    if js_runtimes:
+        opts["js_runtimes"] = js_runtimes
+
+    remote_components = _remote_components()
+    if remote_components:
+        opts["remote_components"] = remote_components
 
     sleep_requests = os.environ.get("YTDOWN_SLEEP_INTERVAL_REQUESTS")
     if sleep_requests:
@@ -555,6 +587,8 @@ def health() -> dict[str, Any]:
         "worker": WORKER_ID,
         "disk_free_mb": free // (1024**2),
         "youtube_cookies": bool(cookie_file or os.environ.get("YTDOWN_COOKIES_BROWSER")),
+        "js_runtimes": list(_detect_js_runtimes().keys()),
+        "yt_dlp_version": getattr(yt_dlp.version, "__version__", "unknown"),
     }
 
 

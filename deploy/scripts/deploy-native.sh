@@ -13,7 +13,7 @@ export DEBIAN_FRONTEND=noninteractive
 install_deps() {
   echo "==> Pakiety (Python, ffmpeg, Caddy)..."
   apt-get update -qq
-  apt-get install -y -qq python3 python3-venv python3-pip ffmpeg curl caddy rsync
+  apt-get install -y -qq python3 python3-venv python3-pip ffmpeg curl caddy rsync nodejs
   systemctl enable caddy
 }
 
@@ -101,7 +101,7 @@ if [[ ! -d "${APP_DIR}/.venv" ]]; then
   python3 -m venv "${APP_DIR}/.venv"
 fi
 "${APP_DIR}/.venv/bin/pip" install -q --upgrade pip
-"${APP_DIR}/.venv/bin/pip" install -q -r "${APP_DIR}/backend/requirements.txt"
+"${APP_DIR}/.venv/bin/pip" install -q --upgrade -r "${APP_DIR}/backend/requirements.txt"
 systemctl restart ytdown
 sleep 2
 
