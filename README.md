@@ -191,19 +191,17 @@ export YTDOWN_COOKIES_BROWSER=chrome
 ./start.sh
 ```
 
-**Na serwerze (native deploy)** — wgraj plik cookies (format Netscape):
+**Na serwerze (wymagane dla VPS)** — YouTube blokuje IP datacenter bez cookies:
 
-1. W Chrome: rozszerzenie „Get cookies.txt LOCALLY”
-2. Zaloguj się na YouTube → eksport cookies dla `youtube.com`
+1. Chrome → rozszerzenie **„Get cookies.txt LOCALLY”**
+2. Zaloguj się na YouTube → eksport cookies
 3. Na VPS:
    ```bash
    mkdir -p /opt/ytdown/secrets
    nano /opt/ytdown/secrets/cookies.txt   # wklej plik
-   systemctl restart ytdown
+   cd /opt/ytdown && docker compose up -d --build
    ```
-   Albo ustaw w `/etc/ytdown/env`: `YTDOWN_COOKIES_FILE=/opt/ytdown/secrets/cookies.txt`
-
-> `YTDOWN_COOKIES_BROWSER=chrome` działa tylko tam, gdzie jest przeglądarka (laptop). Na VPS użyj pliku cookies.
+   Deploy automatycznie montuje `secrets/cookies.txt` jeśli plik istnieje.
 
 ---
 

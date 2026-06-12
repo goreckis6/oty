@@ -76,6 +76,22 @@ EOF
   fi
 }
 
+setup_cookies_mount() {
+  mkdir -p secrets
+  if [[ -f secrets/cookies.txt ]]; then
+    echo "==> Montuję cookies YouTube"
+    cat > docker-compose.override.yml <<'EOF'
+services:
+  ytdown:
+    volumes:
+      - ./secrets/cookies.txt:/app/secrets/cookies.txt:ro
+EOF
+  else
+    rm -f docker-compose.override.yml
+    echo "==> Brak secrets/cookies.txt — YouTube może blokować VPS bez cookies"
+  fi
+}
+
 stop_native_stack() {
   echo "==> Zatrzymuję native stack (porty 8080/80/443)..."
   systemctl stop ytdown 2>/dev/null || true
@@ -88,6 +104,7 @@ setup_firewall
 free_web_ports
 stop_native_stack
 generate_caddyfile
+setup_cookies_mount
 
 export DOMAIN ACME_EMAIL
 
