@@ -30,10 +30,11 @@ CHROME_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
-DEFAULT_YOUTUBE_CLIENTS = "web,android,ios"
+DEFAULT_YOUTUBE_CLIENTS = "android_vr,web,web_safari,android"
 COOKIE_FILE_CANDIDATES = (
     "/etc/ytdown/cookies.txt",
     "/app/secrets/cookies.txt",
+    str(Path(__file__).resolve().parent.parent / "secrets" / "cookies.txt"),
 )
 
 app = FastAPI(title="YTDown", version="1.0.0")
@@ -77,10 +78,17 @@ def normalize_url(url: str) -> str:
 
 
 def friendly_error(message: str) -> str:
-    if "player response" in message.lower() or "challenge solving" in message.lower():
+    lower = message.lower()
+    if "player response" in lower:
+        if _resolve_cookie_file():
+            return "YouTube odrzucił żądanie mimo cookies. Wyeksportuj świeże cookies z zalogowanej sesji."
         return (
-            "YouTube wymaga Node.js lub Deno na serwerze (yt-dlp EJS). "
-            "Na VPS: apt install nodejs && systemctl restart ytdown"
+            "YouTube blokuje serwer VPS. Wyeksportuj cookies z Chrome (Get cookies.txt LOCALLY) "
+            "i wgraj na serwer jako /opt/ytdown/secrets/cookies.txt"
+        )
+    if "challenge solving" in lower and not _detect_js_runtimes():
+        return (
+            "Brak Node.js/Deno dla yt-dlp. Na serwerze: apt install nodejs && docker compose up -d --build"
         )
     if "Sign in to confirm" in message or "bot" in message.lower():
         return (
@@ -146,7 +154,7 @@ def _detect_js_runtimes() -> dict[str, dict]:
 
 
 def _remote_components() -> list[str]:
-    raw = os.environ.get("YTDOWN_REMOTE_COMPONENTS", "ejs:github")
+    raw = os.environ.get("YTDOWN_REMOTE_COMPONENTS", "ejs:github,ejs:npm")
     if not raw or raw.lower() in ("none", "off", "false"):
         return []
     return [part.strip() for part in raw.split(",") if part.strip()]
@@ -181,6 +189,7 @@ def base_ydl_opts(job_id: str | None = None) -> dict[str, Any]:
     opts: dict[str, Any] = {
         "quiet": True,
         "no_warnings": True,
+        "force_ipv4": os.environ.get("YTDOWN_FORCE_IPV4", "1") != "0",
         "http_headers": _browser_http_headers(),
         "extractor_args": {
             "youtube": {
@@ -449,6 +458,44 @@ def build_download_opts(url: str, format_id: str, ext: str, tmp_dir: str, job_id
     return ydl_opts
 
 
+YOUTUBE_CLIENT_FALLBACKS = (
+    "android_vr,web,web_safari,android",
+    "web,android,ios",
+    "tv_embedded,android",
+)
+
+
+def extract_youtube_info(url: str, job_id: str | None = None, download: bool = False) -> dict[str, Any]:
+    primary = os.environ.get("YTDOWN_YOUTUBE_CLIENTS", DEFAULT_YOUTUBE_CLIENTS)
+    client_sets = [primary]
+    for fallback in YOUTUBE_CLIENT_FALLBACKS:
+        if fallback not in client_sets:
+            client_sets.append(fallback)
+
+    last_error: Exception | None = None
+    for clients in client_sets:
+        opts = {
+            **base_ydl_opts(job_id),
+            "skip_download": not download,
+            "extract_flat": False,
+            "extractor_args": {
+                "youtube": {
+                    "player_client": [c.strip() for c in clients.split(",") if c.strip()],
+                }
+            },
+        }
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                return ydl.extract_info(url, download=download)
+        except yt_dlp.utils.DownloadError as exc:
+            last_error = exc
+            if "player response" not in str(exc).lower():
+                raise
+    if last_error:
+        raise last_error
+    raise RuntimeError("Nie udało się pobrać informacji o filmie.")
+
+
 def run_download_job(job_id: str, url: str, format_id: str, ext: str) -> None:
     tmp_dir = str(job_work_dir(job_id))
     try:
@@ -461,9 +508,31 @@ def run_download_job(job_id: str, url: str, format_id: str, ext: str) -> None:
                 }
             )
 
-        ydl_opts = build_download_opts(url, format_id, ext, tmp_dir, job_id)
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
+        last_error: Exception | None = None
+        info = None
+        primary = os.environ.get("YTDOWN_YOUTUBE_CLIENTS", DEFAULT_YOUTUBE_CLIENTS)
+        client_sets = [primary, *YOUTUBE_CLIENT_FALLBACKS]
+        seen: set[str] = set()
+        for clients in client_sets:
+            if clients in seen:
+                continue
+            seen.add(clients)
+            ydl_opts = build_download_opts(url, format_id, ext, tmp_dir, job_id)
+            ydl_opts["extractor_args"] = {
+                "youtube": {
+                    "player_client": [c.strip() for c in clients.split(",") if c.strip()],
+                }
+            }
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                break
+            except yt_dlp.utils.DownloadError as exc:
+                last_error = exc
+                if "player response" not in str(exc).lower():
+                    raise
+        if info is None:
+            raise last_error or RuntimeError("Pobieranie nie powiodło się.")
             filepath = Path(ydl.prepare_filename(info))
             if ext == "mp3":
                 filepath = filepath.with_suffix(".mp3")
@@ -498,15 +567,9 @@ def run_download_job(job_id: str, url: str, format_id: str, ext: str) -> None:
 @app.post("/api/analyze")
 def analyze_video(body: AnalyzeRequest) -> dict[str, Any]:
     url = normalize_url(body.url)
-    ydl_opts = {
-        **base_ydl_opts(),
-        "skip_download": True,
-        "extract_flat": False,
-    }
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+        info = extract_youtube_info(url, download=False)
     except yt_dlp.utils.DownloadError as exc:
         raise HTTPException(status_code=422, detail=friendly_error(str(exc))) from exc
 

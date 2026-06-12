@@ -3,7 +3,9 @@ FROM python:3.12-slim-bookworm
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     YTDOWN_HOST=0.0.0.0 \
-    YTDOWN_PORT=8080
+    YTDOWN_PORT=8080 \
+    HOME=/home/appuser \
+    XDG_CACHE_HOME=/home/appuser/.cache
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg ca-certificates nodejs curl unzip \
@@ -20,10 +22,17 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
-RUN mkdir -p /downloads \
+RUN mkdir -p /downloads /home/appuser/.cache \
     && useradd --create-home --uid 1000 appuser \
-    && chown -R appuser:appuser /app /downloads
+    && chown -R appuser:appuser /app /downloads /home/appuser
+
 USER appuser
+
+# Prefetch EJS solver scripts (YouTube challenge) into container cache
+RUN yt-dlp --remote-components ejs:github,ejs:npm \
+    --js-runtimes deno:/usr/local/bin/deno \
+    --js-runtimes node:/usr/bin/node \
+    --skip-download -q "https://www.youtube.com/watch?v=jNQXAC9IVRw" || true
 
 EXPOSE 8080
 
