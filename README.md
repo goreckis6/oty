@@ -125,9 +125,13 @@ rsync -avz --exclude '.git' --exclude 'backend/.venv' --exclude 'bin' --exclude 
 
 ### 2. Uruchom
 
+Deploy domyślnie **bez Dockera** — ten sam Python co `./start.sh` + Caddy + systemd:
+
 ```bash
 ssh root@TWOJE_IP 'cd /opt/ytdown && bash deploy/scripts/deploy-single.sh'
 ```
+
+Opcjonalnie Docker: `DEPLOY_MODE=docker bash deploy/scripts/deploy-single.sh`
 
 ### 3. DNS i firewall
 
@@ -180,13 +184,19 @@ export YTDOWN_COOKIES_BROWSER=chrome
 ./start.sh
 ```
 
-**Na serwerze / Docker** — wgraj plik cookies (format Netscape):
+**Na serwerze (native deploy)** — wgraj plik cookies (format Netscape):
 
-1. W Chrome zainstaluj rozszerzenie „Get cookies.txt LOCALLY”
-2. Zaloguj się na YouTube, wyeksportuj cookies dla `youtube.com`
-3. Na VPS: `mkdir -p /opt/ytdown/secrets && nano /opt/ytdown/secrets/cookies.txt`
-4. Odkomentuj w `docker-compose.yml` mount: `./secrets/cookies.txt:/etc/ytdown/cookies.txt:ro`
-5. `docker compose up -d --build`
+1. W Chrome: rozszerzenie „Get cookies.txt LOCALLY”
+2. Zaloguj się na YouTube → eksport cookies dla `youtube.com`
+3. Na VPS:
+   ```bash
+   mkdir -p /opt/ytdown/secrets
+   nano /opt/ytdown/secrets/cookies.txt   # wklej plik
+   systemctl restart ytdown
+   ```
+   Albo ustaw w `/etc/ytdown/env`: `YTDOWN_COOKIES_FILE=/opt/ytdown/secrets/cookies.txt`
+
+> `YTDOWN_COOKIES_BROWSER=chrome` działa tylko tam, gdzie jest przeglądarka (laptop). Na VPS użyj pliku cookies.
 
 ---
 

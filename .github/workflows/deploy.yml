@@ -22,6 +22,7 @@ jobs:
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/ytdown' }}
       DOMAIN: ${{ secrets.DOMAIN || 'yts.cool' }}
       ACME_EMAIL: ${{ secrets.ACME_EMAIL || '' }}
+      DEPLOY_MODE: ${{ secrets.DEPLOY_MODE || 'native' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -56,7 +57,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o ServerAliveInterval=30 "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "chmod +x ${DEPLOY_PATH}/deploy/scripts/*.sh && \
-             APP_DIR='${DEPLOY_PATH}' DOMAIN='${DOMAIN}' ACME_EMAIL='${ACME_EMAIL}' bash -x '${DEPLOY_PATH}/deploy/scripts/deploy-single.sh'"
+             APP_DIR='${DEPLOY_PATH}' DOMAIN='${DOMAIN}' ACME_EMAIL='${ACME_EMAIL}' DEPLOY_MODE='${DEPLOY_MODE}' bash -x '${DEPLOY_PATH}/deploy/scripts/deploy-single.sh'"
 
       - name: Health check
         run: |

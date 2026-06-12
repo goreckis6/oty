@@ -15,6 +15,7 @@ Trigger: **push na `main`** lub **Actions → Deploy → Run workflow**
 | `DEPLOY_PATH` | `/opt/ytdown` | opcjonalnie |
 | `DOMAIN` | `yts.cool` | opcjonalnie (domyślnie yts.cool) |
 | `ACME_EMAIL` | `admin@example.com` | opcjonalnie (Let's Encrypt) |
+| `DEPLOY_MODE` | `native` | `native` (jak start.sh) lub `docker` |
 
 > Stare sekrety `LB_HOST` i `WORKERS` **nie są już używane**.
 
@@ -35,7 +36,7 @@ Lub skrypt: `deploy/scripts/setup-deploy-ssh.sh` (bez `LB_HOST` / `WORKERS`).
 ## Co robi workflow
 
 1. `rsync` kodu na VPS
-2. `docker compose up -d --build` (app + Caddy z auto-HTTPS)
+2. `deploy-single.sh` — domyślnie **native** (Python + systemd + Caddy na hoście); opcjonalnie `DEPLOY_MODE=docker`
 3. health check: `https://yts.cool/api/health`
 
 ## DNS (przed pierwszym deployem)

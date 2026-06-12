@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 # Deploy na jednym VPS (bez load balancera) — Caddy + HTTPS na domenie.
+# DEPLOY_MODE=native → Python jak start.sh (bez Dockera)
+# DEPLOY_MODE=docker  → docker compose (domyślnie)
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/ytdown}"
 DOMAIN="${DOMAIN:-yts.cool}"
 ACME_EMAIL="${ACME_EMAIL:-}"
+DEPLOY_MODE="${DEPLOY_MODE:-native}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ "$DEPLOY_MODE" == "native" ]]; then
+  export APP_DIR DOMAIN ACME_EMAIL
+  exec bash "${SCRIPT_DIR}/deploy-native.sh"
+fi
 
 cd "$APP_DIR"
 mkdir -p downloads deploy/caddy
