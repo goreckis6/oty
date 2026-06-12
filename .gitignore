@@ -11,6 +11,8 @@ bin/
 # Secrets & local config
 .env
 certs/
+secrets/
+cookies.txt
 *.pem
 
 # Downloads on server

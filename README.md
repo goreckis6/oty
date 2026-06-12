@@ -171,10 +171,22 @@ Otwórz `http://127.0.0.1:3000`.
 
 ### YouTube bot detection
 
+Backend symuluje Chrome (nagłówki HTTP + kilka klientów YouTube: `web`, `mweb`, `tv_embedded`…).
+
+**Lokalnie** (cookies z przeglądarki):
+
 ```bash
 export YTDOWN_COOKIES_BROWSER=chrome
 ./start.sh
 ```
+
+**Na serwerze / Docker** — wgraj plik cookies (format Netscape):
+
+1. W Chrome zainstaluj rozszerzenie „Get cookies.txt LOCALLY”
+2. Zaloguj się na YouTube, wyeksportuj cookies dla `youtube.com`
+3. Na VPS: `mkdir -p /opt/ytdown/secrets && nano /opt/ytdown/secrets/cookies.txt`
+4. Odkomentuj w `docker-compose.yml` mount: `./secrets/cookies.txt:/etc/ytdown/cookies.txt:ro`
+5. `docker compose up -d --build`
 
 ---
 

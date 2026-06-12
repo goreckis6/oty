@@ -25,6 +25,17 @@ YOUTUBE_URL_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Chrome on Windows — domyślna symulacja przeglądarki (yt-dlp + nagłówki HTTP).
+CHROME_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
+DEFAULT_YOUTUBE_CLIENTS = "web,web_creator,mweb,tv_embedded,android"
+COOKIE_FILE_CANDIDATES = (
+    "/etc/ytdown/cookies.txt",
+    "/app/secrets/cookies.txt",
+)
+
 app = FastAPI(title="YTDown", version="1.0.0")
 
 app.add_middleware(
@@ -68,7 +79,8 @@ def normalize_url(url: str) -> str:
 def friendly_error(message: str) -> str:
     if "Sign in to confirm" in message or "bot" in message.lower():
         return (
-            "YouTube zablokował pobieranie. Uruchom serwer z cookies: "
+            "YouTube zablokował pobieranie. Dodaj plik cookies z przeglądarki "
+            "(np. /etc/ytdown/cookies.txt na serwerze) lub lokalnie: "
             "YTDOWN_COOKIES_BROWSER=chrome ./start.sh"
         )
     if "ffmpeg" in message.lower() or "ffprobe" in message.lower():
@@ -78,16 +90,56 @@ def friendly_error(message: str) -> str:
     return message[:300]
 
 
+def _resolve_cookie_file() -> str | None:
+    explicit = os.environ.get("YTDOWN_COOKIES_FILE")
+    if explicit and Path(explicit).is_file():
+        return explicit
+    for candidate in COOKIE_FILE_CANDIDATES:
+        if Path(candidate).is_file():
+            return candidate
+    return None
+
+
+def _youtube_player_clients() -> list[str]:
+    raw = os.environ.get("YTDOWN_YOUTUBE_CLIENTS", DEFAULT_YOUTUBE_CLIENTS)
+    return [client.strip() for client in raw.split(",") if client.strip()]
+
+
+def _browser_http_headers() -> dict[str, str]:
+    return {
+        "User-Agent": os.environ.get("YTDOWN_USER_AGENT", CHROME_USER_AGENT),
+        "Accept": (
+            "text/html,application/xhtml+xml,application/xml;q=0.9,"
+            "image/avif,image/webp,image/apng,*/*;q=0.8"
+        ),
+        "Accept-Language": os.environ.get("YTDOWN_ACCEPT_LANGUAGE", "en-US,en;q=0.9,pl;q=0.8"),
+        "Accept-Encoding": "gzip, deflate, br",
+        "Sec-Ch-Ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Upgrade-Insecure-Requests": "1",
+    }
+
+
 def base_ydl_opts(job_id: str | None = None) -> dict[str, Any]:
     opts: dict[str, Any] = {
         "quiet": True,
         "no_warnings": True,
+        "http_headers": _browser_http_headers(),
         "extractor_args": {
             "youtube": {
-                "player_client": ["tv_embedded"],
+                "player_client": _youtube_player_clients(),
             }
         },
     }
+
+    sleep_requests = os.environ.get("YTDOWN_SLEEP_INTERVAL_REQUESTS")
+    if sleep_requests:
+        opts["sleep_interval_requests"] = float(sleep_requests)
     if job_id:
 
         def progress_hook(data: dict[str, Any]) -> None:
@@ -134,12 +186,13 @@ def base_ydl_opts(job_id: str | None = None) -> dict[str, Any]:
         opts["progress_hooks"] = [progress_hook]
         opts["postprocessor_hooks"] = [postprocessor_hook]
 
-    cookies_browser = os.environ.get("YTDOWN_COOKIES_BROWSER")
-    if cookies_browser:
-        opts["cookiesfrombrowser"] = (cookies_browser,)
-    cookies_file = os.environ.get("YTDOWN_COOKIES_FILE")
+    cookies_file = _resolve_cookie_file()
     if cookies_file:
         opts["cookiefile"] = cookies_file
+    else:
+        cookies_browser = os.environ.get("YTDOWN_COOKIES_BROWSER")
+        if cookies_browser:
+            opts["cookiesfrombrowser"] = (cookies_browser,)
     ffmpeg_dir = os.environ.get("YTDOWN_FFMPEG_DIR")
     if ffmpeg_dir:
         opts["ffmpeg_location"] = ffmpeg_dir
@@ -321,10 +374,14 @@ def resolve_format_selector(format_id: str, ext: str) -> tuple[str, dict[str, An
 
 def build_download_opts(url: str, format_id: str, ext: str, tmp_dir: str, job_id: str | None) -> dict[str, Any]:
     selector, extra = resolve_format_selector(format_id, ext)
+    headers = _browser_http_headers()
+    headers["Referer"] = "https://www.youtube.com/"
+    headers["Origin"] = "https://www.youtube.com"
     ydl_opts: dict[str, Any] = {
         **base_ydl_opts(job_id),
         "format": selector,
         "outtmpl": str(Path(tmp_dir) / "%(title).200B.%(ext)s"),
+        "http_headers": headers,
         **extra,
     }
     if ext in ("mp4", "webm", "mkv") and "merge_output_format" not in ydl_opts:
@@ -492,10 +549,12 @@ def health() -> dict[str, Any]:
             status_code=503,
             detail=f"low disk: {free // (1024**2)} MB free on {DOWNLOADS_DIR}",
         )
+    cookie_file = _resolve_cookie_file()
     return {
         "status": "ok",
         "worker": WORKER_ID,
         "disk_free_mb": free // (1024**2),
+        "youtube_cookies": bool(cookie_file or os.environ.get("YTDOWN_COOKIES_BROWSER")),
     }
 
 

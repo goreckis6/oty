@@ -13,9 +13,14 @@ services:
       YTDOWN_DOWNLOADS_DIR: /downloads
       YTDOWN_HOST: "0.0.0.0"
       YTDOWN_PORT: "8080"
-      # YTDOWN_COOKIES_BROWSER: chrome
+      YTDOWN_YOUTUBE_CLIENTS: ${YTDOWN_YOUTUBE_CLIENTS:-web,web_creator,mweb,tv_embedded,android}
+      YTDOWN_SLEEP_INTERVAL_REQUESTS: ${YTDOWN_SLEEP_INTERVAL_REQUESTS:-1}
+      # YTDOWN_COOKIES_FILE: /etc/ytdown/cookies.txt
+      # YTDOWN_COOKIES_BROWSER: chrome  # tylko lokalnie, nie w Dockerze
     volumes:
       - ./downloads:/downloads
+      # cookies z przeglądarki (Netscape format) — eksport np. rozszerzeniem „Get cookies.txt LOCALLY”
+      # - ./secrets/cookies.txt:/etc/ytdown/cookies.txt:ro
 
   caddy:
     image: caddy:2-alpine
