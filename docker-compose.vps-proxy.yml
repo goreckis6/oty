@@ -1,0 +1,22 @@
+# VPS: tylko Caddy (HTTPS) → backend na domowym PC.
+# Wygeneruj Caddyfile: deploy/scripts/setup-vps-home-proxy.sh
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: ytdown-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:-yts.cool}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./deploy/caddy/Caddyfile.runtime:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

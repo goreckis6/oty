@@ -173,6 +173,21 @@ cp deploy/env.example .env   # opcjonalnie
 
 Otwórz `http://127.0.0.1:3000`.
 
+### Backend u siebie, domena na VPS (domowe IP)
+
+Gdy na VPS YouTube blokuje, a lokalnie działa — uruchom backend na domowym PC, a VPS niech robi tylko HTTPS:
+
+**[deploy/home-worker/README.md](deploy/home-worker/README.md)**
+
+```bash
+# u Ciebie
+./scripts/start-home.sh
+
+# na VPS (Tailscale IP Twojego PC)
+HOME_BACKEND_URL=http://100.x.x.x:8080 bash deploy/scripts/setup-vps-home-proxy.sh
+docker compose -f docker-compose.vps-proxy.yml up -d
+```
+
 ### YouTube bot detection
 
 Od **yt-dlp 2025.10** YouTube wymaga **Node.js lub Deno** (JS challenge) oraz często **PO Token** na IP datacenter.
