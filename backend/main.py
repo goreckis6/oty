@@ -243,12 +243,15 @@ def _default_youtube_clients() -> str:
     if _resolve_cookie_file() or os.environ.get("YTDOWN_COOKIES_BROWSER"):
         return COOKIE_YOUTUBE_CLIENTS
     if _pot_provider_url():
-        return POT_YOUTUBE_CLIENTS
+        # Pusty = domyślna rotacja yt-dlp (ios/android bez PO + web z PO).
+        return os.environ.get("YTDOWN_POT_CLIENTS", "")
     return DEFAULT_YOUTUBE_CLIENTS
 
 
 def _youtube_client_sets() -> list[str]:
-    primary = os.environ.get("YTDOWN_YOUTUBE_CLIENTS") or _default_youtube_clients()
+    primary = os.environ.get("YTDOWN_YOUTUBE_CLIENTS")
+    if primary is None:
+        primary = _default_youtube_clients()
     if _pot_provider_url() and not _resolve_cookie_file() and not os.environ.get("YTDOWN_COOKIES_BROWSER"):
         fallbacks = (
             POT_YOUTUBE_CLIENTS,
@@ -263,11 +266,11 @@ def _youtube_client_sets() -> list[str]:
             "web,android,ios",
             DEFAULT_YOUTUBE_CLIENTS,
         )
-    client_sets = [primary]
-    for fallback in fallbacks:
-        if fallback not in client_sets:
-            client_sets.append(fallback)
-    return client_sets
+    client_sets: list[str] = []
+    for candidate in (primary, *fallbacks):
+        if candidate not in client_sets:
+            client_sets.append(candidate)
+    return client_sets or [DEFAULT_YOUTUBE_CLIENTS]
 
 
 def _browser_http_headers() -> dict[str, str]:
