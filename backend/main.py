@@ -575,14 +575,25 @@ def run_download_job(job_id: str, url: str, format_id: str, ext: str) -> None:
                     raise
         if info is None:
             raise last_error or RuntimeError("Pobieranie nie powiodło się.")
-            filepath = Path(ydl.prepare_filename(info))
-            if ext == "mp3":
-                filepath = filepath.with_suffix(".mp3")
-            if not filepath.exists():
-                candidates = list(Path(tmp_dir).glob("*"))
-                if not candidates:
-                    raise RuntimeError("Nie udało się zapisać pliku.")
-                filepath = candidates[0]
+
+        requested = info.get("requested_downloads") or []
+        if requested and requested[0].get("filepath"):
+            filepath = Path(requested[0]["filepath"])
+        elif info.get("_filename"):
+            filepath = Path(info["_filename"])
+        else:
+            candidates = [p for p in Path(tmp_dir).glob("*") if p.is_file()]
+            if not candidates:
+                raise RuntimeError("Nie udało się zapisać pliku.")
+            filepath = max(candidates, key=lambda p: p.stat().st_mtime)
+        if ext == "mp3":
+            mp3 = filepath.with_suffix(".mp3")
+            filepath = mp3 if mp3.exists() else filepath
+        if not filepath.exists():
+            candidates = [p for p in Path(tmp_dir).glob("*") if p.is_file()]
+            if not candidates:
+                raise RuntimeError("Nie udało się zapisać pliku.")
+            filepath = candidates[0]
 
         with jobs_lock:
             jobs[job_id].update(

@@ -89,6 +89,9 @@ setup_cookies_mount() {
     else
       echo "==> Montuję cookies YouTube ($(grep -cE $'[\t](\.youtube\.com|youtube\.com)[\t]' secrets/cookies.txt || echo 0) wpisów)"
     fi
+    if ! grep -qE $'[\t](SID|LOGIN_INFO|__Secure-1PSID)[\t]' secrets/cookies.txt; then
+      echo "==> UWAGA: brak cookies logowania — eksportuj z zalogowanej sesji YouTube (incognito)"
+    fi
     cat > docker-compose.override.yml <<'EOF'
 services:
   ytdown:

@@ -38,6 +38,11 @@ def _expiration(cookie: dict) -> str:
     return str(int(exp))
 
 
+AUTH_COOKIE_NAMES = frozenset(
+    {"SID", "LOGIN_INFO", "__Secure-1PSID", "__Secure-3PSID", "HSID", "SSID"}
+)
+
+
 def convert(items: list[dict], youtube_only: bool = True) -> str:
     rows: dict[tuple[str, str], str] = {}
     for cookie in items:
@@ -76,6 +81,14 @@ def main() -> int:
     dst.write_text(out, encoding="utf-8")
     count = max(0, out.count("\n") - 4)
     print(f"==> cookies.txt: {count} wpisów YouTube/Google z {src}")
+    names = {line.split("\t")[5] for line in out.splitlines() if line and not line.startswith("#") and "\t" in line}
+    if not names & AUTH_COOKIE_NAMES:
+        print(
+            "==> UWAGA: brak cookies logowania (SID, LOGIN_INFO, __Secure-1PSID). "
+            "Eksportuj będąc zalogowanym na youtube.com (okno incognito).",
+            file=sys.stderr,
+        )
+        return 2
     return 0
 
 
