@@ -1,4 +1,12 @@
 services:
+  bgutil-provider:
+    image: brainicism/bgutil-ytdlp-pot-provider:${BGUTIL_IMAGE_TAG:-1.3.1-deno}
+    container_name: ytdown-bgutil
+    restart: unless-stopped
+    init: true
+    expose:
+      - "4416"
+
   ytdown:
     build: .
     image: ytdown:local
@@ -17,12 +25,15 @@ services:
       YTDOWN_JS_RUNTIMES: ${YTDOWN_JS_RUNTIMES:-deno,node}
       YTDOWN_REMOTE_COMPONENTS: ${YTDOWN_REMOTE_COMPONENTS:-ejs:github,ejs:npm}
       YTDOWN_SLEEP_INTERVAL_REQUESTS: ${YTDOWN_SLEEP_INTERVAL_REQUESTS:-1}
+      YTDOWN_POT_PROVIDER_URL: ${YTDOWN_POT_PROVIDER_URL:-http://bgutil-provider:4416}
       # YTDOWN_COOKIES_FILE: /etc/ytdown/cookies.txt
       # YTDOWN_COOKIES_BROWSER: chrome  # tylko lokalnie, nie w Dockerze
     volumes:
       - ./downloads:/downloads
       # cookies — wgraj plik na serwer, potem odkomentuj:
       # - ./secrets/cookies.txt:/app/secrets/cookies.txt:ro
+    depends_on:
+      - bgutil-provider
 
   caddy:
     image: caddy:2-alpine

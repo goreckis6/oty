@@ -100,7 +100,7 @@ services:
 EOF
   else
     rm -f docker-compose.override.yml
-    echo "==> Brak secrets/cookies.txt — YouTube może blokować VPS bez cookies"
+    echo "==> Brak secrets/cookies.txt — używany bgutil PO Token (docker compose service bgutil-provider)"
   fi
 }
 

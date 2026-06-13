@@ -2,6 +2,8 @@ import os
 import re
 import shutil
 import threading
+import urllib.error
+import urllib.request
 import uuid
 from pathlib import Path
 from typing import Any
@@ -103,9 +105,19 @@ def friendly_error(message: str) -> str:
                 "otwórz youtube.com w oknie incognito, NIE przeglądaj dalej, wyeksportuj cookies "
                 "(Get cookies.txt LOCALLY) i zamknij okno bez wylogowania. Wgraj na serwer."
             )
+        if _pot_provider_url() and not _pot_provider_reachable():
+            return (
+                "Serwer PO Token (bgutil-provider) nie odpowiada. "
+                "Sprawdź: docker compose ps && docker compose logs bgutil-provider"
+            )
+        if not _pot_provider_url():
+            return (
+                "YouTube zablokował pobieranie. W Dockerze włącz bgutil-provider "
+                "(YTDOWN_POT_PROVIDER_URL) lub dodaj cookies na serwerze."
+            )
         return (
-            "YouTube zablokował pobieranie. Dodaj plik cookies z przeglądarki "
-            "na serwer jako /opt/ytdown/secrets/cookies.txt (lub cookies.json)."
+            "YouTube nadal blokuje VPS mimo PO Token. Dodaj świeże cookies "
+            "jako /opt/ytdown/secrets/cookies.txt (opcjonalnie razem z PO Token)."
         )
     if "ffmpeg" in message.lower() or "ffprobe" in message.lower():
         return "Brak ffmpeg. Zainstaluj: sudo apt install ffmpeg"
@@ -183,6 +195,36 @@ def _remote_components() -> list[str]:
     return [part.strip() for part in raw.split(",") if part.strip()]
 
 
+def _pot_provider_url() -> str | None:
+    raw = os.environ.get("YTDOWN_POT_PROVIDER_URL", "").strip()
+    if not raw or raw.lower() in ("none", "off", "false", "0"):
+        return None
+    return raw.rstrip("/")
+
+
+def _pot_provider_reachable() -> bool:
+    url = _pot_provider_url()
+    if not url:
+        return False
+    try:
+        with urllib.request.urlopen(url, timeout=2) as resp:
+            return resp.status < 500
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return False
+
+
+def _youtube_extractor_args(player_clients: list[str]) -> dict[str, Any]:
+    args: dict[str, Any] = {
+        "youtube": {
+            "player_client": player_clients,
+        }
+    }
+    pot_url = _pot_provider_url()
+    if pot_url:
+        args["youtubepot-bgutilhttp"] = {"base_url": pot_url}
+    return args
+
+
 def _youtube_player_clients() -> list[str]:
     raw = os.environ.get("YTDOWN_YOUTUBE_CLIENTS") or _default_youtube_clients()
     return [client.strip() for client in raw.split(",") if client.strip()]
@@ -234,11 +276,7 @@ def base_ydl_opts(job_id: str | None = None) -> dict[str, Any]:
         "quiet": True,
         "no_warnings": True,
         "force_ipv4": os.environ.get("YTDOWN_FORCE_IPV4", "1") != "0",
-        "extractor_args": {
-            "youtube": {
-                "player_client": _youtube_player_clients(),
-            }
-        },
+        "extractor_args": _youtube_extractor_args(_youtube_player_clients()),
     }
     # Własne nagłówki psują ekstrakcję z cookies — yt-dlp ma lepsze domyślne.
     if not _resolve_cookie_file() and not os.environ.get("YTDOWN_COOKIES_BROWSER"):
@@ -518,15 +556,12 @@ def extract_youtube_info(url: str, job_id: str | None = None, download: bool = F
 
     last_error: Exception | None = None
     for clients in client_sets:
+        client_list = [c.strip() for c in clients.split(",") if c.strip()]
         opts = {
             **base_ydl_opts(job_id),
             "skip_download": not download,
             "extract_flat": False,
-            "extractor_args": {
-                "youtube": {
-                    "player_client": [c.strip() for c in clients.split(",") if c.strip()],
-                }
-            },
+            "extractor_args": _youtube_extractor_args(client_list),
         }
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
@@ -559,12 +594,9 @@ def run_download_job(job_id: str, url: str, format_id: str, ext: str) -> None:
             if clients in seen:
                 continue
             seen.add(clients)
+            client_list = [c.strip() for c in clients.split(",") if c.strip()]
             ydl_opts = build_download_opts(url, format_id, ext, tmp_dir, job_id)
-            ydl_opts["extractor_args"] = {
-                "youtube": {
-                    "player_client": [c.strip() for c in clients.split(",") if c.strip()],
-                }
-            }
+            ydl_opts["extractor_args"] = _youtube_extractor_args(client_list)
             try:
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(url, download=True)
@@ -726,11 +758,17 @@ def health() -> dict[str, Any]:
             detail=f"low disk: {free // (1024**2)} MB free on {DOWNLOADS_DIR}",
         )
     cookie_file = _resolve_cookie_file()
+    pot_url = _pot_provider_url()
     return {
         "status": "ok",
         "worker": WORKER_ID,
         "disk_free_mb": free // (1024**2),
         "youtube_cookies": bool(cookie_file or os.environ.get("YTDOWN_COOKIES_BROWSER")),
+        "pot_provider": {
+            "enabled": bool(pot_url),
+            "url": pot_url,
+            "reachable": _pot_provider_reachable() if pot_url else False,
+        },
         "js_runtimes": list(_detect_js_runtimes().keys()),
         "yt_dlp_version": getattr(yt_dlp.version, "__version__", "unknown"),
     }

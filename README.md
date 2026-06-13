@@ -175,33 +175,36 @@ Otwórz `http://127.0.0.1:3000`.
 
 ### YouTube bot detection
 
-Od **yt-dlp 2025.10** YouTube wymaga **Node.js lub Deno** na serwerze (rozwiązywanie JS challenge).
+Od **yt-dlp 2025.10** YouTube wymaga **Node.js lub Deno** (JS challenge) oraz często **PO Token** na IP datacenter.
 
-Native deploy instaluje `nodejs` automatycznie. Sprawdź po deployu:
+#### Domyślnie w Dockerze: plugin PO Token (zalecane)
+
+Stack uruchamia [bgutil-ytdlp-pot-provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider) — oficjalny sposób wg [Installing plugins](https://github.com/yt-dlp/yt-dlp#installing-plugins):
+
+- **`bgutil-provider`** — serwer HTTP generujący Proof-of-Origin tokeny (port 4416)
+- **plugin w obrazie `ytdown`** — `pip install bgutil-ytdlp-pot-provider`, podpięty przez `YTDOWN_POT_PROVIDER_URL`
+
+Sprawdź po deployu:
 
 ```bash
 curl -s https://yts.cool/api/health
-# oczekiwane: "js_runtimes": ["node"], "yt_dlp_version": "2026.6.9"
+# oczekiwane: "pot_provider": {"enabled": true, "reachable": true}, "js_runtimes": ["deno","node"]
 ```
 
-**Lokalnie** (cookies z przeglądarki):
+Wyłączenie (np. test bez pluginu): `YTDOWN_POT_PROVIDER_URL=none` w `.env` / `docker-compose`.
+
+#### Opcjonalnie: cookies (backup gdy PO Token nie wystarczy)
+
+1. Chrome → **„Get cookies.txt LOCALLY”** (zalogowana sesja YouTube, najlepiej incognito)
+2. Na VPS: `/opt/ytdown/secrets/cookies.txt` lub `cookies.json`
+3. Deploy automatycznie montuje plik jeśli istnieje
+
+**Lokalnie** (cookies z przeglądarki, bez Dockera):
 
 ```bash
 export YTDOWN_COOKIES_BROWSER=chrome
 ./start.sh
 ```
-
-**Na serwerze (wymagane dla VPS)** — YouTube blokuje IP datacenter bez cookies:
-
-1. Chrome → rozszerzenie **„Get cookies.txt LOCALLY”**
-2. Zaloguj się na YouTube → eksport cookies
-3. Na VPS:
-   ```bash
-   mkdir -p /opt/ytdown/secrets
-   nano /opt/ytdown/secrets/cookies.txt   # wklej plik
-   cd /opt/ytdown && docker compose up -d --build
-   ```
-   Deploy automatycznie montuje `secrets/cookies.txt` jeśli plik istnieje.
 
 ---
 
