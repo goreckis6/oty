@@ -33,6 +33,7 @@ CHROME_USER_AGENT = (
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 DEFAULT_YOUTUBE_CLIENTS = "android_vr,web,web_safari,android"
+POT_YOUTUBE_CLIENTS = "web,web_safari,mweb,tv_embedded,android"
 COOKIE_YOUTUBE_CLIENTS = "web,web_safari,tv_embedded,mweb"
 COOKIE_FILE_CANDIDATES = (
     "/etc/ytdown/cookies.txt",
@@ -90,9 +91,14 @@ def friendly_error(message: str) -> str:
                     "(Get cookies.txt LOCALLY, będąc na youtube.com) i zaktualizuj na serwerze."
                 )
             return "YouTube odrzucił żądanie mimo cookies. Wyeksportuj świeże cookies z zalogowanej sesji."
+        if _pot_provider_url():
+            return (
+                "YouTube odrzucił żądanie mimo PO Token. Spróbuj ponownie za chwilę "
+                "lub dodaj opcjonalnie cookies jako backup."
+            )
         return (
-            "YouTube blokuje serwer VPS. Wyeksportuj cookies z Chrome (Get cookies.txt LOCALLY) "
-            "i wgraj na serwer jako /opt/ytdown/secrets/cookies.txt"
+            "YouTube blokuje serwer VPS. W Dockerze włącz bgutil-provider "
+            "lub dodaj cookies jako /opt/ytdown/secrets/cookies.txt"
         )
     if "challenge solving" in lower and not _detect_js_runtimes():
         return (
@@ -214,15 +220,18 @@ def _pot_provider_reachable() -> bool:
 
 
 def _youtube_extractor_args(player_clients: list[str]) -> dict[str, Any]:
-    args: dict[str, Any] = {
-        "youtube": {
-            "player_client": player_clients,
-        }
-    }
+    youtube_args: dict[str, Any] = {}
+    if player_clients:
+        youtube_args["player_client"] = player_clients
     pot_url = _pot_provider_url()
     if pot_url:
-        args["youtubepot-bgutilhttp"] = {"base_url": pot_url}
-    return args
+        youtube_args["fetch_pot"] = os.environ.get("YTDOWN_FETCH_POT", "always")
+        args: dict[str, Any] = {
+            "youtube": youtube_args,
+            "youtubepot-bgutilhttp": {"base_url": pot_url},
+        }
+        return args
+    return {"youtube": youtube_args} if youtube_args else {}
 
 
 def _youtube_player_clients() -> list[str]:
@@ -233,17 +242,27 @@ def _youtube_player_clients() -> list[str]:
 def _default_youtube_clients() -> str:
     if _resolve_cookie_file() or os.environ.get("YTDOWN_COOKIES_BROWSER"):
         return COOKIE_YOUTUBE_CLIENTS
+    if _pot_provider_url():
+        return POT_YOUTUBE_CLIENTS
     return DEFAULT_YOUTUBE_CLIENTS
 
 
 def _youtube_client_sets() -> list[str]:
     primary = os.environ.get("YTDOWN_YOUTUBE_CLIENTS") or _default_youtube_clients()
-    fallbacks = (
-        COOKIE_YOUTUBE_CLIENTS,
-        "tv_embedded,web",
-        "web,android,ios",
-        DEFAULT_YOUTUBE_CLIENTS,
-    )
+    if _pot_provider_url() and not _resolve_cookie_file() and not os.environ.get("YTDOWN_COOKIES_BROWSER"):
+        fallbacks = (
+            POT_YOUTUBE_CLIENTS,
+            "tv_embedded,web,web_safari",
+            "web,web_safari,mweb",
+            DEFAULT_YOUTUBE_CLIENTS,
+        )
+    else:
+        fallbacks = (
+            COOKIE_YOUTUBE_CLIENTS,
+            "tv_embedded,web",
+            "web,android,ios",
+            DEFAULT_YOUTUBE_CLIENTS,
+        )
     client_sets = [primary]
     for fallback in fallbacks:
         if fallback not in client_sets:
@@ -278,8 +297,12 @@ def base_ydl_opts(job_id: str | None = None) -> dict[str, Any]:
         "force_ipv4": os.environ.get("YTDOWN_FORCE_IPV4", "1") != "0",
         "extractor_args": _youtube_extractor_args(_youtube_player_clients()),
     }
-    # Własne nagłówki psują ekstrakcję z cookies — yt-dlp ma lepsze domyślne.
-    if not _resolve_cookie_file() and not os.environ.get("YTDOWN_COOKIES_BROWSER"):
+    # Własne nagłówki psują ekstrakcję z cookies / PO Token — yt-dlp ma lepsze domyślne.
+    if (
+        not _resolve_cookie_file()
+        and not os.environ.get("YTDOWN_COOKIES_BROWSER")
+        and not _pot_provider_url()
+    ):
         opts["http_headers"] = _browser_http_headers()
 
     js_runtimes = _detect_js_runtimes()
@@ -533,8 +556,12 @@ def build_download_opts(url: str, format_id: str, ext: str, tmp_dir: str, job_id
         "outtmpl": str(Path(tmp_dir) / "%(title).200B.%(ext)s"),
         **extra,
     }
-    # Własne nagłówki psują ekstrakcję z cookies — używaj ich tylko bez cookies.
-    if not _resolve_cookie_file() and not os.environ.get("YTDOWN_COOKIES_BROWSER"):
+    # Własne nagłówki psują ekstrakcję z cookies / PO Token — używaj ich tylko bez obu.
+    if (
+        not _resolve_cookie_file()
+        and not os.environ.get("YTDOWN_COOKIES_BROWSER")
+        and not _pot_provider_url()
+    ):
         headers = _browser_http_headers()
         headers["Referer"] = "https://www.youtube.com/"
         headers["Origin"] = "https://www.youtube.com"
