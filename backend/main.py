@@ -33,7 +33,7 @@ CHROME_USER_AGENT = (
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 DEFAULT_YOUTUBE_CLIENTS = "android_vr,web,web_safari,android"
-POT_YOUTUBE_CLIENTS = "web,web_safari,mweb,tv_embedded,android"
+POT_YOUTUBE_CLIENTS = "web,web_safari,web_embedded,web_creator,mweb,tv,tv_embedded"
 COOKIE_YOUTUBE_CLIENTS = "web,web_safari,tv_embedded,mweb"
 COOKIE_FILE_CANDIDATES = (
     "/etc/ytdown/cookies.txt",
@@ -255,7 +255,7 @@ def _youtube_client_sets() -> list[str]:
     if _pot_provider_url() and not _resolve_cookie_file() and not os.environ.get("YTDOWN_COOKIES_BROWSER"):
         fallbacks = (
             POT_YOUTUBE_CLIENTS,
-            "tv_embedded,web,web_safari",
+            "web_embedded,tv_embedded,tv",
             "web,web_safari,mweb",
             DEFAULT_YOUTUBE_CLIENTS,
         )
