@@ -31,6 +31,7 @@ CHROME_USER_AGENT = (
     "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 DEFAULT_YOUTUBE_CLIENTS = "android_vr,web,web_safari,android"
+COOKIE_YOUTUBE_CLIENTS = "web,web_safari,tv_embedded,mweb"
 COOKIE_FILE_CANDIDATES = (
     "/etc/ytdown/cookies.txt",
     "/app/secrets/cookies.txt",
@@ -178,8 +179,29 @@ def _remote_components() -> list[str]:
 
 
 def _youtube_player_clients() -> list[str]:
-    raw = os.environ.get("YTDOWN_YOUTUBE_CLIENTS", DEFAULT_YOUTUBE_CLIENTS)
+    raw = os.environ.get("YTDOWN_YOUTUBE_CLIENTS") or _default_youtube_clients()
     return [client.strip() for client in raw.split(",") if client.strip()]
+
+
+def _default_youtube_clients() -> str:
+    if _resolve_cookie_file() or os.environ.get("YTDOWN_COOKIES_BROWSER"):
+        return COOKIE_YOUTUBE_CLIENTS
+    return DEFAULT_YOUTUBE_CLIENTS
+
+
+def _youtube_client_sets() -> list[str]:
+    primary = os.environ.get("YTDOWN_YOUTUBE_CLIENTS") or _default_youtube_clients()
+    fallbacks = (
+        COOKIE_YOUTUBE_CLIENTS,
+        "tv_embedded,web",
+        "web,android,ios",
+        DEFAULT_YOUTUBE_CLIENTS,
+    )
+    client_sets = [primary]
+    for fallback in fallbacks:
+        if fallback not in client_sets:
+            client_sets.append(fallback)
+    return client_sets
 
 
 def _browser_http_headers() -> dict[str, str]:
@@ -476,18 +498,14 @@ def build_download_opts(url: str, format_id: str, ext: str, tmp_dir: str, job_id
 
 
 YOUTUBE_CLIENT_FALLBACKS = (
-    "android_vr,web,web_safari,android",
+    "web,web_safari,tv_embedded,mweb",
+    "tv_embedded,web",
     "web,android,ios",
-    "tv_embedded,android",
 )
 
 
 def extract_youtube_info(url: str, job_id: str | None = None, download: bool = False) -> dict[str, Any]:
-    primary = os.environ.get("YTDOWN_YOUTUBE_CLIENTS", DEFAULT_YOUTUBE_CLIENTS)
-    client_sets = [primary]
-    for fallback in YOUTUBE_CLIENT_FALLBACKS:
-        if fallback not in client_sets:
-            client_sets.append(fallback)
+    client_sets = _youtube_client_sets()
 
     last_error: Exception | None = None
     for clients in client_sets:
@@ -527,10 +545,8 @@ def run_download_job(job_id: str, url: str, format_id: str, ext: str) -> None:
 
         last_error: Exception | None = None
         info = None
-        primary = os.environ.get("YTDOWN_YOUTUBE_CLIENTS", DEFAULT_YOUTUBE_CLIENTS)
-        client_sets = [primary, *YOUTUBE_CLIENT_FALLBACKS]
         seen: set[str] = set()
-        for clients in client_sets:
+        for clients in _youtube_client_sets():
             if clients in seen:
                 continue
             seen.add(clients)

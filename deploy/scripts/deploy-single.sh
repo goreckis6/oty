@@ -78,6 +78,10 @@ EOF
 
 setup_cookies_mount() {
   mkdir -p secrets
+  if [[ -f secrets/cookies.json ]] && [[ ! -f secrets/cookies.txt || secrets/cookies.json -nt secrets/cookies.txt ]]; then
+    echo "==> Konwertuję secrets/cookies.json → cookies.txt"
+    python3 "${SCRIPT_DIR}/cookies-json-to-txt.py" secrets/cookies.json secrets/cookies.txt
+  fi
   if [[ -f secrets/cookies.txt ]]; then
     chmod 644 secrets/cookies.txt
     if ! grep -qE $'[\t](\.youtube\.com|youtube\.com)[\t]' secrets/cookies.txt; then

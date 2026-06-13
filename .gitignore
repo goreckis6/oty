@@ -13,6 +13,7 @@ bin/
 certs/
 secrets/
 cookies.txt
+cookies.json
 *.pem
 
 # Downloads on server
