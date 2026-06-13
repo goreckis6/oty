@@ -1,14 +1,12 @@
-# VPS: tylko Caddy (HTTPS) → backend na domowym PC.
+# VPS: tylko Caddy (HTTPS) → backend na domowym PC przez tunel SSH.
+# Caddy używa network_mode: host, żeby widzieć 127.0.0.1:PORT tunelu na VPS.
 # Wygeneruj Caddyfile: deploy/scripts/setup-vps-home-proxy.sh
 services:
   caddy:
     image: caddy:2-alpine
     container_name: ytdown-caddy
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+    network_mode: host
     environment:
       DOMAIN: ${DOMAIN:-yts.cool}
       ACME_EMAIL: ${ACME_EMAIL:-}
@@ -16,8 +14,6 @@ services:
       - ./deploy/caddy/Caddyfile.runtime:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
 volumes:
   caddy_data:
