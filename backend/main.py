@@ -207,7 +207,7 @@ def _pot_provider_reachable() -> bool:
     if not url:
         return False
     try:
-        with urllib.request.urlopen(url, timeout=2) as resp:
+        with urllib.request.urlopen(f"{url}/ping", timeout=2) as resp:
             return resp.status < 500
     except (urllib.error.URLError, TimeoutError, OSError):
         return False
