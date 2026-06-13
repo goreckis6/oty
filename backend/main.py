@@ -97,10 +97,15 @@ def friendly_error(message: str) -> str:
             "Brak Node.js/Deno dla yt-dlp. Na serwerze: apt install nodejs && docker compose up -d --build"
         )
     if "Sign in to confirm" in message or "bot" in message.lower():
+        if _resolve_cookie_file():
+            return (
+                "Cookies YouTube zostały unieważnione (rotacja konta). Wyeksportuj świeże: "
+                "otwórz youtube.com w oknie incognito, NIE przeglądaj dalej, wyeksportuj cookies "
+                "(Get cookies.txt LOCALLY) i zamknij okno bez wylogowania. Wgraj na serwer."
+            )
         return (
             "YouTube zablokował pobieranie. Dodaj plik cookies z przeglądarki "
-            "(np. /etc/ytdown/cookies.txt na serwerze) lub lokalnie: "
-            "YTDOWN_COOKIES_BROWSER=chrome ./start.sh"
+            "na serwer jako /opt/ytdown/secrets/cookies.txt (lub cookies.json)."
         )
     if "ffmpeg" in message.lower() or "ffprobe" in message.lower():
         return "Brak ffmpeg. Zainstaluj: sudo apt install ffmpeg"
@@ -484,16 +489,18 @@ def resolve_format_selector(format_id: str, ext: str) -> tuple[str, dict[str, An
 
 def build_download_opts(url: str, format_id: str, ext: str, tmp_dir: str, job_id: str | None) -> dict[str, Any]:
     selector, extra = resolve_format_selector(format_id, ext)
-    headers = _browser_http_headers()
-    headers["Referer"] = "https://www.youtube.com/"
-    headers["Origin"] = "https://www.youtube.com"
     ydl_opts: dict[str, Any] = {
         **base_ydl_opts(job_id),
         "format": selector,
         "outtmpl": str(Path(tmp_dir) / "%(title).200B.%(ext)s"),
-        "http_headers": headers,
         **extra,
     }
+    # Własne nagłówki psują ekstrakcję z cookies — używaj ich tylko bez cookies.
+    if not _resolve_cookie_file() and not os.environ.get("YTDOWN_COOKIES_BROWSER"):
+        headers = _browser_http_headers()
+        headers["Referer"] = "https://www.youtube.com/"
+        headers["Origin"] = "https://www.youtube.com"
+        ydl_opts["http_headers"] = headers
     if ext in ("mp4", "webm", "mkv") and "merge_output_format" not in ydl_opts:
         ydl_opts["merge_output_format"] = ext
     return ydl_opts
