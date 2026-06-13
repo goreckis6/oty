@@ -273,6 +273,20 @@ def _youtube_client_sets() -> list[str]:
     return client_sets or [DEFAULT_YOUTUBE_CLIENTS]
 
 
+def _should_try_next_youtube_client(exc: Exception) -> bool:
+    message = str(exc).lower()
+    retry_markers = (
+        "player response",
+        "sign in to confirm",
+        "not a bot",
+        "bot",
+        "po token",
+        "http error 403",
+        "forbidden",
+    )
+    return any(marker in message for marker in retry_markers)
+
+
 def _browser_http_headers() -> dict[str, str]:
     return {
         "User-Agent": os.environ.get("YTDOWN_USER_AGENT", CHROME_USER_AGENT),
@@ -598,7 +612,7 @@ def extract_youtube_info(url: str, job_id: str | None = None, download: bool = F
                 return ydl.extract_info(url, download=download)
         except yt_dlp.utils.DownloadError as exc:
             last_error = exc
-            if "player response" not in str(exc).lower():
+            if not _should_try_next_youtube_client(exc):
                 raise
     if last_error:
         raise last_error
@@ -633,7 +647,7 @@ def run_download_job(job_id: str, url: str, format_id: str, ext: str) -> None:
                 break
             except yt_dlp.utils.DownloadError as exc:
                 last_error = exc
-                if "player response" not in str(exc).lower():
+                if not _should_try_next_youtube_client(exc):
                     raise
         if info is None:
             raise last_error or RuntimeError("Pobieranie nie powiodło się.")
