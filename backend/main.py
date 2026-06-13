@@ -229,13 +229,15 @@ def base_ydl_opts(job_id: str | None = None) -> dict[str, Any]:
         "quiet": True,
         "no_warnings": True,
         "force_ipv4": os.environ.get("YTDOWN_FORCE_IPV4", "1") != "0",
-        "http_headers": _browser_http_headers(),
         "extractor_args": {
             "youtube": {
                 "player_client": _youtube_player_clients(),
             }
         },
     }
+    # Własne nagłówki psują ekstrakcję z cookies — yt-dlp ma lepsze domyślne.
+    if not _resolve_cookie_file() and not os.environ.get("YTDOWN_COOKIES_BROWSER"):
+        opts["http_headers"] = _browser_http_headers()
 
     js_runtimes = _detect_js_runtimes()
     if js_runtimes:
