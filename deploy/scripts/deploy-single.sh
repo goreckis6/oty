@@ -79,7 +79,12 @@ EOF
 setup_cookies_mount() {
   mkdir -p secrets
   if [[ -f secrets/cookies.txt ]]; then
-    echo "==> Montuję cookies YouTube"
+    chmod 644 secrets/cookies.txt
+    if ! grep -qE $'[\t](\.youtube\.com|youtube\.com)[\t]' secrets/cookies.txt; then
+      echo "==> UWAGA: secrets/cookies.txt nie zawiera cookies youtube.com"
+    else
+      echo "==> Montuję cookies YouTube ($(grep -cE $'[\t](\.youtube\.com|youtube\.com)[\t]' secrets/cookies.txt || echo 0) wpisów)"
+    fi
     cat > docker-compose.override.yml <<'EOF'
 services:
   ytdown:

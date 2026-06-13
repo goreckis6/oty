@@ -48,9 +48,26 @@ jobs:
             --exclude 'bin' \
             --exclude 'certs' \
             --exclude 'downloads' \
+            --exclude 'secrets' \
             --exclude '.env' \
             -e "ssh -i ~/.ssh/deploy_key -p $DEPLOY_PORT -o StrictHostKeyChecking=accept-new" \
             ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
+
+      - name: Install YouTube cookies
+        env:
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+        run: |
+          if [ -z "$YOUTUBE_COOKIES" ]; then
+            echo "Brak sekretu YOUTUBE_COOKIES — pomijam (cookies muszą być już na serwerze w secrets/cookies.txt)"
+            exit 0
+          fi
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=accept-new \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "mkdir -p '${DEPLOY_PATH}/secrets' && chmod 700 '${DEPLOY_PATH}/secrets'"
+          printf '%s\n' "$YOUTUBE_COOKIES" | ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cat > '${DEPLOY_PATH}/secrets/cookies.txt' && chmod 644 '${DEPLOY_PATH}/secrets/cookies.txt'"
+          echo "==> cookies.txt wgrane na serwer"
 
       - name: Remote deploy
         timeout-minutes: 15

@@ -79,8 +79,13 @@ def normalize_url(url: str) -> str:
 
 def friendly_error(message: str) -> str:
     lower = message.lower()
-    if "player response" in lower:
+    if "player response" in lower or "no longer valid" in lower:
         if _resolve_cookie_file():
+            if "no longer valid" in lower:
+                return (
+                    "Cookies YouTube wygasły. Wyeksportuj świeże cookies z Chrome "
+                    "(Get cookies.txt LOCALLY, będąc na youtube.com) i zaktualizuj na serwerze."
+                )
             return "YouTube odrzucił żądanie mimo cookies. Wyeksportuj świeże cookies z zalogowanej sesji."
         return (
             "YouTube blokuje serwer VPS. Wyeksportuj cookies z Chrome (Get cookies.txt LOCALLY) "
@@ -105,12 +110,24 @@ def friendly_error(message: str) -> str:
 
 def _resolve_cookie_file() -> str | None:
     explicit = os.environ.get("YTDOWN_COOKIES_FILE")
+    source: Path | None = None
     if explicit and Path(explicit).is_file():
-        return explicit
-    for candidate in COOKIE_FILE_CANDIDATES:
-        if Path(candidate).is_file():
-            return candidate
-    return None
+        source = Path(explicit)
+    else:
+        for candidate in COOKIE_FILE_CANDIDATES:
+            path = Path(candidate)
+            if path.is_file():
+                source = path
+                break
+    if not source:
+        return None
+    if os.access(source, os.W_OK):
+        return str(source)
+    # yt-dlp zapisuje cookies przy zamknięciu — kopia na zapisywalny dysk (Docker :ro mount).
+    cache = Path(os.environ.get("YTDOWN_COOKIE_CACHE", "/tmp/ytdown_youtube_cookies.txt"))
+    if not cache.exists() or cache.stat().st_mtime < source.stat().st_mtime:
+        shutil.copy2(source, cache)
+    return str(cache)
 
 
 def _runtime_binary_paths(runtime: str) -> tuple[str, ...]:

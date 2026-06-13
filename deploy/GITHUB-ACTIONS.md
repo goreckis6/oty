@@ -15,7 +15,8 @@ Trigger: **push na `main`** lub **Actions → Deploy → Run workflow**
 | `DEPLOY_PATH` | `/opt/ytdown` | opcjonalnie |
 | `DOMAIN` | `yts.cool` | opcjonalnie (domyślnie yts.cool) |
 | `ACME_EMAIL` | `admin@example.com` | opcjonalnie (Let's Encrypt) |
-| `DEPLOY_MODE` | `native` | `native` (jak start.sh) lub `docker` |
+| `DEPLOY_MODE` | `docker` | `docker` (domyślnie) lub `native` |
+| `YOUTUBE_COOKIES` | zawartość `cookies.txt` | opcjonalnie — cookies YouTube (Netscape format) |
 
 > Stare sekrety `LB_HOST` i `WORKERS` **nie są już używane**.
 
@@ -48,6 +49,17 @@ yts.cool  →  IP Twojego VPS (np. 167.233.112.233)
 ```
 
 W panelu Hetzner Cloud Firewall dodaj reguły **TCP 80** i **TCP 443** (oraz SSH 22).
+
+## Cookies YouTube (VPS)
+
+YouTube blokuje IP serwerów bez cookies. Eksport z Chrome (rozszerzenie **Get cookies.txt LOCALLY**, będąc na youtube.com):
+
+1. GitHub → **Settings → Secrets → Actions** → `YOUTUBE_COOKIES` → wklej cały plik Netscape
+2. Przy każdym deployu workflow zapisze go na VPS jako `/opt/ytdown/secrets/cookies.txt`
+
+Alternatywnie ręcznie na VPS: `nano /opt/ytdown/secrets/cookies.txt`
+
+Cookies wygasają — odśwież co kilka tygodni/miesięcy (gdy pobieranie znowu zacznie failować).
 
 ## Pierwszy raz na VPS
 
