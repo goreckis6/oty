@@ -18,6 +18,13 @@ if [[ "$HOME_BACKEND_URL" != */8080 && "$HOME_BACKEND_URL" != *:8080/* ]]; then
   echo "==> UWAGA: backend zwykle nasłuchuje na :8080"
 fi
 
+# Caddy w Dockerze nie widzi 127.0.0.1 hosta — tunel SSH jest na VPS, nie w kontenerze.
+CADDY_BACKEND_URL="$HOME_BACKEND_URL"
+if [[ "$HOME_BACKEND_URL" =~ ^https?://127\.0\.0\.1:([0-9]+)/?$ ]]; then
+  CADDY_BACKEND_URL="http://host.docker.internal:${BASH_REMATCH[1]}"
+  echo "==> Docker Caddy → ${CADDY_BACKEND_URL} (host VPS, port tunelu SSH)"
+fi
+
 if [ -n "$ACME_EMAIL" ]; then
   cat > deploy/caddy/Caddyfile.runtime <<EOF
 {
@@ -25,7 +32,7 @@ if [ -n "$ACME_EMAIL" ]; then
 }
 
 ${DOMAIN} {
-	reverse_proxy ${HOME_BACKEND_URL} {
+	reverse_proxy ${CADDY_BACKEND_URL} {
 		transport http {
 			read_timeout 3600s
 			write_timeout 3600s
@@ -36,7 +43,7 @@ EOF
 else
   cat > deploy/caddy/Caddyfile.runtime <<EOF
 ${DOMAIN} {
-	reverse_proxy ${HOME_BACKEND_URL} {
+	reverse_proxy ${CADDY_BACKEND_URL} {
 		transport http {
 			read_timeout 3600s
 			write_timeout 3600s

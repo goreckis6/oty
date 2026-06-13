@@ -59,18 +59,39 @@ docker compose -f docker-compose.vps-proxy.yml up -d
 
 ### B. SSH reverse tunnel (szybki test)
 
-Na **domowym PC** (VPS musi mieć Twój klucz publiczny lub odwrotnie):
+Na **domowym PC**:
 
 ```bash
-ssh -N -R 127.0.0.1:18080:127.0.0.1:8080 root@167.233.112.233
+./scripts/connect-home-to-vps.sh
 ```
 
-Na **VPS**:
+Skrypt próbuje porty `19080`, `19081`, `19082` (domyślnie `18080` bywa zajęty).
+
+Jeśli zobaczysz `remote port forwarding failed` — na VPS:
 
 ```bash
-HOME_BACKEND_URL=http://127.0.0.1:18080 bash deploy/scripts/setup-vps-home-proxy.sh
+ss -tlnp | grep -E '18080|19080'
+fuser -k 18080/tcp 2>/dev/null
+fuser -k 19080/tcp 2>/dev/null
+```
+
+Albo wymuś inny port u siebie:
+
+```bash
+REMOTE_PORT=19100 ./scripts/connect-home-to-vps.sh
+```
+
+Na **VPS** (użyj **tego samego portu**, który tunel przyjął — np. `19080`):
+
+```bash
+HOME_BACKEND_URL=http://127.0.0.1:28080 DOMAIN=yts.cool bash deploy/scripts/setup-vps-home-proxy.sh
+docker compose down
 docker compose -f docker-compose.vps-proxy.yml up -d
+curl -s http://127.0.0.1:28080/api/health
+curl -s https://yts.cool/api/health
 ```
+
+> **502?** Caddy w Dockerze nie widzi `127.0.0.1` hosta VPS. Skrypt mapuje to na `host.docker.internal`.
 
 Tunnel musi być cały czas otwarty (albo `autossh` + systemd).
 
