@@ -225,10 +225,10 @@ def _youtube_extractor_args(player_clients: list[str]) -> dict[str, Any]:
         youtube_args["player_client"] = player_clients
     pot_url = _pot_provider_url()
     if pot_url:
-        youtube_args["fetch_pot"] = os.environ.get("YTDOWN_FETCH_POT", "always")
+        youtube_args["fetch_pot"] = [os.environ.get("YTDOWN_FETCH_POT", "always")]
         args: dict[str, Any] = {
             "youtube": youtube_args,
-            "youtubepot-bgutilhttp": {"base_url": pot_url},
+            "youtubepot-bgutilhttp": {"base_url": [pot_url]},
         }
         return args
     return {"youtube": youtube_args} if youtube_args else {}
