@@ -219,6 +219,13 @@ def _pot_provider_reachable() -> bool:
         return False
 
 
+def _ydl_proxy() -> str | None:
+    raw = os.environ.get("YTDOWN_PROXY", "").strip()
+    if not raw or raw.lower() in ("none", "off", "false", "0"):
+        return None
+    return raw
+
+
 def _youtube_extractor_args(player_clients: list[str]) -> dict[str, Any]:
     youtube_args: dict[str, Any] = {}
     if player_clients:
@@ -329,6 +336,10 @@ def base_ydl_opts(job_id: str | None = None) -> dict[str, Any]:
     remote_components = _remote_components()
     if remote_components:
         opts["remote_components"] = remote_components
+
+    proxy = _ydl_proxy()
+    if proxy:
+        opts["proxy"] = proxy
 
     sleep_requests = os.environ.get("YTDOWN_SLEEP_INTERVAL_REQUESTS")
     if sleep_requests:
@@ -813,6 +824,7 @@ def health() -> dict[str, Any]:
             "url": pot_url,
             "reachable": _pot_provider_reachable() if pot_url else False,
         },
+        "outbound_proxy": bool(_ydl_proxy()),
         "js_runtimes": list(_detect_js_runtimes().keys()),
         "yt_dlp_version": getattr(yt_dlp.version, "__version__", "unknown"),
     }

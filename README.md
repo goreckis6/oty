@@ -193,6 +193,16 @@ curl -s https://yts.cool/api/health
 
 Wyłączenie (np. test bez pluginu): `YTDOWN_POT_PROVIDER_URL=none` w `.env` / `docker-compose`.
 
+#### Gdy IP VPS jest zablokowane: proxy
+
+PO Token nie zmienia adresu IP. Jeśli YouTube oznaczył IP datacenter jako bota, użyj residential/ISP proxy:
+
+```bash
+YTDOWN_PROXY=http://user:pass@host:port
+```
+
+`yt-dlp` użyje tego proxy do żądań YouTube, a plugin przekaże ten sam proxy do `bgutil-provider`, żeby PO Token był generowany dla tego samego wyjścia sieciowego.
+
 #### Opcjonalnie: cookies (backup gdy PO Token nie wystarczy)
 
 1. Chrome → **„Get cookies.txt LOCALLY”** (zalogowana sesja YouTube, najlepiej incognito)

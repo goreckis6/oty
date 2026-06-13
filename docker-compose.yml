@@ -26,6 +26,7 @@ services:
       YTDOWN_REMOTE_COMPONENTS: ${YTDOWN_REMOTE_COMPONENTS:-ejs:github,ejs:npm}
       YTDOWN_SLEEP_INTERVAL_REQUESTS: ${YTDOWN_SLEEP_INTERVAL_REQUESTS:-1}
       YTDOWN_POT_PROVIDER_URL: ${YTDOWN_POT_PROVIDER_URL:-http://bgutil-provider:4416}
+      YTDOWN_PROXY: ${YTDOWN_PROXY:-}
       # YTDOWN_COOKIES_FILE: /etc/ytdown/cookies.txt
       # YTDOWN_COOKIES_BROWSER: chrome  # tylko lokalnie, nie w Dockerze
     volumes:
