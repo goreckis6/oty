@@ -1,0 +1,18 @@
+[Unit]
+Description=YTS site (Docker Compose: API + Caddy)
+Documentation=https://github.com/goreckis6/oty
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=@APP_DIR@
+Environment=COMPOSE_PROJECT_NAME=ytdown
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecStop=/usr/bin/docker compose down
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

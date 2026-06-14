@@ -2,7 +2,7 @@ services:
   api:
     build: ./backend
     container_name: site-api
-    restart: unless-stopped
+    restart: always
     ports:
       - "127.0.0.1:8080:8080"
     volumes:
@@ -21,14 +21,25 @@ services:
       ADMIN_USER: ${ADMIN_USER:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/v1/health', timeout=5)\"",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
 
   caddy:
     image: caddy:2-alpine
     container_name: site-caddy
-    restart: unless-stopped
+    restart: always
     network_mode: host
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     volumes:
       - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./public:/srv:ro

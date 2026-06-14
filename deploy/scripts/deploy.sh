@@ -93,13 +93,28 @@ export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE ADMIN_USER ADMIN_PASSWORD JWT_SEC
 docker compose up -d --build --remove-orphans
 
 echo "==> Waiting for services on VPS..."
+API_OK=0
 for i in $(seq 1 45); do
   if curl -sf "http://127.0.0.1:8080/api/v1/health" >/dev/null 2>&1; then
     echo "    API container ready (${i}x2s)"
+    API_OK=1
     break
   fi
   sleep 2
 done
+
+if [ "$API_OK" -ne 1 ]; then
+  echo "FATAL: API health check failed after deploy" >&2
+  docker compose ps || true
+  docker compose logs api --tail 80 || true
+  exit 1
+fi
+
+if ! curl -sf "http://127.0.0.1:8080/api/v1/health" | grep -q '"status"'; then
+  echo "FATAL: API health endpoint returned unexpected response" >&2
+  curl -sv "http://127.0.0.1:8080/api/v1/health" 2>&1 | tail -20 || true
+  exit 1
+fi
 
 if [ "$DB_SIZE_BEFORE" -gt 0 ]; then
   if [ ! -f "$DB_FILE" ]; then
@@ -118,3 +133,6 @@ echo "==> Deploy OK — https://${DOMAIN}"
 echo "    API: https://${DOMAIN}/api/v1/"
 echo "    Admin: https://${DOMAIN}/twojastara"
 docker compose ps
+
+echo "==> Installing boot service (auto-start after VPS reboot)..."
+bash "${APP_DIR}/deploy/scripts/install-boot-service.sh"
