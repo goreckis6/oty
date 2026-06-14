@@ -5,13 +5,17 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:8080"
+    volumes:
+      - ./backend/data:/app/data
     environment:
-      DATA_SOURCE: ${DATA_SOURCE:-scrape}
+      DATA_SOURCE: ${DATA_SOURCE:-sqlite}
+      DB_PATH: /app/data/movies.db
       TMDB_API_KEY: ${TMDB_API_KEY:-}
       TORRENT_SOURCE: ${TORRENT_SOURCE:-apibay}
-      APIBAY_URL: ${APIBAY_URL:-https://apibay.org}
-      TORZNAB_URL: ${TORZNAB_URL:-}
-      TORZNAB_API_KEY: ${TORZNAB_API_KEY:-}
+      YTS_SCRAPE_URL: ${YTS_SCRAPE_URL:-https://yts.bz/api/v2}
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
 
   caddy:
     image: caddy:2-alpine

@@ -5,14 +5,17 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/ytdown}"
 DOMAIN="${DOMAIN:-localhost}"
 ACME_EMAIL="${ACME_EMAIL:-}"
-DATA_SOURCE="${DATA_SOURCE:-scrape}"
+DATA_SOURCE="${DATA_SOURCE:-sqlite}"
 TMDB_API_KEY="${TMDB_API_KEY:-}"
 TORRENT_SOURCE="${TORRENT_SOURCE:-apibay}"
+ADMIN_USER="${ADMIN_USER:-admin}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
+JWT_SECRET="${JWT_SECRET:-change-me-in-production}"
 SITE_NAME="${SITE_NAME:-YTS}"
 SITE_TAGLINE="${SITE_TAGLINE:-HD movies at the smallest file size}"
 
 cd "$APP_DIR"
-mkdir -p deploy/caddy public/js public/css public/downloads
+mkdir -p deploy/caddy public/js public/css public/downloads backend/data
 
 cat > public/js/config.js <<EOF
 window.YTS_CONFIG = {
@@ -57,7 +60,7 @@ ${DOMAIN} {
 EOF
 
 echo "==> Building and starting API + Caddy..."
-export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE
+export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE ADMIN_USER ADMIN_PASSWORD JWT_SECRET
 docker compose up -d --build --remove-orphans
 
 echo "==> Waiting for services on VPS..."
@@ -71,5 +74,5 @@ done
 
 echo "==> Deploy OK — https://${DOMAIN}"
 echo "    API: https://${DOMAIN}/api/v1/"
-echo "    Data: ${DATA_SOURCE} | Torrents: ${TORRENT_SOURCE}"
+echo "    Admin: https://${DOMAIN}/twojastara"
 docker compose ps

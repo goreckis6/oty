@@ -12,7 +12,8 @@ certs/
 secrets/
 *.pem
 
-# Server runtime
+backend/data/movies.db
+backend/data/*.db-journal
 downloads/*
 !downloads/.gitkeep
 

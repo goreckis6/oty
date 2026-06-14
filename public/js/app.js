@@ -381,6 +381,7 @@
     if (path === "/browse") {
       return { view: "browse", page: parseInt(params.get("page") || "1", 10) };
     }
+    if (path === "/twojastara") return { view: "admin" };
     const moviesMatch = path.match(/^\/movies\/([^/]+)$/);
     if (moviesMatch) return { view: "movie", slug: decodeURIComponent(moviesMatch[1]) };
     const legacyMatch = path.match(/^\/movie\/(\d+)$/);
@@ -402,6 +403,10 @@
     if (route.view === "home") return renderHome();
     if (route.view === "browse") return renderBrowse(route.page);
     if (route.view === "movie") return renderMovie(route.slug);
+    if (route.view === "admin" && window.YtsAdmin) {
+      setFiltersVisible(false);
+      return window.YtsAdmin.render(app);
+    }
     return renderHome();
   }
 
@@ -421,7 +426,7 @@
     const link = e.target.closest("a[href^='/']");
     if (!link || link.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey) return;
     const url = link.getAttribute("href");
-    if (!url || url.startsWith("/api/")) return;
+    if (!url || url.startsWith("/api/") || url === "/twojastara") return;
     e.preventDefault();
     navigate(url);
   });

@@ -13,6 +13,7 @@ TORRENT_SOURCE = os.environ.get("TORRENT_SOURCE", "apibay").lower()
 APIBAY_URL = os.environ.get("APIBAY_URL", "https://apibay.org").rstrip("/")
 TORZNAB_URL = os.environ.get("TORZNAB_URL", "").rstrip("/")
 TORZNAB_API_KEY = os.environ.get("TORZNAB_API_KEY", "")
+DATA_SOURCE = os.environ.get("DATA_SOURCE", "sqlite").lower()
 
 GENRES: dict[str, int] = {
     "Action": 28,
