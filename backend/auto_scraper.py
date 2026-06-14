@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from database import Database
 from scraper import scrape_movies
+
+logger = logging.getLogger(__name__)
 
 MIN_INTERVAL_MINUTES = 5
 MAX_INTERVAL_MINUTES = 24 * 60
@@ -18,6 +21,7 @@ TICK_SECONDS = 30
 
 _scrape_lock = asyncio.Lock()
 _task: asyncio.Task | None = None
+_db: Database | None = None
 
 
 def _now() -> datetime:
@@ -43,14 +47,19 @@ class AutoScrapeService:
         count = int(self.db.get_meta("auto_scrape_count", str(DEFAULT_COUNT)) or DEFAULT_COUNT)
         interval = max(MIN_INTERVAL_MINUTES, min(interval, MAX_INTERVAL_MINUTES))
         count = max(1, min(count, 50))
+        next_run = self.db.get_meta("auto_scrape_next_run")
+        next_dt = _parse_iso(next_run)
+        now = _now()
         return {
             "enabled": enabled,
             "interval_minutes": interval,
             "count": count,
             "last_run": self.db.get_meta("auto_scrape_last_run"),
-            "next_run": self.db.get_meta("auto_scrape_next_run"),
+            "next_run": next_run,
+            "next_run_overdue": bool(enabled and next_dt and now >= next_dt),
             "last_result": self._last_result(),
             "running": _scrape_lock.locked(),
+            "scheduler_alive": _task is not None and not _task.done(),
             "min_interval_minutes": MIN_INTERVAL_MINUTES,
         }
 
@@ -73,12 +82,15 @@ class AutoScrapeService:
         if enabled:
             next_run = self.db.get_meta("auto_scrape_next_run")
             parsed = _parse_iso(next_run)
-            if not parsed or parsed < _now():
+            if not parsed or parsed <= _now():
                 self.db.set_meta("auto_scrape_next_run", _now().isoformat())
         else:
             self.db.set_meta("auto_scrape_next_run", "")
 
-        return self.get_settings()
+        settings = self.get_settings()
+        if enabled:
+            trigger_auto_scrape_tick()
+        return settings
 
     def _schedule_next(self, interval_minutes: int) -> None:
         self.db.set_meta(
@@ -119,6 +131,7 @@ class AutoScrapeService:
         try:
             await self.run_once()
         except Exception as exc:
+            logger.exception("auto-scrape failed")
             self.db.set_meta("auto_scrape_last_run", _now().isoformat())
             self.db.set_meta(
                 "auto_scrape_last_result",
@@ -129,19 +142,49 @@ class AutoScrapeService:
 
 async def _loop(db: Database) -> None:
     service = AutoScrapeService(db)
+    logger.info("auto-scrape scheduler started")
     while True:
         try:
             await service.tick()
+        except asyncio.CancelledError:
+            raise
         except Exception:
-            pass
+            logger.exception("auto-scrape tick failed")
         await asyncio.sleep(TICK_SECONDS)
 
 
-def start_auto_scraper(db: Database) -> None:
-    global _task
+def _restart_loop_if_needed() -> None:
+    global _task, _db
+    if _db is None:
+        return
     if _task is not None and not _task.done():
         return
-    _task = asyncio.create_task(_loop(db))
+    _task = asyncio.create_task(_loop(_db), name="auto-scrape-loop")
+    _task.add_done_callback(_on_loop_done)
+
+
+def _on_loop_done(task: asyncio.Task) -> None:
+    global _task
+    _task = None
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc:
+        logger.error("auto-scrape loop stopped: %s", exc)
+    _restart_loop_if_needed()
+
+
+def trigger_auto_scrape_tick() -> None:
+    if _db is None:
+        return
+    asyncio.create_task(AutoScrapeService(_db).tick(), name="auto-scrape-tick")
+
+
+def start_auto_scraper(db: Database) -> None:
+    global _db
+    _db = db
+    _restart_loop_if_needed()
+    trigger_auto_scrape_tick()
 
 
 async def stop_auto_scraper() -> None:

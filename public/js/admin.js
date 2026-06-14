@@ -224,12 +224,25 @@
       });
     }
 
+    function formatAdminTime(iso) {
+      if (!iso) return "";
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toLocaleString("pl-PL", { dateStyle: "short", timeStyle: "medium" });
+    }
+
     function formatAutoStatus(s) {
       const lines = [];
       lines.push(s.enabled ? "Status: włączone" : "Status: wyłączone");
+      if (s.enabled && s.scheduler_alive === false) {
+        lines.push("Scheduler: nie działa (zrestartuj API)");
+      }
       if (s.running) lines.push("Teraz: scraping w toku…");
-      if (s.next_run) lines.push(`Następny: ${s.next_run}`);
-      if (s.last_run) lines.push(`Ostatni auto: ${s.last_run}`);
+      if (s.next_run) {
+        const label = s.next_run_overdue ? "Następny (opóźniony)" : "Następny";
+        lines.push(`${label}: ${formatAdminTime(s.next_run)}`);
+      }
+      if (s.last_run) lines.push(`Ostatni auto: ${formatAdminTime(s.last_run)}`);
       if (s.last_result) {
         const r = s.last_result;
         if (r.error) lines.push(`Błąd: ${r.error}`);
