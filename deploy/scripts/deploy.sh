@@ -164,15 +164,24 @@ if ! curl -sf "http://127.0.0.1:8080/" | head -c 256 | grep -qi '<!DOCTYPE html'
 fi
 echo "==> Homepage HTML OK"
 
-if ! curl -sf "http://127.0.0.1/api/v1/health" | grep -q '"status"'; then
-  echo "FATAL: API not reachable through Caddy on port 80" >&2
-  curl -sv "http://127.0.0.1/api/v1/health" 2>&1 | tail -20 || true
+caddy_url() {
+  curl -4 -sfk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}$1"
+}
+
+if ! caddy_url "/api/v1/health" | grep -q '"status"'; then
+  echo "FATAL: API not reachable through Caddy (HTTPS)" >&2
+  curl -4 -svk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/v1/health" 2>&1 | tail -20 || true
   docker compose logs caddy --tail 40 || true
   exit 1
 fi
-if ! curl -sf "http://127.0.0.1/api/v1/list_movies.json?limit=1" | grep -q '"movie_count"'; then
+if ! caddy_url "/api/v1/list_movies.json?limit=1" | grep -q '"movie_count"'; then
   echo "FATAL: movies API not returning JSON through Caddy" >&2
-  curl -sv "http://127.0.0.1/api/v1/list_movies.json?limit=1" 2>&1 | tail -20 || true
+  curl -4 -svk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/v1/list_movies.json?limit=1" 2>&1 | tail -20 || true
+  exit 1
+fi
+if ! caddy_url "/" | head -c 256 | grep -qi '<!DOCTYPE html'; then
+  echo "FATAL: homepage not serving HTML through Caddy" >&2
+  curl -4 -svk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/" 2>&1 | tail -20 || true
   exit 1
 fi
 echo "==> API routing through Caddy OK"
