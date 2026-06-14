@@ -11,7 +11,7 @@ from seo import register_movies_for_seo
 YTS_BASE = os.environ.get("YTS_SCRAPE_URL", "https://yts.bz/api/v2").rstrip("/")
 SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")
 PAGE_SIZE = 50
-MAX_LISTING_MOVIES = 3000
+MAX_LISTING_MOVIES = 80_000
 MAX_PAGES = (MAX_LISTING_MOVIES + PAGE_SIZE - 1) // PAGE_SIZE
 
 
