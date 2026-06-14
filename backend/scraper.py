@@ -9,13 +9,37 @@ from database import Database
 YTS_BASE = os.environ.get("YTS_SCRAPE_URL", "https://yts.bz/api/v2").rstrip("/")
 
 
-async def fetch_json(client: httpx.AsyncClient, path: str, **params: str) -> dict:
+async def fetch_json(
+    client: httpx.AsyncClient, path: str, *, allow_404: bool = False, **params: str
+) -> dict | None:
     res = await client.get(f"{YTS_BASE}/{path}", params=params, timeout=30.0)
+    if allow_404 and res.status_code == 404:
+        return None
     res.raise_for_status()
     data = res.json()
     if data.get("status") != "ok":
         raise RuntimeError(data.get("status_message", "YTS error"))
     return data["data"]
+
+
+async def fetch_upcoming(client: httpx.AsyncClient, fallback: list[dict]) -> tuple[list[dict], str | None]:
+    """yts.bz often has no list_upcoming — use alternate list or fallback."""
+    data = await fetch_json(client, "list_upcoming.json", allow_404=True)
+    if data and data.get("movies"):
+        return (data["movies"])[:8], None
+
+    # Newer / higher year titles as "upcoming" substitute
+    alt = await fetch_json(
+        client,
+        "list_movies.json",
+        limit="8",
+        sort_by="year",
+        order_by="desc",
+    )
+    if alt and alt.get("movies"):
+        return alt["movies"][:8], "Upcoming: użyto listy po roku (API upcoming niedostępne)"
+
+    return fallback[:4], "Upcoming: użyto najnowszych z bieżącego scrapingu"
 
 
 async def scrape_movies(count: int = 10) -> dict[str, Any]:
@@ -30,6 +54,7 @@ async def scrape_movies(count: int = 10) -> dict[str, Any]:
             sort_by="date_added",
             order_by="desc",
         )
+        assert listing is not None
         movies = listing.get("movies") or []
         detailed: list[dict] = []
 
@@ -44,16 +69,13 @@ async def scrape_movies(count: int = 10) -> dict[str, Any]:
                 with_images="true",
                 with_cast="true",
             )
+            assert detail is not None
             detailed.append(detail["movie"])
             await asyncio.sleep(0.3)
 
-        upcoming: list[dict] = []
-        try:
-            up_data = await fetch_json(client, "list_upcoming.json")
-            upcoming = (up_data.get("movies") or [])[:8]
-        except Exception as exc:
-            logs.append(f"Upcoming skipped: {exc}")
-            upcoming = movies[:4]
+        upcoming, upcoming_note = await fetch_upcoming(client, movies)
+        if upcoming_note:
+            logs.append(upcoming_note)
 
     db = Database()
     saved = db.upsert_movies(detailed)

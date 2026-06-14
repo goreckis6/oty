@@ -126,7 +126,7 @@
           body: JSON.stringify({ count }),
         });
         log.textContent += (result.logs || []).join("\n") + "\n";
-        log.textContent += `\nDone: ${result.saved} saved, ${result.total_in_db} total in DB.`;
+        log.textContent += `\n✓ Zapisano ${result.saved} filmów (w bazie: ${result.total_in_db})`;
         loadStats();
       } catch (err) {
         log.textContent += `\nError: ${err.message}`;
