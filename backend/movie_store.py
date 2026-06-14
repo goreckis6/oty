@@ -2,6 +2,7 @@ import os
 from typing import Any
 
 from database import Database, normalize_title
+from movie_enrichment import enrich_movie
 
 SUMMARY_KEYS = (
     "id", "imdb_code", "title", "title_english", "title_long", "slug",
@@ -83,7 +84,7 @@ class MovieStore:
         return self.db.get_last_batch_ids()
 
     def _tag_new(self, movie: dict[str, Any]) -> dict[str, Any]:
-        movie = dict(movie)
+        movie = enrich_movie(dict(movie))
         movie["is_new"] = int(movie.get("id") or 0) in self.new_ids
         return movie
 

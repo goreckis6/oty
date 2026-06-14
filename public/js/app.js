@@ -285,8 +285,61 @@
         .map((c) => `<span class="cast-name">${escapeHtml(c.name || "")}</span>`)
         .join("");
 
-      const trailerBtn = m.yt_trailer_code
-        ? `<a class="btn-trailer" href="https://www.youtube.com/watch?v=${escapeHtml(m.yt_trailer_code)}" target="_blank" rel="noopener">▶ Trailer</a>`
+      const screenshots = (m.screenshots || []).filter(Boolean);
+      const screenshotHtml = screenshots.length
+        ? `
+                <section class="movie-section">
+                  <h2 class="movie-section__title">Screenshots</h2>
+                  <div class="movie-screenshots">
+                    ${screenshots
+                      .map(
+                        (src, i) => `
+                      <a class="movie-screenshot" href="${escapeHtml(src)}" target="_blank" rel="noopener">
+                        <img src="${escapeHtml(src)}" alt="${escapeHtml(m.title)} screenshot ${i + 1}" loading="lazy" />
+                      </a>`
+                      )
+                      .join("")}
+                  </div>
+                </section>`
+        : "";
+
+      const trailerCode = m.yt_trailer_code || "";
+      const trailerEmbed = m.trailer_embed || (trailerCode ? `https://www.youtube.com/embed/${trailerCode}` : "");
+      const trailerSection = trailerEmbed
+        ? `
+                <section class="movie-section">
+                  <h2 class="movie-section__title">Trailer</h2>
+                  <div class="movie-trailer">
+                    <iframe
+                      src="${escapeHtml(trailerEmbed)}"
+                      title="${escapeHtml(m.title)} trailer"
+                      loading="lazy"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowfullscreen
+                    ></iframe>
+                  </div>
+                </section>`
+        : "";
+
+      const subtitles = m.subtitles || [];
+      const subtitleHtml = subtitles.length
+        ? `
+                <section class="movie-section">
+                  <h2 class="movie-section__title">Subtitles</h2>
+                  <div class="subtitle-list">
+                    ${subtitles
+                      .map(
+                        (s) =>
+                          `<span class="subtitle-badge" title="${escapeHtml(s.label || s.code)}">${escapeHtml((s.code || "").toUpperCase())}</span>`
+                      )
+                      .join("")}
+                  </div>
+                  <p class="subtitle-note">Included subtitle languages in YIFY torrent.</p>
+                </section>`
+        : "";
+
+      const trailerBtn = trailerCode
+        ? `<a class="btn-trailer" href="https://www.youtube.com/watch?v=${escapeHtml(trailerCode)}" target="_blank" rel="noopener">▶ Trailer</a>`
         : "";
 
       const rating = m.rating ? m.rating.toFixed(1) : "—";
@@ -331,6 +384,10 @@
                   <h2 class="movie-section__title">Synopsis</h2>
                   <p class="movie-synopsis">${escapeHtml(m.description_full || m.description_intro || m.summary || "No description.")}</p>
                 </section>
+
+                ${trailerSection}
+                ${screenshotHtml}
+                ${subtitleHtml}
 
                 ${cast ? `
                 <section class="movie-section">
