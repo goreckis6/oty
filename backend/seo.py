@@ -35,20 +35,68 @@ def _clean_text(value: str, limit: int = 160) -> str:
     return text[: limit - 3].rstrip() + "..."
 
 
+def home_page_title(site_name: str | None = None) -> str:
+    name = site_name or SITE_NAME
+    return f"{name} - The Official Home of YIFY Movies Torrents"
+
+
+def home_page_description(site_name: str | None = None, site_tagline: str | None = None) -> str:
+    name = site_name or SITE_NAME
+    tagline = site_tagline or SITE_TAGLINE
+    return _clean_text(
+        f"The official {name} YIFY movies torrents website. "
+        "Download free YIFY movies in 720p, 1080p, 2160p 4K and 3D quality at the smallest file size. "
+        f"{tagline}",
+        300,
+    )
+
+
+def home_json_ld(site_name: str | None = None, site_tagline: str | None = None) -> dict[str, Any]:
+    name = site_name or SITE_NAME
+    tagline = site_tagline or SITE_TAGLINE
+    return {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": name,
+        "alternateName": f"{name} YIFY Movies",
+        "url": f"{SITE_URL}/",
+        "description": tagline,
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": f"{SITE_URL}/browse?q={{search_term_string}}",
+            "query-input": "required name=search_term_string",
+        },
+    }
+
+
 def movie_page_title(movie: dict[str, Any]) -> str:
     title = movie.get("title") or "Movie"
     year = movie.get("year") or ""
     site_name = get_branding().get("siteName") or SITE_NAME
-    return f"{title} ({year}) YIFY Torrent Download — {site_name}"
+    return f"{title} ({year}) YIFY Torrent - {site_name}"
 
 
 def movie_description(movie: dict[str, Any]) -> str:
+    title = movie.get("title") or "Movie"
+    year = movie.get("year")
+    label = movie.get("title_long") or (f"{title} ({year})" if year else title)
+    site_name = get_branding().get("siteName") or SITE_NAME
+    parts = [f"Download {label} YIFY movie torrent in 720p, 1080p, 2160p 4K and x265."]
+
+    rating = movie.get("rating")
+    if rating:
+        parts.append(f"IMDb {float(rating):.1f}/10.")
+
+    genres = movie.get("genres") or []
+    if genres:
+        parts.append(", ".join(genres[:4]) + ".")
+
     summary = plot_synopsis(movie)
-    label = movie.get("title_long") or movie.get("title") or "Movie"
-    base = f"Download {label} YIFY HD torrent in 720p, 1080p and x265."
     if summary:
-        return _clean_text(f"{base} {summary}", 300)
-    return base
+        parts.append(summary)
+
+    parts.append(f"Watch and download on {site_name}.")
+    return _clean_text(" ".join(parts), 300)
 
 
 def movie_canonical(slug: str) -> str:
@@ -136,12 +184,12 @@ def build_head_injection(
         branding = get_branding()
         site_name = branding.get("siteName") or SITE_NAME
         site_tagline = branding.get("siteTagline") or SITE_TAGLINE
-        title = title or f"{site_name} — YIFY Movies"
-        description = description or (
-            f"Browse and download YIFY movies in HD quality at the smallest file size. {site_tagline}"
-        )
+        title = title or home_page_title(site_name)
+        description = description or home_page_description(site_name, site_tagline)
         canonical = canonical or SITE_URL + "/"
         image = image or f"{SITE_URL}/favicon.ico"
+        if json_ld is None and page_type == "home":
+            json_ld = home_json_ld(site_name, site_tagline)
 
     tags = [
         f'<title>{_esc(title)}</title>',
@@ -150,7 +198,7 @@ def build_head_injection(
         f'<link rel="canonical" href="{_esc(canonical)}" />',
         f'<link rel="sitemap" type="application/xml" title="Sitemap" href="{_esc(SITE_URL)}/sitemap.xml" />',
         f'<meta property="og:type" content="{"video.movie" if page_type == "movie" else "website"}" />',
-        f'<meta property="og:site_name" content="{_esc(SITE_NAME)}" />',
+        f'<meta property="og:site_name" content="{_esc(get_branding().get("siteName") or SITE_NAME)}" />',
         f'<meta property="og:title" content="{_esc(title)}" />',
         f'<meta property="og:description" content="{_esc(description)}" />',
         f'<meta property="og:url" content="{_esc(canonical)}" />',
@@ -184,7 +232,7 @@ def build_movie_prerender(movie: dict[str, Any]) -> str:
 
     return f"""
     <article class="seo-prerender">
-      <h1>{_esc(title)} ({_esc(year)}) — YIFY HD Torrent</h1>
+      <h1>{_esc(title)} ({_esc(year)}) YIFY HD Torrent</h1>
       {f'<img src="{_esc(poster)}" alt="{_esc(title)} poster" width="300" />' if poster else ""}
       <p>{rating_text}{_esc(summary)}</p>
       {f'<p>Genres: {_esc(genres)}</p>' if genres else ""}

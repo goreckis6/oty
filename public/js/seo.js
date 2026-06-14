@@ -47,12 +47,62 @@
     return value.slice(0, limit - 3).trim() + "...";
   }
 
+  function homeTitle() {
+    return `${siteName()} - The Official Home of YIFY Movies Torrents`;
+  }
+
+  function homeDescription() {
+    return cleanText(
+      `The official ${siteName()} YIFY movies torrents website. ` +
+        "Download free YIFY movies in 720p, 1080p, 2160p 4K and 3D quality at the smallest file size. " +
+        tagline(),
+      300
+    );
+  }
+
+  function homeJsonLd() {
+    const name = siteName();
+    return {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name,
+      alternateName: `${name} YIFY Movies`,
+      url: `${siteUrl()}/`,
+      description: tagline(),
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${siteUrl()}/browse?q={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    };
+  }
+
   function movieDescription(movie) {
+    const title = movie.title || "Movie";
+    const year = movie.year;
+    const label = movie.title_long || (year ? `${title} (${year})` : title);
+    const name = siteName();
+    const parts = [
+      `Download ${label} YIFY movie torrent in 720p, 1080p, 2160p 4K and x265.`,
+    ];
+
+    if (movie.rating) {
+      parts.push(`IMDb ${Number(movie.rating).toFixed(1)}/10.`);
+    }
+
+    const genres = movie.genres || [];
+    if (genres.length) {
+      parts.push(`${genres.slice(0, 4).join(", ")}.`);
+    }
+
     const summary =
       movie.plot_summary || movie.synopsis || movie.description_full || movie.description_intro || movie.summary || "";
-    const label = movie.title_long || movie.title || "Movie";
-    const base = `Download ${label} YIFY HD torrent in 720p, 1080p and x265.`;
-    return summary ? cleanText(`${base} ${summary}`, 300) : base;
+    if (summary) {
+      parts.push(summary);
+    }
+
+    parts.push(`Watch and download on ${name}.`);
+    return cleanText(parts.join(" "), 300);
   }
 
   function movieJsonLd(movie, canonical) {
@@ -119,33 +169,22 @@
 
   function setHome() {
     setPage({
-      title: `${siteName()} — YIFY Movies`,
-      description: `Browse and download YIFY movies in HD quality at the smallest file size. ${tagline()}`,
+      title: homeTitle(),
+      description: homeDescription(),
       canonical: `${siteUrl()}/`,
       image: `${siteUrl()}/favicon.ico`,
       type: "website",
-      jsonLd: {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        name: siteName(),
-        url: `${siteUrl()}/`,
-        description: tagline(),
-        potentialAction: {
-          "@type": "SearchAction",
-          target: `${siteUrl()}/browse?q={search_term_string}`,
-          "query-input": "required name=search_term_string",
-        },
-      },
+      jsonLd: homeJsonLd(),
     });
   }
 
   function setBrowse(query) {
     const title = query
-      ? `Search: ${query} — ${siteName()}`
-      : `Browse Movies — ${siteName()}`;
+      ? `Search: ${query} - ${siteName()}`
+      : `Browse YIFY Movies - ${siteName()}`;
     const description = query
       ? `YIFY movie search results for "${query}". Download HD torrents at the smallest file size.`
-      : `Browse the full YIFY movie catalog. Download HD torrents in 720p, 1080p and x265.`;
+      : "Browse the full YIFY movie catalog. Download HD torrents in 720p, 1080p, 2160p 4K and x265.";
     const canonical = query
       ? `${siteUrl()}/browse?q=${encodeURIComponent(query)}`
       : `${siteUrl()}/browse`;
@@ -163,7 +202,7 @@
   function setMovie(movie) {
     const slug = movie.slug || `movie-${movie.id}`;
     const canonical = `${siteUrl()}/movies/${slug}`;
-    const title = `${movie.title || "Movie"} (${movie.year || ""}) YIFY Torrent Download — ${siteName()}`;
+    const title = `${movie.title || "Movie"} (${movie.year || ""}) YIFY Torrent - ${siteName()}`;
     setPage({
       title,
       description: movieDescription(movie),
@@ -180,7 +219,7 @@
 
   function setAdmin() {
     setPage({
-      title: `Admin — ${siteName()}`,
+      title: `Admin - ${siteName()}`,
       description: "Admin panel",
       canonical: `${siteUrl()}/twojastara`,
       image: `${siteUrl()}/favicon.ico`,
@@ -190,5 +229,5 @@
     });
   }
 
-  window.YtsSeo = { setHome, setBrowse, setMovie, setAdmin, setPage };
+  window.YtsSeo = { setHome, setBrowse, setMovie, setAdmin, setPage, homeTitle, homeDescription };
 })();

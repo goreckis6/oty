@@ -56,7 +56,7 @@
     const tag = b.siteTagline || cfg().siteTagline || "HD movies at the smallest file size";
 
     if (tagline) tagline.textContent = tag;
-    if (footer) footer.textContent = `© ${new Date().getFullYear()} ${name} — The Official Home of YIFY Movies`;
+    if (footer) footer.textContent = `© ${new Date().getFullYear()} ${name} - The Official Home of YIFY Movies`;
 
     if (b.logoType === "image" && b.logoUrl && logoImg) {
       logoImg.src = b.logoUrl;
@@ -231,18 +231,18 @@
       app.innerHTML = `
         <div class="home-hero">
           <div class="container">
-            <h1>Download YTS YIFY movies: HD smallest size</h1>
+            <h1>Download YIFY movies: HD smallest size</h1>
             <p>
-              Welcome to <strong>${escapeHtml(name)}</strong>.
-              Browse and download YIFY movies in excellent 720p, 1080p, 2160p 4K and 3D quality,
-              all at the smallest file size.
+              Welcome to <strong>${escapeHtml(name)}</strong>, the official home of YIFY movie torrents.
+              Browse and download movies in excellent 720p, 1080p, 2160p 4K and 3D quality
+              at the smallest file size.
             </p>
           </div>
         </div>
 
         <section class="section-block">
           <div class="section-head">
-            <h2>Popular YTS Downloads</h2>
+            <h2>Popular YIFY Downloads</h2>
             <a href="/browse?sort=rating">More featured →</a>
           </div>
           ${renderGrid(popular, true)}
@@ -250,7 +250,7 @@
 
         <section class="section-block">
           <div class="section-head">
-            <h2>Latest YTS YIFY Movies Torrents</h2>
+            <h2>Latest YIFY Movie Torrents</h2>
             <a href="/browse">Browse All →</a>
           </div>
           ${renderGrid(latest)}
@@ -259,7 +259,7 @@
         ${upcoming.movies && upcoming.movies.length ? `
         <section class="section-block">
           <div class="section-head">
-            <h2>Upcoming YTS YIFY Movies</h2>
+            <h2>Upcoming YIFY Movies</h2>
           </div>
           <div class="movies-row movies-row--upcoming">${upcoming.movies.map((m) => movieCard(m)).join("")}</div>
         </section>` : ""}`;
