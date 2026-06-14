@@ -26,7 +26,7 @@
     const name = cfg().siteName || "YTS";
     document.title = `${name} — Movies`;
     if (tagline) tagline.textContent = cfg().siteTagline || "HD at smallest size";
-    if (footer) footer.textContent = `© ${new Date().getFullYear()} ${name}. Connected to your API.`;
+    if (footer) footer.textContent = `© ${new Date().getFullYear()} ${name} — The Official Home of YIFY Movies`;
   }
 
   function navigate(url) {
@@ -69,29 +69,36 @@
       .replace(/"/g, "&quot;");
   }
 
-  function movieCard(m) {
-    const img = m.medium_cover_image || m.small_cover_image || "";
-    const genres = (m.genres || []).slice(0, 2).join(" · ");
-    const rating = m.rating ? m.rating.toFixed(1) : "—";
+  function setFiltersVisible(show) {
+    filtersBar.classList.toggle("is-hidden", !show);
+  }
+
+  function movieCard(m, featured = false) {
+    const img = m.medium_cover_image || m.small_cover_image || m.large_cover_image || "";
+    const genres = (m.genres || []).slice(0, 2);
+    const rating = m.rating ? m.rating.toFixed(1) : "0.0";
+    const genreHtml = genres
+      .map((g) => `<span class="movie-box__genre">${escapeHtml(g)}</span>`)
+      .join("");
+
     return `
-      <a class="movie-card" href="/movie/${m.id}">
-        <div class="movie-card__poster">
+      <a class="movie-box" href="/movie/${m.id}">
+        <div class="movie-box__img">
           <img src="${escapeHtml(img)}" alt="${escapeHtml(m.title)}" loading="lazy" />
-          <span class="movie-card__rating">${rating}</span>
+          <div class="movie-box__rating">${rating} <span>/ 10</span></div>
+          ${m.year ? `<div class="movie-box__year">${m.year}</div>` : ""}
         </div>
-        <div class="movie-card__body">
-          <div class="movie-card__title">${escapeHtml(m.title)}</div>
-          <div class="movie-card__meta">${m.year || ""}</div>
-          ${genres ? `<div class="movie-card__genres">${escapeHtml(genres)}</div>` : ""}
-        </div>
+        <div class="movie-box__title">${escapeHtml(m.title)}</div>
+        ${genreHtml ? `<div class="movie-box__genres">${genreHtml}</div>` : ""}
       </a>`;
   }
 
-  function renderGrid(movies) {
+  function renderGrid(movies, featured = false) {
     if (!movies || !movies.length) {
-      return `<p style="color:var(--text-muted);text-align:center;padding:2rem">No movies found.</p>`;
+      return `<p class="empty-msg">No movies found.</p>`;
     }
-    return `<div class="movie-grid">${movies.map(movieCard).join("")}</div>`;
+    const rowClass = featured ? "movies-row movies-row--featured" : "movies-row";
+    return `<div class="${rowClass}">${movies.map((m) => movieCard(m, featured)).join("")}</div>`;
   }
 
   function renderPagination(movieCount, limit, page) {
@@ -144,34 +151,54 @@
   }
 
   async function renderHome() {
-    filtersBar.hidden = true;
+    setFiltersVisible(true);
     showLoading();
 
     try {
-      const [latest, upcoming] = await Promise.all([
-        YtsApi.listMovies({ limit: 8, sort_by: "date_added", order_by: "desc" }),
+      const [all, upcoming] = await Promise.all([
+        YtsApi.listMovies({ limit: 20, sort_by: "date_added", order_by: "desc" }),
         YtsApi.listUpcoming().catch(() => ({ movies: [] })),
       ]);
 
+      const movies = all.movies || [];
+      const popular = [...movies].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 4);
+      const latest = movies.slice(0, 8);
       const name = cfg().siteName || "YTS";
+
       app.innerHTML = `
-        <p class="hero-text">
-          Welcome to <strong>${escapeHtml(name)}</strong>.
-          Browse and download movies in excellent 720p, 1080p, 2160p 4K and 3D quality.
-        </p>
-        <section class="section">
-          <div class="section__head">
-            <h2 class="section__title">Latest Movies</h2>
-            <a class="section__link" href="/browse">Browse all →</a>
+        <div class="home-hero">
+          <div class="container">
+            <h1>Download YTS YIFY movies: HD smallest size</h1>
+            <p>
+              Welcome to <strong>${escapeHtml(name)}</strong>.
+              Browse and download YIFY movies in excellent 720p, 1080p, 2160p 4K and 3D quality,
+              all at the smallest file size.
+            </p>
           </div>
-          ${renderGrid(latest.movies)}
+        </div>
+
+        <section class="section-block">
+          <div class="section-head">
+            <h2>Popular YTS Downloads</h2>
+            <a href="/browse?sort=rating">More featured →</a>
+          </div>
+          ${renderGrid(popular, true)}
         </section>
-        ${upcoming.movies && upcoming.movies.length ? `
-        <section class="section">
-          <div class="section__head">
-            <h2 class="section__title">Upcoming</h2>
+
+        <section class="section-block">
+          <div class="section-head">
+            <h2>Latest YTS YIFY Movies Torrents</h2>
+            <a href="/browse">Browse All →</a>
           </div>
-          ${renderGrid(upcoming.movies)}
+          ${renderGrid(latest)}
+        </section>
+
+        ${upcoming.movies && upcoming.movies.length ? `
+        <section class="section-block">
+          <div class="section-head">
+            <h2>Upcoming YTS YIFY Movies</h2>
+          </div>
+          <div class="movies-row movies-row--upcoming">${upcoming.movies.map((m) => movieCard(m)).join("")}</div>
         </section>` : ""}`;
     } catch (err) {
       showError(err.message);
@@ -179,7 +206,7 @@
   }
 
   async function renderBrowse(page = 1) {
-    filtersBar.hidden = false;
+    setFiltersVisible(true);
     syncFiltersToUI();
     showLoading();
 
@@ -193,10 +220,8 @@
           : "Browse Movies";
 
       app.innerHTML = `
-        <section class="section">
-          <div class="section__head">
-            <h2 class="section__title">${escapeHtml(title)}</h2>
-          </div>
+        <h1 class="page-title">${escapeHtml(title)}</h1>
+        <section class="section-block" style="margin-top:0">
           ${renderGrid(data.movies)}
           ${renderPagination(data.movie_count, data.limit, data.page_number)}
         </section>`;
@@ -209,7 +234,7 @@
   }
 
   async function renderMovie(id) {
-    filtersBar.hidden = true;
+    setFiltersVisible(false);
     showLoading();
 
     try {
@@ -277,8 +302,8 @@
           </div>
 
           ${suggestions.movies && suggestions.movies.length ? `
-          <section class="section">
-            <div class="section__head"><h2 class="section__title">Similar Movies</h2></div>
+          <section class="section-block">
+            <div class="section-head"><h2>Similar YIFY Movies</h2></div>
             ${renderGrid(suggestions.movies)}
           </section>` : ""}
         </article>`;
@@ -312,6 +337,7 @@
 
     if (params.get("genre")) state.genre = params.get("genre");
     if (params.get("q")) state.query = params.get("q");
+    if (params.get("sort")) state.sort = params.get("sort");
 
     if (path === "/" || path === "") return { view: "home" };
     if (path === "/browse") {
