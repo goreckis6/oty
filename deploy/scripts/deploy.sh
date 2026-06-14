@@ -20,13 +20,21 @@ SITE_URL="$(printf '%s' "$SITE_URL" | tr -d '\n\r' | sed -e 's/^[[:space:]]*//' 
 cd "$APP_DIR"
 mkdir -p deploy/caddy public/js public/css public/downloads public/uploads backend/data
 
-if [ -f backend/data/movies.db ]; then
-  echo "==> SQLite database preserved ($(du -h backend/data/movies.db | awk '{print $1}'))"
+DB_FILE="backend/data/movies.db"
+DB_SIZE_BEFORE=0
+if [ -f "$DB_FILE" ]; then
+  DB_SIZE_BEFORE=$(stat -c%s "$DB_FILE")
+  echo "==> SQLite database preserved ($(du -h "$DB_FILE" | awk '{print $1}'), ${DB_SIZE_BEFORE} bytes)"
 else
   echo "==> No movies.db yet — first API start seeds from test_movies.json if empty"
 fi
 
-echo "==> Deploy preserves on VPS: movies.db, admin site files, uploads/, .well-known/"
+if ! grep -q './backend/data:/app/data' docker-compose.yml; then
+  echo "FATAL: docker-compose.yml must mount ./backend/data:/app/data — deploy aborted to protect movies.db" >&2
+  exit 1
+fi
+
+echo "==> Deploy preserves on VPS: backend/data/ (movies.db + scraped data), admin site files, uploads/, downloads/, .well-known/"
 
 cat > public/js/config.js <<EOF
 window.YTS_CONFIG = {
@@ -43,7 +51,7 @@ window.YTS_CONFIG = {
 };
 EOF
 
-echo "==> Stopping legacy containers..."
+echo "==> Stopping legacy containers (never -v — DB lives on host in backend/data/)..."
 docker compose down 2>/dev/null || true
 docker compose -f docker-compose.vps-proxy.yml down 2>/dev/null || true
 docker rm -f ytdown ytdown-caddy ytdown-bgutil site-caddy site-api 2>/dev/null || true
@@ -92,6 +100,19 @@ for i in $(seq 1 45); do
   fi
   sleep 2
 done
+
+if [ "$DB_SIZE_BEFORE" -gt 0 ]; then
+  if [ ! -f "$DB_FILE" ]; then
+    echo "FATAL: movies.db missing after deploy — aborting" >&2
+    exit 1
+  fi
+  DB_SIZE_AFTER=$(stat -c%s "$DB_FILE")
+  if [ "$DB_SIZE_AFTER" -lt "$DB_SIZE_BEFORE" ]; then
+    echo "FATAL: movies.db shrank during deploy (${DB_SIZE_BEFORE} -> ${DB_SIZE_AFTER} bytes)" >&2
+    exit 1
+  fi
+  echo "==> Database integrity check OK (${DB_SIZE_AFTER} bytes)"
+fi
 
 echo "==> Deploy OK — https://${DOMAIN}"
 echo "    API: https://${DOMAIN}/api/v1/"

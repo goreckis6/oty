@@ -34,19 +34,32 @@ SUBTITLE_LABELS: dict[str, str] = {
 
 
 def plot_synopsis(movie: dict[str, Any]) -> str:
-    """Best available plot text from YTS fields (synopsis/summary/descriptions)."""
-    for key in ("synopsis", "summary", "description_full", "description_intro", "plot_summary"):
+    """Best available plot text from YTS fields (Plot Summary / synopsis / descriptions)."""
+    best = ""
+    for key in (
+        "description_full",
+        "synopsis",
+        "plot_summary",
+        "summary",
+        "description_intro",
+    ):
         value = (movie.get(key) or "").strip()
-        if value:
-            return value
-    return ""
+        if len(value) > len(best):
+            best = value
+    return best
 
 
 def merge_listing_movie(listing: dict[str, Any], movie: dict[str, Any]) -> dict[str, Any]:
-    """Copy plot fields from list_movies entry when details omit them."""
+    """Merge plot fields from list_movies (synopsis/summary) into movie_details."""
     merged = dict(movie)
-    for key in ("synopsis", "summary", "description_intro", "description_full"):
-        if not (merged.get(key) or "").strip() and (listing.get(key) or "").strip():
+    for key in ("synopsis", "plot_summary", "summary", "description_intro", "description_full"):
+        listing_val = (listing.get(key) or "").strip()
+        detail_val = (merged.get(key) or "").strip()
+        if listing_val and len(listing_val) > len(detail_val):
+            merged[key] = listing[key]
+        elif detail_val:
+            merged[key] = detail_val
+        elif listing_val:
             merged[key] = listing[key]
     return merged
 
@@ -143,6 +156,7 @@ def enrich_movie(movie: dict[str, Any]) -> dict[str, Any]:
     enriched = dict(movie)
     synopsis = plot_synopsis(enriched)
     enriched["synopsis"] = synopsis
+    enriched["plot_summary"] = synopsis
     if synopsis:
         if not (enriched.get("description_full") or "").strip():
             enriched["description_full"] = synopsis

@@ -12,10 +12,15 @@ certs/
 secrets/
 *.pem
 
-backend/data/movies.db
+# Server runtime
+backend/data/*.db
 backend/data/*.db-journal
+backend/data/*.db-wal
+backend/data/*.db-shm
 downloads/*
 !downloads/.gitkeep
+public/downloads/*
+!public/downloads/.gitkeep
 
 # OS / editor
 .DS_Store

@@ -429,8 +429,8 @@
                 </section>
 
                 <section class="movie-section">
-                  <h2 class="movie-section__title">Synopsis</h2>
-                  <p class="movie-synopsis">${escapeHtml(m.synopsis || m.description_full || m.description_intro || m.summary || "No description.")}</p>
+                  <h2 class="movie-section__title">Synopis</h2>
+                  <p class="movie-synopsis">${escapeHtml(m.plot_summary || m.synopsis || m.description_full || m.description_intro || m.summary || "No description.")}</p>
                 </section>
 
                 ${trailerSection}

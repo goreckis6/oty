@@ -46,16 +46,15 @@ jobs:
 
       - name: Rsync to server
         run: |
+          # NEVER delete backend/data/movies.db — scraped movies live only on VPS.
           rsync -avz --delete \
             --exclude '.git' \
             --exclude '.venv' \
             --exclude 'node_modules' \
             --exclude 'secrets' \
             --exclude '.env' \
-            --exclude 'backend/data/*.db' \
-            --exclude 'backend/data/*.db-journal' \
-            --exclude 'backend/data/*.db-wal' \
-            --exclude 'backend/data/*.db-shm' \
+            --include 'backend/data/test_movies.json' \
+            --exclude 'backend/data/*' \
             --include 'public/index.html' \
             --exclude 'public/*.html' \
             --exclude 'public/*.htm' \
@@ -64,9 +63,21 @@ jobs:
             --exclude 'public/*.json' \
             --include 'public/uploads/.gitkeep' \
             --exclude 'public/uploads/*' \
+            --include 'public/downloads/.gitkeep' \
+            --exclude 'public/downloads/*' \
             --exclude 'public/.well-known/***' \
             -e "ssh -i ~/.ssh/deploy_key -p $DEPLOY_PORT -o StrictHostKeyChecking=accept-new" \
             ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
+
+      - name: Verify database not removed by rsync
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=accept-new \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "if [ -f '${DEPLOY_PATH}/backend/data/movies.db' ]; then
+               echo \"movies.db OK: \$(du -h '${DEPLOY_PATH}/backend/data/movies.db' | awk '{print \$1}')\"
+             else
+               echo 'movies.db not present yet (first deploy / empty DB)'
+             fi"
 
       - name: Remote deploy
         timeout-minutes: 10

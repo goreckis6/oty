@@ -15,11 +15,6 @@ Trigger: **push na `main`** lub **Actions → Deploy → Run workflow**
 | `DEPLOY_PATH` | `/opt/ytdown` | opcjonalnie |
 | `DOMAIN` | `yts.cool` | opcjonalnie (HTTPS + health check) |
 | `ACME_EMAIL` | `admin@example.com` | opcjonalnie (Let's Encrypt) |
-| `TMDB_API_KEY` | klucz z themoviedb.org | ✅ (metadane filmów) |
-| `TORRENT_SOURCE` | `apibay` / `torznab` / `none` | opcjonalnie |
-| `TORZNAB_URL` | URL Jackett/Prowlarr | jeśli `TORRENT_SOURCE=torznab` |
-| `SITE_NAME` | `YTS` | opcjonalnie |
-| `SITE_TAGLINE` | `HD at smallest size` | opcjonalnie |
 
 ## Klucz SSH
 
@@ -33,8 +28,8 @@ cat /root/.ssh/deploy/id_ed25519   # → GitHub Secret DEPLOY_SSH_KEY
 
 ## Co robi workflow
 
-1. `rsync` plików na VPS (`--delete` — usuwa stare pliki aplikacji)
-2. `deploy/scripts/deploy.sh` — Docker API (`/api/v1`) + Caddy + frontend
+1. `rsync` plików na VPS (`--delete` — usuwa stare pliki aplikacji, **nie** kasuje: `backend/data/` z bazą/scrape, plików z panelu admina, `uploads/`, `downloads/`, `.well-known/`)
+2. `deploy/scripts/deploy.sh` — Docker: API (SQLite) + Caddy
 3. health check: `https://$DOMAIN/` (jeśli `DOMAIN` ustawione)
 
 ## DNS

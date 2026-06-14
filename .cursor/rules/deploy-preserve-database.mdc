@@ -1,0 +1,26 @@
+---
+description: Deploy must never delete or overwrite the SQLite movies database
+globs: deploy/**/*,.github/workflows/deploy.yml,docker-compose.yml,backend/database.py
+alwaysApply: true
+---
+
+# Deploy — nigdy nie kasuj bazy
+
+`backend/data/movies.db` (dane ze scrapingu) **musi przetrwać każdy deploy**.
+
+## Wymagania
+
+1. **rsync** — wyklucz cały `backend/data/` (tylko `test_movies.json` z repo może być synchronizowany). Nigdy nie usuwaj `movies.db` przez `--delete`.
+2. **docker-compose** — serwis `api` musi mieć bind mount `./backend/data:/app/data` i `DB_PATH=/app/data/movies.db`. Bez tego baza ginie przy rebuildzie kontenera.
+3. **deploy.sh** — nigdy `docker compose down -v`. Po deployu sprawdź, że `movies.db` nadal istnieje (i nie zmniejszył się).
+4. **database.py** — seed z `test_movies.json` tylko gdy baza jest pusta; nigdy nie nadpisuj istniejących filmów przy starcie.
+
+## Zakazane
+
+- Usuwanie lub nadpisywanie `backend/data/movies.db` w workflow, skryptach deployu lub compose
+- Deploy bez volume mount na `backend/data`
+- Rsync bez exclude na `backend/data/*`
+
+## Przy zmianach deployu
+
+Zawsze zweryfikuj, że powyższe punkty nadal obowiązują przed merge/push na `main`.

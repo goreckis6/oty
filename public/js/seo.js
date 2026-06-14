@@ -49,7 +49,7 @@
 
   function movieDescription(movie) {
     const summary =
-      movie.synopsis || movie.description_full || movie.description_intro || movie.summary || "";
+      movie.plot_summary || movie.synopsis || movie.description_full || movie.description_intro || movie.summary || "";
     const label = movie.title_long || movie.title || "Movie";
     const base = `Download ${label} YIFY HD torrent in 720p, 1080p and x265.`;
     return summary ? cleanText(`${base} ${summary}`, 300) : base;
