@@ -64,20 +64,29 @@ jobs:
 
       - name: Health check
         if: env.DOMAIN != ''
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
-          echo "Waiting for https://${DOMAIN} (Caddy + Let's Encrypt may need a few minutes)..."
-          sleep 20
-          for i in $(seq 1 24); do
-            if curl -sf --max-time 20 "https://${DOMAIN}/"; then
+          DOMAIN_CLEAN=$(echo "$DOMAIN" | tr -d '\n\r' | sed 's|https\?://||' | sed 's|/$||')
+          echo "Checking https://${DOMAIN_CLEAN} (via ${DEPLOY_HOST}:443)..."
+          sleep 15
+          for i in $(seq 1 18); do
+            if curl -4 -sfL --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/"; then
               echo ""
-              echo "==> Frontend OK: https://${DOMAIN}/"
-              curl -sf --max-time 20 "https://${DOMAIN}/api/v1/health" && echo "==> API OK"
-              echo "==> Deploy OK: https://${DOMAIN}"
+              echo "==> Frontend OK"
+              curl -4 -sfL --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health"
+              echo ""
+              echo "==> Deploy OK: https://${DOMAIN_CLEAN}"
               exit 0
             fi
-            echo "attempt ${i}/24 failed, retry in 10s..."
+            if curl -4 -sfL --max-time 20 "https://${DOMAIN_CLEAN}/"; then
+              echo ""
+              echo "==> Deploy OK (direct DNS): https://${DOMAIN_CLEAN}"
+              exit 0
+            fi
+            echo "attempt ${i}/18 failed, retry in 10s..."
             sleep 10
           done
-          echo "Health check failed for https://${DOMAIN}/"
-          curl -sv --max-time 20 "https://${DOMAIN}/" 2>&1 | tail -15 || true
+          echo "Health check failed for https://${DOMAIN_CLEAN}/"
+          curl -4 -svk --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/" 2>&1 | tail -20 || true
           exit 1
