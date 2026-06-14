@@ -56,6 +56,34 @@ docker compose down 2>/dev/null || true
 docker compose -f docker-compose.vps-proxy.yml down 2>/dev/null || true
 docker rm -f ytdown ytdown-caddy ytdown-bgutil site-caddy site-api 2>/dev/null || true
 
+echo "==> Freeing HTTP/HTTPS ports for Caddy..."
+docker ps -q --filter "publish=80" | xargs -r docker rm -f 2>/dev/null || true
+docker ps -q --filter "publish=443" | xargs -r docker rm -f 2>/dev/null || true
+if command -v ss >/dev/null 2>&1; then
+  for port in 80 443; do
+    if ss -tln | grep -q ":${port} "; then
+      pids=$(ss -tlnp "sport = :${port}" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u || true)
+      for pid in $pids; do
+        comm=$(ps -p "$pid" -o comm= 2>/dev/null || true)
+        case "$comm" in
+          caddy|caddy-*|docker-proxy)
+            echo "    Stopping stale ${comm} (pid ${pid}) on port ${port}"
+            kill "$pid" 2>/dev/null || true
+            ;;
+        esac
+      done
+    fi
+  done
+  sleep 1
+  for port in 80 443; do
+    if ss -tln | grep -q ":${port} "; then
+      echo "FATAL: port ${port} still in use — cannot start Caddy" >&2
+      ss -tlnp "sport = :${port}" 2>&1 || true
+      exit 1
+    fi
+  done
+fi
+
 GLOBAL_BLOCK=""
 if [ -n "$ACME_EMAIL" ]; then
   GLOBAL_BLOCK="{
@@ -71,9 +99,9 @@ ${DOMAIN} {
 	@movies path /movies/*
 	@seo path /robots.txt /sitemap.xml /sitemap*
 
-	reverse_proxy @api api:8080
-	reverse_proxy @movies api:8080
-	reverse_proxy @seo api:8080
+	reverse_proxy @api 127.0.0.1:8080
+	reverse_proxy @movies 127.0.0.1:8080
+	reverse_proxy @seo 127.0.0.1:8080
 
 	root * /srv
 	try_files {path} /index.html
