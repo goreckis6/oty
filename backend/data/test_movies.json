@@ -1,0 +1,1189 @@
+{
+  "source": "https://yts.bz/api/v2",
+  "count": 10,
+  "movies": [
+    {
+      "id": 76899,
+      "url": "https://yts.bz/movies/fear-of-flying-2024",
+      "imdb_code": "tt29281893",
+      "title": "Fear of Flying",
+      "title_english": "Fear of Flying",
+      "title_long": "Fear of Flying (2024)",
+      "slug": "fear-of-flying-2024",
+      "year": 2024,
+      "rating": 8.8,
+      "runtime": 92,
+      "genres": [
+        "Drama"
+      ],
+      "like_count": 1,
+      "description_intro": "Mark's a mess who fears everything, especially flying. When he meets his possible soulmate, he must juggle work, love, and life while battling worry, anxiety, and depression.",
+      "description_full": "Mark's a mess who fears everything, especially flying. When he meets his possible soulmate, he must juggle work, love, and life while battling worry, anxiety, and depression.",
+      "yt_trailer_code": "",
+      "language": "en",
+      "mpa_rating": "",
+      "background_image": "https://yts.bz/assets/images/movies/fear_of_flying_2024/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/fear_of_flying_2024/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/fear_of_flying_2024/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/fear_of_flying_2024/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/fear_of_flying_2024/large-cover.jpg",
+      "medium_screenshot_image1": "https://yts.bz/assets/images/movies/fear_of_flying_2024/medium-screenshot1.jpg",
+      "medium_screenshot_image2": "https://yts.bz/assets/images/movies/fear_of_flying_2024/medium-screenshot2.jpg",
+      "medium_screenshot_image3": "https://yts.bz/assets/images/movies/fear_of_flying_2024/medium-screenshot3.jpg",
+      "large_screenshot_image1": "https://yts.bz/assets/images/movies/fear_of_flying_2024/large-screenshot1.jpg",
+      "large_screenshot_image2": "https://yts.bz/assets/images/movies/fear_of_flying_2024/large-screenshot2.jpg",
+      "large_screenshot_image3": "https://yts.bz/assets/images/movies/fear_of_flying_2024/large-screenshot3.jpg",
+      "cast": [
+        {
+          "name": "Jason Dugre",
+          "character_name": "Jay",
+          "imdb_code": "1654743"
+        },
+        {
+          "name": "Charlene Amoia",
+          "character_name": "Liz",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm1006439.jpg",
+          "imdb_code": "1006439"
+        },
+        {
+          "name": "Mike Mitchell",
+          "character_name": "Mark",
+          "imdb_code": "2081175"
+        },
+        {
+          "name": "Joanne Verbos",
+          "character_name": "Rachel",
+          "imdb_code": "1779738"
+        }
+      ],
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/999691BEFD1C1E34A9B6B313C8322244B47DBBED",
+          "hash": "999691BEFD1C1E34A9B6B313C8322244B47DBBED",
+          "quality": "720p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "868.72 MB",
+          "size_bytes": 910918943,
+          "date_uploaded": "2026-06-13 23:31:13",
+          "date_uploaded_unix": 1781386273
+        },
+        {
+          "url": "https://yts.bz/torrent/download/A331D1C1AFBFFE1F8F6D411000D634699FCC7649",
+          "hash": "A331D1C1AFBFFE1F8F6D411000D634699FCC7649",
+          "quality": "1080p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1.57 GB",
+          "size_bytes": 1685774664,
+          "date_uploaded": "2026-06-14 00:20:32",
+          "date_uploaded_unix": 1781389232
+        }
+      ],
+      "date_uploaded": "2026-06-13 23:31:13",
+      "date_uploaded_unix": 1781386273
+    },
+    {
+      "id": 76898,
+      "url": "https://yts.bz/movies/stvury-2025",
+      "imdb_code": "tt38573622",
+      "title": "Stvury",
+      "title_english": "Stvury",
+      "title_long": "Stvury (2025)",
+      "slug": "stvury-2025",
+      "year": 2025,
+      "rating": 7.1,
+      "runtime": 90,
+      "genres": [
+        "Crime"
+      ],
+      "like_count": 1,
+      "description_intro": "A thrilling film story that begins with the brutal murder of a young girl takes viewers to the raw environment of a small town somewhere in the north of Bohemia. A pair of detectives embark on a complicated investigation. Just when it seems that the case is about to be closed, new evidence casts doubt on everything and forces them to go back to the beginning. Tension mounts between investigator Laura Linhartová and her colleague Adam Benes. The question remains: Who killed Anna Pittnerová?",
+      "description_full": "A thrilling film story that begins with the brutal murder of a young girl takes viewers to the raw environment of a small town somewhere in the north of Bohemia. A pair of detectives embark on a complicated investigation. Just when it seems that the case is about to be closed, new evidence casts doubt on everything and forces them to go back to the beginning. Tension mounts between investigator Laura Linhartová and her colleague Adam Benes. The question remains: Who killed Anna Pittnerová?",
+      "yt_trailer_code": "WMpl5pNp6dA",
+      "language": "cs",
+      "mpa_rating": "19",
+      "background_image": "https://yts.bz/assets/images/movies/stvury_2025/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/stvury_2025/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/stvury_2025/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/stvury_2025/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/stvury_2025/large-cover.jpg",
+      "medium_screenshot_image1": "https://yts.bz/assets/images/movies/stvury_2025/medium-screenshot1.jpg",
+      "medium_screenshot_image2": "https://yts.bz/assets/images/movies/stvury_2025/medium-screenshot2.jpg",
+      "medium_screenshot_image3": "https://yts.bz/assets/images/movies/stvury_2025/medium-screenshot3.jpg",
+      "large_screenshot_image1": "https://yts.bz/assets/images/movies/stvury_2025/large-screenshot1.jpg",
+      "large_screenshot_image2": "https://yts.bz/assets/images/movies/stvury_2025/large-screenshot2.jpg",
+      "large_screenshot_image3": "https://yts.bz/assets/images/movies/stvury_2025/large-screenshot3.jpg",
+      "cast": [
+        {
+          "name": "Krystof Hádek",
+          "character_name": "Adam Benes",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0405402.jpg",
+          "imdb_code": "0405402"
+        },
+        {
+          "name": "Lubos Veselý",
+          "character_name": "Jirí Sedaj",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0895230.jpg",
+          "imdb_code": "0895230"
+        },
+        {
+          "name": "Gabriela Micova",
+          "character_name": "Beáta PIttnerová",
+          "imdb_code": "12229248"
+        },
+        {
+          "name": "Olga Zounarová",
+          "character_name": "Anna Pittnerová",
+          "imdb_code": "17736565"
+        }
+      ],
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/A087D86DA1AF2A8F604C998A83814A5E4352C8D5",
+          "hash": "A087D86DA1AF2A8F604C998A83814A5E4352C8D5",
+          "quality": "720p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "800.68 MB",
+          "size_bytes": 839573832,
+          "date_uploaded": "2026-06-13 20:30:17",
+          "date_uploaded_unix": 1781375417
+        },
+        {
+          "url": "https://yts.bz/torrent/download/77D76BE958F518BF2C4A202C6772A5637E5926BD",
+          "hash": "77D76BE958F518BF2C4A202C6772A5637E5926BD",
+          "quality": "1080p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "5.1",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1.61 GB",
+          "size_bytes": 1728724337,
+          "date_uploaded": "2026-06-13 21:21:47",
+          "date_uploaded_unix": 1781378507
+        }
+      ],
+      "date_uploaded": "2026-06-13 20:30:17",
+      "date_uploaded_unix": 1781375417
+    },
+    {
+      "id": 76897,
+      "url": "https://yts.bz/movies/choi-gang-lo-maen-seu-2007",
+      "imdb_code": "tt1649294",
+      "title": "Choi-gang lo-maen-seu",
+      "title_english": "Choi-gang lo-maen-seu",
+      "title_long": "Choi-gang lo-maen-seu (2007)",
+      "slug": "choi-gang-lo-maen-seu-2007",
+      "year": 2007,
+      "rating": 5.6,
+      "runtime": 109,
+      "genres": [
+        "Comedy",
+        "Romance"
+      ],
+      "like_count": 1,
+      "description_intro": "Young cop with debilitating phobia meets a hyperactive young journalist who complicates his life and career by always managing to do the wrong thing.",
+      "description_full": "Young cop with debilitating phobia meets a hyperactive young journalist who complicates his life and career by always managing to do the wrong thing.",
+      "yt_trailer_code": "",
+      "language": "ko",
+      "mpa_rating": "Not Rated",
+      "background_image": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/large-cover.jpg",
+      "medium_screenshot_image1": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/medium-screenshot1.jpg",
+      "medium_screenshot_image2": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/medium-screenshot2.jpg",
+      "medium_screenshot_image3": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/medium-screenshot3.jpg",
+      "large_screenshot_image1": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/large-screenshot1.jpg",
+      "large_screenshot_image2": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/large-screenshot2.jpg",
+      "large_screenshot_image3": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/large-screenshot3.jpg",
+      "cast": [
+        {
+          "name": "Kim Jae-man",
+          "character_name": "Ju Seok-tae",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm3664323.jpg",
+          "imdb_code": "3664323"
+        },
+        {
+          "name": "Dong-Wook Lee",
+          "character_name": "Kang Jae-hyuk",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm2089388.jpg",
+          "imdb_code": "2089388"
+        },
+        {
+          "name": "Yeong-sik Kim",
+          "character_name": "Reporter Song",
+          "imdb_code": "7712672"
+        },
+        {
+          "name": "Min-kyo Kim",
+          "character_name": "F1",
+          "imdb_code": "1310386"
+        }
+      ],
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/F68E6C39EC3297D2BBC56B8D3EBE42CD568686EC",
+          "hash": "F68E6C39EC3297D2BBC56B8D3EBE42CD568686EC",
+          "quality": "720p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1007.98 MB",
+          "size_bytes": 1056943636,
+          "date_uploaded": "2026-06-13 20:09:54",
+          "date_uploaded_unix": 1781374194
+        },
+        {
+          "url": "https://yts.bz/torrent/download/528DC28A1155B87FF40E9A732323DAFE1E19D13F",
+          "hash": "528DC28A1155B87FF40E9A732323DAFE1E19D13F",
+          "quality": "1080p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1.82 GB",
+          "size_bytes": 1954210120,
+          "date_uploaded": "2026-06-13 21:41:49",
+          "date_uploaded_unix": 1781379709
+        }
+      ],
+      "date_uploaded": "2026-06-13 20:09:54",
+      "date_uploaded_unix": 1781374194
+    },
+    {
+      "id": 76896,
+      "url": "https://yts.bz/movies/gunghab-2018",
+      "imdb_code": "tt5961314",
+      "title": "Gunghab",
+      "title_english": "Gunghab",
+      "title_long": "Gunghab (2018)",
+      "slug": "gunghab-2018",
+      "year": 2018,
+      "rating": 6.3,
+      "runtime": 110,
+      "genres": [
+        "Comedy",
+        "History",
+        "Romance"
+      ],
+      "like_count": 1,
+      "description_intro": "I princess who is skilled in martial arts dismisses her four potential suitors and journey's to find a man worthy of her hand in marriage.",
+      "description_full": "I princess who is skilled in martial arts dismisses her four potential suitors and journey's to find a man worthy of her hand in marriage.",
+      "yt_trailer_code": "rSfNg0kosTM",
+      "language": "ko",
+      "mpa_rating": "PG",
+      "background_image": "https://yts.bz/assets/images/movies/gunghab_2018/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/gunghab_2018/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/gunghab_2018/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/gunghab_2018/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/gunghab_2018/large-cover.jpg",
+      "medium_screenshot_image1": "https://yts.bz/assets/images/movies/gunghab_2018/medium-screenshot1.jpg",
+      "medium_screenshot_image2": "https://yts.bz/assets/images/movies/gunghab_2018/medium-screenshot2.jpg",
+      "medium_screenshot_image3": "https://yts.bz/assets/images/movies/gunghab_2018/medium-screenshot3.jpg",
+      "large_screenshot_image1": "https://yts.bz/assets/images/movies/gunghab_2018/large-screenshot1.jpg",
+      "large_screenshot_image2": "https://yts.bz/assets/images/movies/gunghab_2018/large-screenshot2.jpg",
+      "large_screenshot_image3": "https://yts.bz/assets/images/movies/gunghab_2018/large-screenshot3.jpg",
+      "cast": [
+        {
+          "name": "Lee Han-seo",
+          "character_name": "Young Song-hwa",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm8117817.jpg",
+          "imdb_code": "8117817"
+        },
+        {
+          "name": "Ahn Ji-ho",
+          "character_name": "Deok-goo",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm10725994.jpg",
+          "imdb_code": "10725994"
+        },
+        {
+          "name": "Lee Seung-gi",
+          "character_name": "Seo Do-yoon",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm3876951.jpg",
+          "imdb_code": "3876951"
+        },
+        {
+          "name": "Woo-sik Choi",
+          "character_name": "Nam Chi-ho",
+          "imdb_code": "6079248"
+        }
+      ],
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/A0FA35B8D3FDD3050F5690165B2A432418D0ADA9",
+          "hash": "A0FA35B8D3FDD3050F5690165B2A432418D0ADA9",
+          "quality": "720p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1013.1 MB",
+          "size_bytes": 1062312346,
+          "date_uploaded": "2026-06-13 19:44:06",
+          "date_uploaded_unix": 1781372646
+        },
+        {
+          "url": "https://yts.bz/torrent/download/1414A972E36362A994ED7DECD2A57AAD5179A2A1",
+          "hash": "1414A972E36362A994ED7DECD2A57AAD5179A2A1",
+          "quality": "1080p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 64,
+          "peers": 20,
+          "size": "1.83 GB",
+          "size_bytes": 1964947538,
+          "date_uploaded": "2026-06-13 21:00:34",
+          "date_uploaded_unix": 1781377234
+        }
+      ],
+      "date_uploaded": "2026-06-13 19:44:06",
+      "date_uploaded_unix": 1781372646
+    },
+    {
+      "id": 76891,
+      "url": "https://yts.bz/movies/rapaces-2025",
+      "imdb_code": "tt34388968",
+      "title": "Rapaces",
+      "title_english": "Rapaces",
+      "title_long": "Rapaces (2025)",
+      "slug": "rapaces-2025",
+      "year": 2025,
+      "rating": 6.4,
+      "runtime": 104,
+      "genres": [
+        "Crime",
+        "Drama",
+        "Thriller"
+      ],
+      "like_count": 2,
+      "description_intro": "Samuel, a journalist, and Ava, his intern and daughter, cover the murder of a young girl for their magazine. Through their investigation, they discover disturbing similarities with the murder of another woman..",
+      "description_full": "Samuel, a journalist, and Ava, his intern and daughter, cover the murder of a young girl for their magazine. Through their investigation, they discover disturbing similarities with the murder of another woman..",
+      "yt_trailer_code": "",
+      "language": "fr",
+      "mpa_rating": "14",
+      "background_image": "https://yts.bz/assets/images/movies/rapaces_2025/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/rapaces_2025/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/rapaces_2025/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/rapaces_2025/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/rapaces_2025/large-cover.jpg",
+      "medium_screenshot_image1": "https://yts.bz/assets/images/movies/rapaces_2025/medium-screenshot1.jpg",
+      "medium_screenshot_image2": "https://yts.bz/assets/images/movies/rapaces_2025/medium-screenshot2.jpg",
+      "medium_screenshot_image3": "https://yts.bz/assets/images/movies/rapaces_2025/medium-screenshot3.jpg",
+      "large_screenshot_image1": "https://yts.bz/assets/images/movies/rapaces_2025/large-screenshot1.jpg",
+      "large_screenshot_image2": "https://yts.bz/assets/images/movies/rapaces_2025/large-screenshot2.jpg",
+      "large_screenshot_image3": "https://yts.bz/assets/images/movies/rapaces_2025/large-screenshot3.jpg",
+      "cast": [
+        {
+          "name": "Paul Hamy",
+          "character_name": "Luc Lacombe",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm5524273.jpg",
+          "imdb_code": "5524273"
+        },
+        {
+          "name": "Valérie Donzelli",
+          "character_name": "Solveig Rocher",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0233123.jpg",
+          "imdb_code": "0233123"
+        },
+        {
+          "name": "Sami Bouajila",
+          "character_name": "Samuel Haddaoui",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0098793.jpg",
+          "imdb_code": "0098793"
+        },
+        {
+          "name": "Jean-Pierre Darroussin",
+          "character_name": "Christian",
+          "imdb_code": "0201669"
+        }
+      ],
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/C975C5B7836B5878B68C9CA94877AAFAC058274E",
+          "hash": "C975C5B7836B5878B68C9CA94877AAFAC058274E",
+          "quality": "720p",
+          "type": "bluray",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "954.94 MB",
+          "size_bytes": 1001327165,
+          "date_uploaded": "2026-06-13 17:23:06",
+          "date_uploaded_unix": 1781364186
+        },
+        {
+          "url": "https://yts.bz/torrent/download/4FD595EA1DE05B9F6B804D22D143506FB9416FD1",
+          "hash": "4FD595EA1DE05B9F6B804D22D143506FB9416FD1",
+          "quality": "1080p",
+          "type": "bluray",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "5.1",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1.91 GB",
+          "size_bytes": 2050846884,
+          "date_uploaded": "2026-06-13 18:26:02",
+          "date_uploaded_unix": 1781367962
+        }
+      ],
+      "date_uploaded": "2026-06-13 17:23:06",
+      "date_uploaded_unix": 1781364186
+    },
+    {
+      "id": 76890,
+      "url": "https://yts.bz/movies/le-roi-soleil-2025",
+      "imdb_code": "tt31024627",
+      "title": "Le Roi Soleil",
+      "title_english": "Le Roi Soleil",
+      "title_long": "Le Roi Soleil (2025)",
+      "slug": "le-roi-soleil-2025",
+      "year": 2025,
+      "rating": 5.9,
+      "runtime": 107,
+      "genres": [
+        "Crime",
+        "Drama",
+        "Thriller"
+      ],
+      "like_count": 2,
+      "description_intro": "All begins in a rundown bar outside of Paris where a regular man realizes he has a winning lottery ticket only to be shot in a crime that needs to be quickly covered up.",
+      "description_full": "All begins in a rundown bar outside of Paris where a regular man realizes he has a winning lottery ticket only to be shot in a crime that needs to be quickly covered up.",
+      "yt_trailer_code": "i2Z-Pn2e_BA",
+      "language": "fr",
+      "mpa_rating": "16",
+      "background_image": "https://yts.bz/assets/images/movies/le_roi_soleil_2025/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/le_roi_soleil_2025/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/le_roi_soleil_2025/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/le_roi_soleil_2025/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/le_roi_soleil_2025/large-cover.jpg",
+      "medium_screenshot_image1": "https://yts.bz/assets/images/movies/le_roi_soleil_2025/medium-screenshot1.jpg",
+      "medium_screenshot_image2": "https://yts.bz/assets/images/movies/le_roi_soleil_2025/medium-screenshot2.jpg",
+      "medium_screenshot_image3": "https://yts.bz/assets/images/movies/le_roi_soleil_2025/medium-screenshot3.jpg",
+      "large_screenshot_image1": "https://yts.bz/assets/images/movies/le_roi_soleil_2025/large-screenshot1.jpg",
+      "large_screenshot_image2": "https://yts.bz/assets/images/movies/le_roi_soleil_2025/large-screenshot2.jpg",
+      "large_screenshot_image3": "https://yts.bz/assets/images/movies/le_roi_soleil_2025/large-screenshot3.jpg",
+      "cast": [
+        {
+          "name": "Edouard Michelon",
+          "character_name": "Choiseul",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm6667855.jpg",
+          "imdb_code": "6667855"
+        },
+        {
+          "name": "Lucie Zhang",
+          "character_name": "Esmé",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm11436471.jpg",
+          "imdb_code": "11436471"
+        },
+        {
+          "name": "Maria de Medeiros",
+          "character_name": "Picon-Lafayette",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0210218.jpg",
+          "imdb_code": "0210218"
+        },
+        {
+          "name": "Joseph Olivennes",
+          "character_name": "Erwan",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm5588882.jpg",
+          "imdb_code": "5588882"
+        }
+      ],
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/0ED090EE3D17D48873EBC6D5601C30F1CB15A517",
+          "hash": "0ED090EE3D17D48873EBC6D5601C30F1CB15A517",
+          "quality": "720p",
+          "type": "bluray",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "996.17 MB",
+          "size_bytes": 1044559954,
+          "date_uploaded": "2026-06-13 16:24:58",
+          "date_uploaded_unix": 1781360698
+        },
+        {
+          "url": "https://yts.bz/torrent/download/17CD9E32A5F8B34B1F322FC9513AC232C001E8A2",
+          "hash": "17CD9E32A5F8B34B1F322FC9513AC232C001E8A2",
+          "quality": "1080p",
+          "type": "bluray",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "5.1",
+          "seeds": 0,
+          "peers": 0,
+          "size": "2 GB",
+          "size_bytes": 2147483648,
+          "date_uploaded": "2026-06-13 17:13:24",
+          "date_uploaded_unix": 1781363604
+        }
+      ],
+      "date_uploaded": "2026-06-13 16:24:58",
+      "date_uploaded_unix": 1781360698
+    },
+    {
+      "id": 76889,
+      "url": "https://yts.bz/movies/watch-it-sailor-1961",
+      "imdb_code": "tt0055613",
+      "title": "Watch It, Sailor!",
+      "title_english": "Watch It, Sailor!",
+      "title_long": "Watch It, Sailor! (1961)",
+      "slug": "watch-it-sailor-1961",
+      "year": 1961,
+      "rating": 4.7,
+      "runtime": 81,
+      "genres": [
+        "Comedy"
+      ],
+      "like_count": 1,
+      "description_intro": "A sailor named Albert is late for his own wedding, but a bigger problem occurs when he gets a message from the Navy saying he can't marry for certain legal reasons. Everyone jumps to conclusions and thinks there's another woman out there with a claim of some kind.",
+      "description_full": "A sailor named Albert is late for his own wedding, but a bigger problem occurs when he gets a message from the Navy saying he can't marry for certain legal reasons. Everyone jumps to conclusions and thinks there's another woman out there with a claim of some kind.",
+      "yt_trailer_code": "",
+      "language": "en",
+      "mpa_rating": "U",
+      "background_image": "https://yts.bz/assets/images/movies/watch_it_sailor_1961/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/watch_it_sailor_1961/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/watch_it_sailor_1961/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/watch_it_sailor_1961/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/watch_it_sailor_1961/large-cover.jpg",
+      "medium_screenshot_image1": "https://yts.bz/assets/images/movies/watch_it_sailor_1961/medium-screenshot1.jpg",
+      "medium_screenshot_image2": "https://yts.bz/assets/images/movies/watch_it_sailor_1961/medium-screenshot2.jpg",
+      "medium_screenshot_image3": "https://yts.bz/assets/images/movies/watch_it_sailor_1961/medium-screenshot3.jpg",
+      "large_screenshot_image1": "https://yts.bz/assets/images/movies/watch_it_sailor_1961/large-screenshot1.jpg",
+      "large_screenshot_image2": "https://yts.bz/assets/images/movies/watch_it_sailor_1961/large-screenshot2.jpg",
+      "large_screenshot_image3": "https://yts.bz/assets/images/movies/watch_it_sailor_1961/large-screenshot3.jpg",
+      "cast": [
+        {
+          "name": "Dennis Price",
+          "character_name": "Lt. Cmd.r Hardcastle",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0696866.jpg",
+          "imdb_code": "0696866"
+        },
+        {
+          "name": "Liz Fraser",
+          "character_name": "Daphne Pink",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0292187.jpg",
+          "imdb_code": "0292187"
+        },
+        {
+          "name": "Irene Handl",
+          "character_name": "Edie Hornett",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0359566.jpg",
+          "imdb_code": "0359566"
+        },
+        {
+          "name": "Graham Stark",
+          "character_name": "Carnoustie Bligh",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0823174.jpg",
+          "imdb_code": "0823174"
+        }
+      ],
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/6470D1F14F409F13F5571EDB2F8C3B3C60F50E53",
+          "hash": "6470D1F14F409F13F5571EDB2F8C3B3C60F50E53",
+          "quality": "720p",
+          "type": "bluray",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "746.21 MB",
+          "size_bytes": 782457897,
+          "date_uploaded": "2026-06-13 15:47:01",
+          "date_uploaded_unix": 1781358421
+        },
+        {
+          "url": "https://yts.bz/torrent/download/93E03046C82AA744C22CAD4B4D6519F90395A577",
+          "hash": "93E03046C82AA744C22CAD4B4D6519F90395A577",
+          "quality": "1080p",
+          "type": "bluray",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1.35 GB",
+          "size_bytes": 1449551462,
+          "date_uploaded": "2026-06-13 16:46:40",
+          "date_uploaded_unix": 1781362000
+        }
+      ],
+      "date_uploaded": "2026-06-13 15:47:01",
+      "date_uploaded_unix": 1781358421
+    },
+    {
+      "id": 76888,
+      "url": "https://yts.bz/movies/dont-panic-chaps-1959",
+      "imdb_code": "tt0052750",
+      "title": "Don't Panic Chaps",
+      "title_english": "Don't Panic Chaps",
+      "title_long": "Don't Panic Chaps (1959)",
+      "slug": "dont-panic-chaps-1959",
+      "year": 1959,
+      "rating": 5.5,
+      "runtime": 85,
+      "genres": [
+        "Comedy",
+        "War"
+      ],
+      "like_count": 1,
+      "description_intro": "Charming farce about British and German soldiers peacefully sharing a little island in the Adriatic in 1943 - that is until the beautiful Elsa is cast ashore.",
+      "description_full": "Charming farce about British and German soldiers peacefully sharing a little island in the Adriatic in 1943 - that is until the beautiful Elsa is cast ashore.",
+      "yt_trailer_code": "",
+      "language": "en",
+      "mpa_rating": "Approved",
+      "background_image": "https://yts.bz/assets/images/movies/dont_panic_chaps_1959/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/dont_panic_chaps_1959/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/dont_panic_chaps_1959/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/dont_panic_chaps_1959/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/dont_panic_chaps_1959/large-cover.jpg",
+      "medium_screenshot_image1": "https://yts.bz/assets/images/movies/dont_panic_chaps_1959/medium-screenshot1.jpg",
+      "medium_screenshot_image2": "https://yts.bz/assets/images/movies/dont_panic_chaps_1959/medium-screenshot2.jpg",
+      "medium_screenshot_image3": "https://yts.bz/assets/images/movies/dont_panic_chaps_1959/medium-screenshot3.jpg",
+      "large_screenshot_image1": "https://yts.bz/assets/images/movies/dont_panic_chaps_1959/large-screenshot1.jpg",
+      "large_screenshot_image2": "https://yts.bz/assets/images/movies/dont_panic_chaps_1959/large-screenshot2.jpg",
+      "large_screenshot_image3": "https://yts.bz/assets/images/movies/dont_panic_chaps_1959/large-screenshot3.jpg",
+      "cast": [
+        {
+          "name": "Dennis Price",
+          "character_name": "Captain von Krisling",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0696866.jpg",
+          "imdb_code": "0696866"
+        },
+        {
+          "name": "Gertan Klauber",
+          "character_name": "Schmidt",
+          "imdb_code": "0458378"
+        },
+        {
+          "name": "Nadja Regin",
+          "character_name": "Elsa",
+          "imdb_code": "0716605"
+        },
+        {
+          "name": "Thorley Walters",
+          "character_name": "Brown",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0910381.jpg",
+          "imdb_code": "0910381"
+        }
+      ],
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/2E1A6A13BF6B4A3FFF83D2A5E20489D046FA7748",
+          "hash": "2E1A6A13BF6B4A3FFF83D2A5E20489D046FA7748",
+          "quality": "720p",
+          "type": "bluray",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 75,
+          "peers": 11,
+          "size": "778.67 MB",
+          "size_bytes": 816494674,
+          "date_uploaded": "2026-06-13 14:20:57",
+          "date_uploaded_unix": 1781353257
+        },
+        {
+          "url": "https://yts.bz/torrent/download/FBC51B81BB557CFFE9B208CF61CA9C4C56D84090",
+          "hash": "FBC51B81BB557CFFE9B208CF61CA9C4C56D84090",
+          "quality": "1080p",
+          "type": "bluray",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1.41 GB",
+          "size_bytes": 1513975972,
+          "date_uploaded": "2026-06-13 15:02:39",
+          "date_uploaded_unix": 1781355759
+        }
+      ],
+      "date_uploaded": "2026-06-13 14:20:57",
+      "date_uploaded_unix": 1781353257
+    },
+    {
+      "id": 76887,
+      "url": "https://yts.bz/movies/empire-of-lies-2026",
+      "imdb_code": "tt32124219",
+      "title": "Empire of Lies",
+      "title_english": "Empire of Lies",
+      "title_long": "Empire of Lies (2026)",
+      "slug": "empire-of-lies-2026",
+      "year": 2026,
+      "rating": 7.7,
+      "runtime": 73,
+      "genres": [
+        "Thriller"
+      ],
+      "like_count": 2,
+      "description_intro": "When a mysterious young woman comes to interview a paranoid man living in rural isolation, he is forced to confront his part in his daughter's murder.",
+      "description_full": "When a mysterious young woman comes to interview a paranoid man living in rural isolation, he is forced to confront his part in his daughter's murder.",
+      "yt_trailer_code": "MgBC1W2PAdU",
+      "language": "en",
+      "mpa_rating": "15",
+      "background_image": "https://yts.bz/assets/images/movies/empire_of_lies_2026/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/empire_of_lies_2026/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/empire_of_lies_2026/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/empire_of_lies_2026/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/empire_of_lies_2026/large-cover.jpg",
+      "medium_screenshot_image1": "https://yts.bz/assets/images/movies/empire_of_lies_2026/medium-screenshot1.jpg",
+      "medium_screenshot_image2": "https://yts.bz/assets/images/movies/empire_of_lies_2026/medium-screenshot2.jpg",
+      "medium_screenshot_image3": "https://yts.bz/assets/images/movies/empire_of_lies_2026/medium-screenshot3.jpg",
+      "large_screenshot_image1": "https://yts.bz/assets/images/movies/empire_of_lies_2026/large-screenshot1.jpg",
+      "large_screenshot_image2": "https://yts.bz/assets/images/movies/empire_of_lies_2026/large-screenshot2.jpg",
+      "large_screenshot_image3": "https://yts.bz/assets/images/movies/empire_of_lies_2026/large-screenshot3.jpg",
+      "cast": [
+        {
+          "name": "Joseph Millson",
+          "character_name": "Dave",
+          "imdb_code": "0590243"
+        },
+        {
+          "name": "Natalie Spence",
+          "character_name": "Young Woman",
+          "imdb_code": "5091703"
+        }
+      ],
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/F64356D94133E339F3E1E58FF40685D640F908A5",
+          "hash": "F64356D94133E339F3E1E58FF40685D640F908A5",
+          "quality": "720p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "670.47 MB",
+          "size_bytes": 703038751,
+          "date_uploaded": "2026-06-13 10:57:55",
+          "date_uploaded_unix": 1781341075
+        },
+        {
+          "url": "https://yts.bz/torrent/download/1BD5DA0F62955AFECA6124755D13F61366D77F6E",
+          "hash": "1BD5DA0F62955AFECA6124755D13F61366D77F6E",
+          "quality": "1080p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "5.1",
+          "seeds": 100,
+          "peers": 100,
+          "size": "1.34 GB",
+          "size_bytes": 1438814044,
+          "date_uploaded": "2026-06-13 11:56:10",
+          "date_uploaded_unix": 1781344570
+        }
+      ],
+      "date_uploaded": "2026-06-13 10:57:55",
+      "date_uploaded_unix": 1781341075
+    },
+    {
+      "id": 76886,
+      "url": "https://yts.bz/movies/kansas-1988",
+      "imdb_code": "tt0095428",
+      "title": "Kansas",
+      "title_english": "Kansas",
+      "title_long": "Kansas (1988)",
+      "slug": "kansas-1988",
+      "year": 1988,
+      "rating": 5.5,
+      "runtime": 110,
+      "genres": [
+        "Crime",
+        "Drama",
+        "Romance",
+        "Thriller"
+      ],
+      "like_count": 2,
+      "description_intro": "A young man returning home to attend a wedding hooks up with a drifter who turns out to be a violent bank robber. Before he knows it, the man finds himself involved in the robber's plans.",
+      "description_full": "A young man returning home to attend a wedding hooks up with a drifter who turns out to be a violent bank robber. Before he knows it, the man finds himself involved in the robber's plans.",
+      "yt_trailer_code": "",
+      "language": "en",
+      "mpa_rating": "R",
+      "background_image": "https://yts.bz/assets/images/movies/kansas_1988/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/kansas_1988/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/kansas_1988/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/kansas_1988/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/kansas_1988/large-cover.jpg",
+      "medium_screenshot_image1": "https://yts.bz/assets/images/movies/kansas_1988/medium-screenshot1.jpg",
+      "medium_screenshot_image2": "https://yts.bz/assets/images/movies/kansas_1988/medium-screenshot2.jpg",
+      "medium_screenshot_image3": "https://yts.bz/assets/images/movies/kansas_1988/medium-screenshot3.jpg",
+      "large_screenshot_image1": "https://yts.bz/assets/images/movies/kansas_1988/large-screenshot1.jpg",
+      "large_screenshot_image2": "https://yts.bz/assets/images/movies/kansas_1988/large-screenshot2.jpg",
+      "large_screenshot_image3": "https://yts.bz/assets/images/movies/kansas_1988/large-screenshot3.jpg",
+      "cast": [
+        {
+          "name": "Arlen Dean Snyder",
+          "character_name": "George Bayles",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0811405.jpg",
+          "imdb_code": "0811405"
+        },
+        {
+          "name": "Kyra Sedgwick",
+          "character_name": "Prostitute Drifter",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0001718.jpg",
+          "imdb_code": "0001718"
+        },
+        {
+          "name": "Louis Giambalvo",
+          "character_name": "Army Sergeant",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0316080.jpg",
+          "imdb_code": "0316080"
+        },
+        {
+          "name": "Matt Dillon",
+          "character_name": "Doyle Kennedy",
+          "url_small_image": "https://yts.bz/assets/images/actors/thumb/nm0000369.jpg",
+          "imdb_code": "0000369"
+        }
+      ],
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/B56E656CEA40D2EE08BF8203645EAE6BA7AA2580",
+          "hash": "B56E656CEA40D2EE08BF8203645EAE6BA7AA2580",
+          "quality": "720p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1017 MB",
+          "size_bytes": 1066401792,
+          "date_uploaded": "2026-06-13 10:54:19",
+          "date_uploaded_unix": 1781340859
+        },
+        {
+          "url": "https://yts.bz/torrent/download/F8CB4BD0F2861FFCF53716666CFC7B7BCE44BA07",
+          "hash": "F8CB4BD0F2861FFCF53716666CFC7B7BCE44BA07",
+          "quality": "1080p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1.84 GB",
+          "size_bytes": 1975684956,
+          "date_uploaded": "2026-06-13 11:44:06",
+          "date_uploaded_unix": 1781343846
+        }
+      ],
+      "date_uploaded": "2026-06-13 10:54:19",
+      "date_uploaded_unix": 1781340859
+    }
+  ],
+  "upcoming": [
+    {
+      "id": 76899,
+      "url": "https://yts.bz/movies/fear-of-flying-2024",
+      "imdb_code": "tt29281893",
+      "title": "Fear of Flying",
+      "title_english": "Fear of Flying",
+      "title_long": "Fear of Flying (2024)",
+      "slug": "fear-of-flying-2024",
+      "year": 2024,
+      "rating": 8.8,
+      "runtime": 92,
+      "genres": [
+        "Drama"
+      ],
+      "summary": "Mark's a mess who fears everything, especially flying. When he meets his possible soulmate, he must juggle work, love, and life while battling worry, anxiety, and depression.",
+      "description_full": "Mark's a mess who fears everything, especially flying. When he meets his possible soulmate, he must juggle work, love, and life while battling worry, anxiety, and depression.",
+      "synopsis": "Mark's a mess who fears everything, especially flying. When he meets his possible soulmate, he must juggle work, love, and life while battling worry, anxiety, and depression.",
+      "yt_trailer_code": "",
+      "language": "en",
+      "mpa_rating": "",
+      "background_image": "https://yts.bz/assets/images/movies/fear_of_flying_2024/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/fear_of_flying_2024/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/fear_of_flying_2024/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/fear_of_flying_2024/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/fear_of_flying_2024/large-cover.jpg",
+      "state": "ok",
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/999691BEFD1C1E34A9B6B313C8322244B47DBBED",
+          "hash": "999691BEFD1C1E34A9B6B313C8322244B47DBBED",
+          "quality": "720p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "868.72 MB",
+          "size_bytes": 910918943,
+          "date_uploaded": "2026-06-13 23:31:13",
+          "date_uploaded_unix": 1781386273
+        },
+        {
+          "url": "https://yts.bz/torrent/download/A331D1C1AFBFFE1F8F6D411000D634699FCC7649",
+          "hash": "A331D1C1AFBFFE1F8F6D411000D634699FCC7649",
+          "quality": "1080p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1.57 GB",
+          "size_bytes": 1685774664,
+          "date_uploaded": "2026-06-14 00:20:32",
+          "date_uploaded_unix": 1781389232
+        }
+      ],
+      "date_uploaded": "2026-06-13 23:31:13",
+      "date_uploaded_unix": 1781386273
+    },
+    {
+      "id": 76898,
+      "url": "https://yts.bz/movies/stvury-2025",
+      "imdb_code": "tt38573622",
+      "title": "Stvury",
+      "title_english": "Stvury",
+      "title_long": "Stvury (2025)",
+      "slug": "stvury-2025",
+      "year": 2025,
+      "rating": 7.1,
+      "runtime": 90,
+      "genres": [
+        "Crime"
+      ],
+      "summary": "A thrilling film story that begins with the brutal murder of a young girl takes viewers to the raw environment of a small town somewhere in the north of Bohemia. A pair of detectives embark on a complicated investigation. Just when it seems that the case is about to be closed, new evidence casts doubt on everything and forces them to go back to the beginning. Tension mounts between investigator Laura Linhartová and her colleague Adam Benes. The question remains: Who killed Anna Pittnerová?",
+      "description_full": "A thrilling film story that begins with the brutal murder of a young girl takes viewers to the raw environment of a small town somewhere in the north of Bohemia. A pair of detectives embark on a complicated investigation. Just when it seems that the case is about to be closed, new evidence casts doubt on everything and forces them to go back to the beginning. Tension mounts between investigator Laura Linhartová and her colleague Adam Benes. The question remains: Who killed Anna Pittnerová?",
+      "synopsis": "A thrilling film story that begins with the brutal murder of a young girl takes viewers to the raw environment of a small town somewhere in the north of Bohemia. A pair of detectives embark on a complicated investigation. Just when it seems that the case is about to be closed, new evidence casts doubt on everything and forces them to go back to the beginning. Tension mounts between investigator Laura Linhartová and her colleague Adam Benes. The question remains: Who killed Anna Pittnerová?",
+      "yt_trailer_code": "WMpl5pNp6dA",
+      "language": "cs",
+      "mpa_rating": "19",
+      "background_image": "https://yts.bz/assets/images/movies/stvury_2025/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/stvury_2025/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/stvury_2025/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/stvury_2025/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/stvury_2025/large-cover.jpg",
+      "state": "ok",
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/A087D86DA1AF2A8F604C998A83814A5E4352C8D5",
+          "hash": "A087D86DA1AF2A8F604C998A83814A5E4352C8D5",
+          "quality": "720p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "800.68 MB",
+          "size_bytes": 839573832,
+          "date_uploaded": "2026-06-13 20:30:17",
+          "date_uploaded_unix": 1781375417
+        },
+        {
+          "url": "https://yts.bz/torrent/download/77D76BE958F518BF2C4A202C6772A5637E5926BD",
+          "hash": "77D76BE958F518BF2C4A202C6772A5637E5926BD",
+          "quality": "1080p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "5.1",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1.61 GB",
+          "size_bytes": 1728724337,
+          "date_uploaded": "2026-06-13 21:21:47",
+          "date_uploaded_unix": 1781378507
+        }
+      ],
+      "date_uploaded": "2026-06-13 20:30:17",
+      "date_uploaded_unix": 1781375417
+    },
+    {
+      "id": 76897,
+      "url": "https://yts.bz/movies/choi-gang-lo-maen-seu-2007",
+      "imdb_code": "tt1649294",
+      "title": "Choi-gang lo-maen-seu",
+      "title_english": "Choi-gang lo-maen-seu",
+      "title_long": "Choi-gang lo-maen-seu (2007)",
+      "slug": "choi-gang-lo-maen-seu-2007",
+      "year": 2007,
+      "rating": 5.6,
+      "runtime": 109,
+      "genres": [
+        "Comedy",
+        "Romance"
+      ],
+      "summary": "Young cop with debilitating phobia meets a hyperactive young journalist who complicates his life and career by always managing to do the wrong thing.",
+      "description_full": "Young cop with debilitating phobia meets a hyperactive young journalist who complicates his life and career by always managing to do the wrong thing.",
+      "synopsis": "Young cop with debilitating phobia meets a hyperactive young journalist who complicates his life and career by always managing to do the wrong thing.",
+      "yt_trailer_code": "",
+      "language": "ko",
+      "mpa_rating": "Not Rated",
+      "background_image": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/choi_gang_lo_maen_seu_2007/large-cover.jpg",
+      "state": "ok",
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/F68E6C39EC3297D2BBC56B8D3EBE42CD568686EC",
+          "hash": "F68E6C39EC3297D2BBC56B8D3EBE42CD568686EC",
+          "quality": "720p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1007.98 MB",
+          "size_bytes": 1056943636,
+          "date_uploaded": "2026-06-13 20:09:54",
+          "date_uploaded_unix": 1781374194
+        },
+        {
+          "url": "https://yts.bz/torrent/download/528DC28A1155B87FF40E9A732323DAFE1E19D13F",
+          "hash": "528DC28A1155B87FF40E9A732323DAFE1E19D13F",
+          "quality": "1080p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1.82 GB",
+          "size_bytes": 1954210120,
+          "date_uploaded": "2026-06-13 21:41:49",
+          "date_uploaded_unix": 1781379709
+        }
+      ],
+      "date_uploaded": "2026-06-13 20:09:54",
+      "date_uploaded_unix": 1781374194
+    },
+    {
+      "id": 76896,
+      "url": "https://yts.bz/movies/gunghab-2018",
+      "imdb_code": "tt5961314",
+      "title": "Gunghab",
+      "title_english": "Gunghab",
+      "title_long": "Gunghab (2018)",
+      "slug": "gunghab-2018",
+      "year": 2018,
+      "rating": 6.3,
+      "runtime": 110,
+      "genres": [
+        "Comedy",
+        "History",
+        "Romance"
+      ],
+      "summary": "I princess who is skilled in martial arts dismisses her four potential suitors and journey's to find a man worthy of her hand in marriage.",
+      "description_full": "I princess who is skilled in martial arts dismisses her four potential suitors and journey's to find a man worthy of her hand in marriage.",
+      "synopsis": "I princess who is skilled in martial arts dismisses her four potential suitors and journey's to find a man worthy of her hand in marriage.",
+      "yt_trailer_code": "rSfNg0kosTM",
+      "language": "ko",
+      "mpa_rating": "PG",
+      "background_image": "https://yts.bz/assets/images/movies/gunghab_2018/background.jpg",
+      "background_image_original": "https://yts.bz/assets/images/movies/gunghab_2018/background.jpg",
+      "small_cover_image": "https://yts.bz/assets/images/movies/gunghab_2018/small-cover.jpg",
+      "medium_cover_image": "https://yts.bz/assets/images/movies/gunghab_2018/medium-cover.jpg",
+      "large_cover_image": "https://yts.bz/assets/images/movies/gunghab_2018/large-cover.jpg",
+      "state": "ok",
+      "torrents": [
+        {
+          "url": "https://yts.bz/torrent/download/A0FA35B8D3FDD3050F5690165B2A432418D0ADA9",
+          "hash": "A0FA35B8D3FDD3050F5690165B2A432418D0ADA9",
+          "quality": "720p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 0,
+          "peers": 0,
+          "size": "1013.1 MB",
+          "size_bytes": 1062312346,
+          "date_uploaded": "2026-06-13 19:44:06",
+          "date_uploaded_unix": 1781372646
+        },
+        {
+          "url": "https://yts.bz/torrent/download/1414A972E36362A994ED7DECD2A57AAD5179A2A1",
+          "hash": "1414A972E36362A994ED7DECD2A57AAD5179A2A1",
+          "quality": "1080p",
+          "type": "web",
+          "is_repack": "0",
+          "video_codec": "x264",
+          "bit_depth": "8",
+          "audio_channels": "2.0",
+          "seeds": 64,
+          "peers": 20,
+          "size": "1.83 GB",
+          "size_bytes": 1964947538,
+          "date_uploaded": "2026-06-13 21:00:34",
+          "date_uploaded_unix": 1781377234
+        }
+      ],
+      "date_uploaded": "2026-06-13 19:44:06",
+      "date_uploaded_unix": 1781372646
+    }
+  ]
+}

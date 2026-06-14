@@ -71,12 +71,12 @@ SORT_MAP = {
 QUALITY_RE = re.compile(r"\b(480p|720p|1080p|1080p\.x265|2160p|4k|3d)\b", re.I)
 
 
-def ok(data: Any, message: str = "Query was successful") -> dict[str, Any]:
+def ok(data: Any, message: str = "Query was successful", source: str = "tmdb") -> dict[str, Any]:
     return {
         "status": "ok",
         "status_message": message,
         "data": data,
-        "@meta": {"api_version": 1, "source": "tmdb"},
+        "@meta": {"api_version": 1, "source": source},
     }
 
 

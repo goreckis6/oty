@@ -5,6 +5,7 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/ytdown}"
 DOMAIN="${DOMAIN:-localhost}"
 ACME_EMAIL="${ACME_EMAIL:-}"
+DATA_SOURCE="${DATA_SOURCE:-scrape}"
 TMDB_API_KEY="${TMDB_API_KEY:-}"
 TORRENT_SOURCE="${TORRENT_SOURCE:-apibay}"
 SITE_NAME="${SITE_NAME:-YTS}"
@@ -53,10 +54,10 @@ ${DOMAIN} {
 EOF
 
 echo "==> Building and starting API + Caddy..."
-export TMDB_API_KEY TORRENT_SOURCE
+export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE
 docker compose up -d --build --remove-orphans
 
 echo "==> Deploy OK — https://${DOMAIN}"
 echo "    API: https://${DOMAIN}/api/v1/"
-echo "    Metadata: TMDB | Torrents: ${TORRENT_SOURCE}"
+echo "    Data: ${DATA_SOURCE} | Torrents: ${TORRENT_SOURCE}"
 docker compose ps

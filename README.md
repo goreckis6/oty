@@ -2,7 +2,21 @@
 
 Frontend + własny backend API. **Bez yts.bz.**
 
-## Skąd biorą się dane
+## Tryb testowy (domyślny): scrape z yts.bz
+
+Backend domyślnie serwuje **10 filmów** z pliku `backend/data/test_movies.json` (pobrane z yts.bz).
+
+```bash
+cd backend
+python3 scrape_yts.py          # odśwież cache (10 filmów)
+DATA_SOURCE=scrape uvicorn main:app --port 8080
+```
+
+`DATA_SOURCE=scrape` — bez TMDB, działa od razu na VPS.
+
+`DATA_SOURCE=tmdb` + `TMDB_API_KEY` — pełna baza z TMDB.
+
+## Skąd biorą się dane (tryb tmdb)
 
 | Co | Źródło |
 |----|--------|
