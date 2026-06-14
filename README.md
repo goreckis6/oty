@@ -41,7 +41,7 @@ W panelu:
 ## SQLite
 
 - Plik: `backend/data/movies.db`
-- Przy pierwszym uruchomieniu importuje `test_movies.json` jeśli baza pusta
+- Przy pierwszym uruchomieniu baza startuje pusta — filmy dodajesz przez scraping w panelu admina
 - Volume Docker: `./backend/data:/app/data` — dane przetrwają redeploy
 - **Deploy NIGDY nie kasuje bazy** — `rsync` wyklucza cały `backend/data/` (zostaje tylko `test_movies.json` z repo); `deploy.sh` weryfikuje `movies.db` przed i po deployu
 - **Deploy nie kasuje plików z panelu** — weryfikacja Google/Bing (`public/*.html` poza `index.html`), `public/uploads/` (logo), `public/downloads/`, `public/.well-known/`

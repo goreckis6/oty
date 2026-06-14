@@ -8,7 +8,11 @@ from pathlib import Path
 from typing import Any
 
 DB_PATH = Path(os.environ.get("DB_PATH", str(Path(__file__).resolve().parent / "data" / "movies.db")))
-JSON_FALLBACK = Path(__file__).resolve().parent / "data" / "test_movies.json"
+
+# Legacy seed IDs from old test_movies.json — removed on first startup after upgrade.
+LEGACY_SEED_MOVIE_IDS = frozenset({
+    76899, 76898, 76897, 76896, 76891, 76890, 76889, 76888, 76887, 76886,
+})
 
 
 def _now() -> str:
@@ -27,7 +31,7 @@ class Database:
         self.path = path or DB_PATH
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
-        self._import_json_if_empty()
+        self._remove_legacy_seed_movies()
 
     @contextmanager
     def connect(self):
@@ -63,15 +67,14 @@ class Database:
                 """
             )
 
-    def _import_json_if_empty(self) -> None:
-        if self.count_movies() > 0 or not JSON_FALLBACK.exists():
+    def _remove_legacy_seed_movies(self) -> None:
+        if self.get_meta("legacy_seed_removed", "0") == "1":
             return
-        payload = json.loads(JSON_FALLBACK.read_text(encoding="utf-8"))
-        for movie in payload.get("movies") or []:
-            self.upsert_movie(movie)
-        upcoming = payload.get("upcoming") or []
-        if upcoming:
-            self.set_meta("upcoming", json.dumps(upcoming))
+        removed = 0
+        for movie_id in LEGACY_SEED_MOVIE_IDS:
+            if self.delete_movie(movie_id):
+                removed += 1
+        self.set_meta("legacy_seed_removed", "1")
 
     def count_movies(self) -> int:
         with self.connect() as conn:

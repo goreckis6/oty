@@ -26,7 +26,7 @@ if [ -f "$DB_FILE" ]; then
   DB_SIZE_BEFORE=$(stat -c%s "$DB_FILE")
   echo "==> SQLite database preserved ($(du -h "$DB_FILE" | awk '{print $1}'), ${DB_SIZE_BEFORE} bytes)"
 else
-  echo "==> No movies.db yet — first API start seeds from test_movies.json if empty"
+  echo "==> No movies.db yet — database starts empty; add movies via admin scraping"
 fi
 
 if ! grep -q './backend/data:/app/data' docker-compose.yml; then
