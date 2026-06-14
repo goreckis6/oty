@@ -79,7 +79,30 @@
             <div class="admin-stat"><span>Movies</span><strong id="statCount">—</strong></div>
             <div class="admin-stat"><span>Last scrape</span><strong id="statLast">—</strong></div>
             <div class="admin-stat"><span>Last batch</span><strong id="statBatch">—</strong></div>
+            <div class="admin-stat"><span>NEW</span><strong id="statNew">—</strong></div>
           </div>
+
+          <section class="admin-section">
+            <h2>Filmy w bazie</h2>
+            <p class="admin-hint">Filmy z ostatniego scrapingu mają oznaczenie NEW do następnego scrapingu.</p>
+            <div class="admin-movies-wrap">
+              <table class="admin-movies" id="adminMoviesTable">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Tytuł</th>
+                    <th>Rok</th>
+                    <th>Rating</th>
+                    <th>Slug</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="adminMoviesBody">
+                  <tr><td colspan="6" class="admin-movies-empty">Ładowanie…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
 
           <section class="admin-section">
             <h2>Scrape from YTS</h2>
@@ -107,9 +130,37 @@
         document.getElementById("statCount").textContent = s.movies_count;
         document.getElementById("statLast").textContent = s.last_scrape || "never";
         document.getElementById("statBatch").textContent = s.last_scrape_count || "—";
+        document.getElementById("statNew").textContent = s.new_count ?? "—";
       } catch {
         clearToken();
         window.YtsAdmin.render(app);
+      }
+    }
+
+    async function loadMovies() {
+      const tbody = document.getElementById("adminMoviesBody");
+      try {
+        const data = await api("/admin/movies");
+        const movies = data.movies || [];
+        if (!movies.length) {
+          tbody.innerHTML = `<tr><td colspan="6" class="admin-movies-empty">Brak filmów w bazie.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = movies
+          .map(
+            (m) => `
+          <tr class="${m.is_new ? "admin-movies__row--new" : ""}">
+            <td>${m.is_new ? '<span class="badge-new">NEW</span>' : ""}</td>
+            <td class="admin-movies__title">${escapeHtml(m.title || "—")}</td>
+            <td>${m.year || "—"}</td>
+            <td>${m.rating != null ? Number(m.rating).toFixed(1) : "—"}</td>
+            <td class="admin-movies__slug">${escapeHtml(m.slug || "—")}</td>
+            <td><a class="admin-movies__link" href="${escapeHtml(m.url)}" target="_blank" rel="noopener">Podgląd</a></td>
+          </tr>`
+          )
+          .join("");
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
       }
     }
 
@@ -128,6 +179,7 @@
         log.textContent += (result.logs || []).join("\n") + "\n";
         log.textContent += `\n✓ Zapisano ${result.saved} filmów (w bazie: ${result.total_in_db})`;
         loadStats();
+        loadMovies();
       } catch (err) {
         log.textContent += `\nError: ${err.message}`;
       } finally {
@@ -136,6 +188,7 @@
     });
 
     loadStats();
+    loadMovies();
   }
 
   async function render(app) {

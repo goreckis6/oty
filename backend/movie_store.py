@@ -64,8 +64,14 @@ def _sort_movies(movies: list[dict], sort_by: str, order: str) -> list[dict]:
     return sorted(movies, key=key, reverse=reverse)
 
 
-def _summaries(movies: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [{k: m.get(k) for k in SUMMARY_KEYS} for m in movies]
+def _summaries(movies: list[dict[str, Any]], new_ids: set[int] | None = None) -> list[dict[str, Any]]:
+    new_ids = new_ids or set()
+    result = []
+    for m in movies:
+        item = {k: m.get(k) for k in SUMMARY_KEYS}
+        item["is_new"] = int(m.get("id") or 0) in new_ids
+        result.append(item)
+    return result
 
 
 class MovieStore:
@@ -73,8 +79,28 @@ class MovieStore:
         self.db = db or Database()
 
     @property
+    def new_ids(self) -> set[int]:
+        return self.db.get_last_batch_ids()
+
+    def _tag_new(self, movie: dict[str, Any]) -> dict[str, Any]:
+        movie = dict(movie)
+        movie["is_new"] = int(movie.get("id") or 0) in self.new_ids
+        return movie
+
+    @property
     def movies(self) -> list[dict[str, Any]]:
         return self.db.all_movies()
+
+    def list_all_admin(self) -> list[dict[str, Any]]:
+        new_ids = self.new_ids
+        items = []
+        for row in self.db.list_rows():
+            items.append({
+                **row,
+                "is_new": int(row["id"]) in new_ids,
+                "url": f"/movies/{row['slug']}",
+            })
+        return items
 
     def list_movies(self, params: dict[str, Any]) -> dict[str, Any]:
         page = int(params.get("page") or 1)
@@ -102,7 +128,7 @@ class MovieStore:
             "movie_count": len(filtered),
             "limit": limit,
             "page_number": page,
-            "movies": _summaries(page_items),
+            "movies": _summaries(page_items, self.new_ids),
         }
 
     def movie_details(
@@ -111,12 +137,14 @@ class MovieStore:
         movie = self.db.get_movie(movie_id=movie_id, slug=slug)
         if not movie:
             raise KeyError(f"Movie not found: id={movie_id} slug={slug}")
-        return {"movie": movie}
+        return {"movie": self._tag_new(movie)}
 
     def list_upcoming(self) -> dict[str, Any]:
         upcoming = self.db.get_upcoming()
         if not upcoming:
-            upcoming = _summaries(self.movies[:4])
+            upcoming = _summaries(self.movies[:4], self.new_ids)
+        else:
+            upcoming = _summaries(upcoming, self.new_ids)
         return {"movies": upcoming[:8]}
 
     def movie_suggestions(
@@ -124,7 +152,7 @@ class MovieStore:
     ) -> dict[str, Any]:
         target = self.db.get_movie(movie_id=movie_id, slug=slug)
         if not target:
-            return {"movies": _summaries(self.movies[:4])}
+            return {"movies": _summaries(self.movies[:4], self.new_ids)}
 
         mid = target.get("id")
         genres = set(target.get("genres") or [])
@@ -135,4 +163,4 @@ class MovieStore:
         ]
         if not similar:
             similar = [m for m in self.movies if m.get("id") != mid]
-        return {"movies": _summaries(similar[:4])}
+        return {"movies": _summaries(similar[:4], self.new_ids)}

@@ -26,6 +26,7 @@
 
 html {
   scroll-behavior: smooth;
+  height: 100%;
 }
 
 body {
@@ -33,7 +34,9 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
-  min-height: 100vh;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 a {
@@ -64,6 +67,7 @@ a:hover {
 
 /* ── Header ── */
 .site-header {
+  flex-shrink: 0;
   background: var(--bg-dark);
   border-bottom: 4px solid var(--green);
   position: sticky;
@@ -249,8 +253,8 @@ a:hover {
 
 /* ── Main ── */
 .main {
+  flex: 1 0 auto;
   padding: 0 0 3rem;
-  min-height: 55vh;
 }
 
 .loading {
@@ -423,6 +427,26 @@ a:hover {
   font-weight: 700;
   padding: 3px 7px;
   border-radius: 2px;
+}
+
+.badge-new {
+  display: inline-block;
+  background: var(--yellow);
+  color: #111;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 3px 6px;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+.badge-new--card {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 
 .movie-box__title {
@@ -1097,8 +1121,72 @@ a:hover {
   font-family: ui-monospace, monospace;
 }
 
+.admin-movies-wrap {
+  overflow-x: auto;
+  border: 1px solid #444;
+  border-radius: var(--radius);
+}
+
+.admin-movies {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.admin-movies th,
+.admin-movies td {
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid #333;
+}
+
+.admin-movies th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #1e1e1e;
+}
+
+.admin-movies tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-movies__row--new {
+  background: rgba(255, 204, 0, 0.06);
+}
+
+.admin-movies__title {
+  font-weight: 600;
+  color: #fff;
+}
+
+.admin-movies__slug {
+  color: var(--text-muted);
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+}
+
+.admin-movies__link {
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.admin-movies__link:hover {
+  text-decoration: underline;
+}
+
+.admin-movies-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 1.5rem !important;
+}
+
 /* Footer */
 .footer {
+  flex-shrink: 0;
   background: var(--bg-dark);
   border-top: 1px solid #444;
   padding: 1.25rem 0;

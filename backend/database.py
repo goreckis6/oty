@@ -141,6 +141,23 @@ class Database:
     def set_upcoming(self, movies: list[dict[str, Any]]) -> None:
         self.set_meta("upcoming", json.dumps(movies, ensure_ascii=False))
 
+    def get_last_batch_ids(self) -> set[int]:
+        raw = self.get_meta("last_batch_ids", "[]")
+        try:
+            return {int(x) for x in json.loads(raw)}
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return set()
+
+    def set_last_batch_ids(self, ids: list[int]) -> None:
+        self.set_meta("last_batch_ids", json.dumps(ids))
+
+    def list_rows(self) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                "SELECT id, slug, title, year, rating, updated_at FROM movies ORDER BY updated_at DESC"
+            ).fetchall()
+        return [dict(r) for r in rows]
+
     def delete_all_movies(self) -> None:
         with self.connect() as conn:
             conn.execute("DELETE FROM movies")

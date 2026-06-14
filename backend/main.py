@@ -107,11 +107,23 @@ async def admin_me(username: str = Depends(require_admin)) -> dict[str, str]:
 @app.get(f"{API_PREFIX}/admin/stats")
 async def admin_stats(_: str = Depends(require_admin)) -> dict[str, Any]:
     assert db is not None
+    new_count = len(db.get_last_batch_ids())
     return {
         "movies_count": db.count_movies(),
         "last_scrape": db.get_meta("last_scrape"),
         "last_scrape_count": db.get_meta("last_scrape_count"),
+        "new_count": new_count,
         "data_source": DATA_SOURCE,
+    }
+
+
+@app.get(f"{API_PREFIX}/admin/movies")
+async def admin_movies(_: str = Depends(require_admin)) -> dict[str, Any]:
+    store = require_store()
+    return {
+        "status": "ok",
+        "movies": store.list_all_admin(),
+        "new_count": len(store.new_ids),
     }
 
 

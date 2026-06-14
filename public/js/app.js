@@ -92,6 +92,7 @@
         <div class="movie-box__img">
           <img src="${escapeHtml(img)}" alt="${escapeHtml(m.title)}" loading="lazy" />
           <div class="movie-box__rating">${rating} <span>/ 10</span></div>
+          ${m.is_new ? '<div class="badge-new badge-new--card">NEW</div>' : ""}
           ${m.year ? `<div class="movie-box__year">${m.year}</div>` : ""}
         </div>
         <div class="movie-box__title">${escapeHtml(m.title)}</div>
