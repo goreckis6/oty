@@ -8,6 +8,7 @@ from typing import Any
 from xml.etree.ElementTree import Element, SubElement, tostring
 
 from movie_enrichment import plot_synopsis
+from site_branding import get_branding
 
 
 def normalize_site_url(url: str) -> str:
@@ -37,7 +38,8 @@ def _clean_text(value: str, limit: int = 160) -> str:
 def movie_page_title(movie: dict[str, Any]) -> str:
     title = movie.get("title") or "Movie"
     year = movie.get("year") or ""
-    return f"{title} ({year}) YIFY Torrent Download — {SITE_NAME}"
+    site_name = get_branding().get("siteName") or SITE_NAME
+    return f"{title} ({year}) YIFY Torrent Download — {site_name}"
 
 
 def movie_description(movie: dict[str, Any]) -> str:
@@ -131,9 +133,12 @@ def build_head_injection(
         image = movie_og_image(movie)
         json_ld = movie_json_ld(movie, canonical)
     else:
-        title = title or f"{SITE_NAME} — YIFY Movies"
+        branding = get_branding()
+        site_name = branding.get("siteName") or SITE_NAME
+        site_tagline = branding.get("siteTagline") or SITE_TAGLINE
+        title = title or f"{site_name} — YIFY Movies"
         description = description or (
-            f"Browse and download YIFY movies in HD quality at the smallest file size. {SITE_TAGLINE}"
+            f"Browse and download YIFY movies in HD quality at the smallest file size. {site_tagline}"
         )
         canonical = canonical or SITE_URL + "/"
         image = image or f"{SITE_URL}/favicon.ico"
@@ -204,11 +209,42 @@ def inject_head(html_doc: str, head_html: str) -> str:
     )
 
 
+def inject_branding(html_doc: str) -> str:
+    branding = get_branding()
+    name = _esc(branding.get("siteName") or SITE_NAME)
+    tagline = _esc(branding.get("siteTagline") or SITE_TAGLINE)
+    if branding.get("logoType") == "image" and branding.get("logoUrl"):
+        logo_url = _esc(branding["logoUrl"])
+        logo_block = (
+            f'<img class="brand__logo-img" id="siteLogoImg" src="{logo_url}" alt="{name}" />'
+            f'<span class="brand__logo" id="siteLogoText" hidden>{name}</span>'
+        )
+    else:
+        logo_block = (
+            f'<span class="brand__logo" id="siteLogoText">{name}</span>'
+            f'<img class="brand__logo-img" id="siteLogoImg" alt="" hidden />'
+        )
+    html_doc = re.sub(
+        r'<span class="brand__logo" id="siteLogoText">[\s\S]*?</span>\s*'
+        r'<img class="brand__logo-img" id="siteLogoImg"[^>]*/>\s*',
+        logo_block,
+        html_doc,
+        count=1,
+    )
+    return re.sub(
+        r'(<span class="brand__tag" id="siteTagline">)[^<]*(</span>)',
+        rf"\1{tagline}\2",
+        html_doc,
+        count=1,
+    )
+
+
 def render_movie_page(movie: dict[str, Any]) -> str:
     tpl = load_index_template()
     head = build_head_injection(page_type="movie", movie=movie)
     body = build_movie_prerender(movie)
     out = inject_head(tpl, head)
+    out = inject_branding(out)
     out = re.sub(
         r'(<main class="main" id="app">)[\s\S]*?(</main>)',
         rf"\1{body}\2",

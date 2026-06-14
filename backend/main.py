@@ -13,6 +13,7 @@ from movie_store import MovieStore
 from scraper import scrape_movies
 from seo import build_robots, build_sitemap, build_sitemap_part, register_movies_for_seo, render_movie_page
 from site_files import delete_site_file, list_site_files, read_site_file, upload_site_file, write_site_file
+from site_branding import get_branding, remove_logo, save_branding, save_logo
 from sources import (
     APIBAY_URL,
     DATA_SOURCE,
@@ -86,6 +87,11 @@ class SiteFileWriteRequest(BaseModel):
     overwrite: bool = True
 
 
+class BrandingRequest(BaseModel):
+    site_name: str = Field(default="", max_length=40)
+    site_tagline: str = Field(default="", max_length=120)
+
+
 def require_tmdb() -> TmdbClient:
     if not TMDB_KEY:
         raise HTTPException(status_code=503, detail="Set TMDB_API_KEY")
@@ -112,6 +118,12 @@ async def health() -> dict[str, Any]:
         "tmdb_configured": bool(TMDB_KEY),
         "torrents": TORRENT_SOURCE,
     }
+
+
+@app.get(f"{API_PREFIX}/site/branding")
+async def site_branding() -> dict[str, Any]:
+    assert db is not None
+    return {"status": "ok", **get_branding(db)}
 
 
 @app.post(f"{API_PREFIX}/admin/login")
@@ -273,6 +285,46 @@ async def admin_delete_file(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get(f"{API_PREFIX}/admin/branding")
+async def admin_branding_get(_: str = Depends(require_admin)) -> dict[str, Any]:
+    assert db is not None
+    return {"status": "ok", **get_branding(db)}
+
+
+@app.post(f"{API_PREFIX}/admin/branding")
+async def admin_branding_save(
+    body: BrandingRequest,
+    _: str = Depends(require_admin),
+) -> dict[str, Any]:
+    assert db is not None
+    branding = save_branding(
+        db,
+        site_name=body.site_name,
+        site_tagline=body.site_tagline,
+    )
+    return {"status": "ok", **branding}
+
+
+@app.post(f"{API_PREFIX}/admin/branding/logo")
+async def admin_branding_logo(
+    file: UploadFile = File(...),
+    _: str = Depends(require_admin),
+) -> dict[str, Any]:
+    assert db is not None
+    data = await file.read()
+    try:
+        branding = save_logo(db, file.filename or "logo.png", data)
+        return {"status": "ok", **branding}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.delete(f"{API_PREFIX}/admin/branding/logo")
+async def admin_branding_logo_delete(_: str = Depends(require_admin)) -> dict[str, Any]:
+    assert db is not None
+    return {"status": "ok", **remove_logo(db)}
 
 
 @app.get(f"{API_PREFIX}/list_movies.json")

@@ -115,7 +115,57 @@
             <div class="admin-stat"><span>NEW</span><strong id="statNew">—</strong></div>
           </div>
 
-          <section class="admin-section">
+          <nav class="admin-tabs" id="adminTabs" role="tablist" aria-label="Sekcje panelu">
+            <button type="button" class="admin-tabs__btn admin-tabs__btn--active" data-tab="movies" role="tab" aria-selected="true">Filmy</button>
+            <button type="button" class="admin-tabs__btn" data-tab="scraping" role="tab" aria-selected="false">Scraping</button>
+            <button type="button" class="admin-tabs__btn" data-tab="branding" role="tab" aria-selected="false">Wygląd</button>
+            <button type="button" class="admin-tabs__btn" data-tab="files" role="tab" aria-selected="false">Pliki witryny</button>
+          </nav>
+
+          <div class="admin-tabs__panels">
+          <section class="admin-tab admin-tab--active admin-section" data-tab="movies" id="adminTabMovies" role="tabpanel">
+            <h2>Filmy w bazie</h2>
+            <p class="admin-hint">Każdy scraping dopisuje nowe filmy do bazy (istniejące są pomijane). Ostatnio dodane mają NEW do następnego scrapingu.</p>
+            <div class="admin-list-toolbar">
+              <label>
+                Na stronę
+                <select id="adminMoviesLimit">
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                  <option value="300">300</option>
+                  <option value="500">500</option>
+                </select>
+              </label>
+              <span class="admin-list-meta" id="adminMoviesMeta">—</span>
+              <div class="admin-pagination" id="adminMoviesPagination"></div>
+            </div>
+            <div class="admin-bulk-bar" id="adminBulkBar" hidden>
+              <span><strong id="adminBulkCount">0</strong> zaznaczonych</span>
+              <button type="button" class="btn-admin-delete" id="adminBulkDelete">Usuń zaznaczone</button>
+            </div>
+            <div class="admin-movies-wrap">
+              <table class="admin-movies" id="adminMoviesTable">
+                <thead>
+                  <tr>
+                    <th class="admin-movies__check">
+                      <input type="checkbox" id="adminSelectAll" title="Zaznacz wszystkie na stronie" />
+                    </th>
+                    <th></th>
+                    <th>Tytuł</th>
+                    <th>Rok</th>
+                    <th>Rating</th>
+                    <th>Slug</th>
+                    <th>Akcje</th>
+                  </tr>
+                </thead>
+                <tbody id="adminMoviesBody">
+                  <tr><td colspan="7" class="admin-movies-empty">Ładowanie…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="admin-tab admin-section" data-tab="scraping" id="adminTabScraping" role="tabpanel" hidden>
             <h2>Scrape from YTS</h2>
             <p class="admin-hint">Pobiera kolejne nowe filmy z yts.bz i dopisuje do bazy SQLite (bez usuwania poprzednich).</p>
             <form id="scrapeForm" class="admin-scrape">
@@ -126,10 +176,8 @@
               <button type="submit" class="btn-browse" id="scrapeBtn">Start scraping</button>
             </form>
             <pre class="admin-log" id="adminLog">Ready.</pre>
-          </section>
 
-          <section class="admin-section">
-            <h2>Auto scraping</h2>
+            <h2 class="admin-tab__subtitle">Auto scraping</h2>
             <p class="admin-hint">Automatyczny scraping w tle. Minimalny interwał: 5 minut.</p>
             <form id="autoScrapeForm" class="admin-scrape admin-scrape--auto">
               <label class="admin-check">
@@ -149,7 +197,36 @@
             <div class="admin-auto-status" id="autoScrapeStatus">Ładowanie statusu…</div>
           </section>
 
-          <section class="admin-section">
+          <section class="admin-tab admin-section" data-tab="branding" id="adminTabBranding" role="tabpanel" hidden>
+            <h2>Wygląd witryny</h2>
+            <p class="admin-hint">Logo i tagline w nagłówku strony. Logo tekstowe używa nazwy witryny — możesz też wgrać obrazek (PNG, JPG, WEBP, SVG).</p>
+            <form id="adminBrandingForm" class="admin-branding">
+              <div class="admin-branding__preview" id="adminBrandingPreview">
+                <span class="brand__logo" id="adminPreviewLogoText">YTS</span>
+                <img class="brand__logo-img" id="adminPreviewLogoImg" alt="" hidden />
+                <span class="brand__tag" id="adminPreviewTagline">HD movies at the smallest file size</span>
+              </div>
+              <label>
+                Nazwa witryny (tekst logo)
+                <input type="text" id="adminSiteName" maxlength="40" placeholder="YTS" />
+              </label>
+              <label>
+                Tagline pod logo
+                <input type="text" id="adminSiteTagline" maxlength="120" placeholder="HD movies at the smallest file size" />
+              </label>
+              <div class="admin-branding__logo">
+                <label>
+                  Logo (obrazek)
+                  <input type="file" id="adminLogoFile" accept=".png,.jpg,.jpeg,.webp,.svg,.gif" />
+                </label>
+                <button type="button" class="btn-admin-outline" id="adminLogoUpload">Wgraj logo</button>
+                <button type="button" class="btn-admin-delete" id="adminLogoRemove" hidden>Usuń logo</button>
+              </div>
+              <button type="submit" class="btn-browse">Zapisz wygląd</button>
+            </form>
+          </section>
+
+          <section class="admin-tab admin-section" data-tab="files" id="adminTabFiles" role="tabpanel" hidden>
             <h2>Pliki witryny</h2>
             <p class="admin-hint">Dodaj pliki weryfikacyjne (Google, Bing) w katalogu głównym witryny. Będą dostępne pod adresem <code>https://twoja-domena/nazwa-pliku.html</code>. Chronione: <code>index.html</code>, katalogi <code>js/</code> i <code>css/</code>.</p>
             <div class="admin-files-toolbar">
@@ -205,48 +282,7 @@
               </div>
             </div>
           </section>
-
-          <section class="admin-section">
-            <h2>Filmy w bazie</h2>
-            <p class="admin-hint">Każdy scraping dopisuje nowe filmy do bazy (istniejące są pomijane). Ostatnio dodane mają NEW do następnego scrapingu.</p>
-            <div class="admin-list-toolbar">
-              <label>
-                Na stronę
-                <select id="adminMoviesLimit">
-                  <option value="100">100</option>
-                  <option value="200">200</option>
-                  <option value="300">300</option>
-                  <option value="500">500</option>
-                </select>
-              </label>
-              <span class="admin-list-meta" id="adminMoviesMeta">—</span>
-              <div class="admin-pagination" id="adminMoviesPagination"></div>
-            </div>
-            <div class="admin-bulk-bar" id="adminBulkBar" hidden>
-              <span><strong id="adminBulkCount">0</strong> zaznaczonych</span>
-              <button type="button" class="btn-admin-delete" id="adminBulkDelete">Usuń zaznaczone</button>
-            </div>
-            <div class="admin-movies-wrap">
-              <table class="admin-movies" id="adminMoviesTable">
-                <thead>
-                  <tr>
-                    <th class="admin-movies__check">
-                      <input type="checkbox" id="adminSelectAll" title="Zaznacz wszystkie na stronie" />
-                    </th>
-                    <th></th>
-                    <th>Tytuł</th>
-                    <th>Rok</th>
-                    <th>Rating</th>
-                    <th>Slug</th>
-                    <th>Akcje</th>
-                  </tr>
-                </thead>
-                <tbody id="adminMoviesBody">
-                  <tr><td colspan="7" class="admin-movies-empty">Ładowanie…</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+          </div>
         </div>
       </div>`;
 
@@ -256,11 +292,137 @@
       window.YtsAdmin.render(app);
     });
 
+    const ADMIN_TAB_KEY = "yts_admin_tab";
+    const validTabs = new Set(["movies", "scraping", "branding", "files"]);
+
+    function switchTab(name) {
+      if (!validTabs.has(name)) name = "movies";
+      document.querySelectorAll(".admin-tabs__btn").forEach((btn) => {
+        const active = btn.dataset.tab === name;
+        btn.classList.toggle("admin-tabs__btn--active", active);
+        btn.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      document.querySelectorAll(".admin-tab").forEach((panel) => {
+        const active = panel.dataset.tab === name;
+        panel.hidden = !active;
+        panel.classList.toggle("admin-tab--active", active);
+      });
+      sessionStorage.setItem(ADMIN_TAB_KEY, name);
+      if (name === "files") loadFiles();
+    }
+
+    document.getElementById("adminTabs").addEventListener("click", (e) => {
+      const btn = e.target.closest(".admin-tabs__btn");
+      if (!btn) return;
+      switchTab(btn.dataset.tab);
+    });
+
+    const initialTab = sessionStorage.getItem(ADMIN_TAB_KEY) || "movies";
+    switchTab(validTabs.has(initialTab) ? initialTab : "movies");
+
     document.getElementById("adminMoviesLimit").value = String(moviesLimit);
     document.getElementById("adminMoviesLimit").addEventListener("change", (e) => {
       moviesLimit = parseInt(e.target.value, 10) || 100;
       moviesPage = 1;
       loadMovies();
+    });
+
+    function updateBrandingPreview(b) {
+      const name = b.siteName || "YTS";
+      const tag = b.siteTagline || "HD movies at the smallest file size";
+      const logoText = document.getElementById("adminPreviewLogoText");
+      const logoImg = document.getElementById("adminPreviewLogoImg");
+      const tagEl = document.getElementById("adminPreviewTagline");
+      const removeBtn = document.getElementById("adminLogoRemove");
+
+      if (tagEl) tagEl.textContent = tag;
+      if (b.logoType === "image" && b.logoUrl) {
+        if (logoImg) {
+          logoImg.src = b.logoUrl;
+          logoImg.alt = name;
+          logoImg.hidden = false;
+        }
+        if (logoText) logoText.hidden = true;
+        if (removeBtn) removeBtn.hidden = false;
+      } else {
+        if (logoText) {
+          logoText.textContent = name;
+          logoText.hidden = false;
+        }
+        if (logoImg) logoImg.hidden = true;
+        if (removeBtn) removeBtn.hidden = true;
+      }
+    }
+
+    async function loadBranding() {
+      try {
+        const b = await api("/admin/branding");
+        document.getElementById("adminSiteName").value = b.siteName || "";
+        document.getElementById("adminSiteTagline").value = b.siteTagline || "";
+        updateBrandingPreview(b);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    document.getElementById("adminBrandingForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        const b = await api("/admin/branding", {
+          method: "POST",
+          body: JSON.stringify({
+            site_name: document.getElementById("adminSiteName").value.trim(),
+            site_tagline: document.getElementById("adminSiteTagline").value.trim(),
+          }),
+        });
+        updateBrandingPreview(b);
+        alert("Zapisano. Odśwież stronę główną, aby zobaczyć zmiany.");
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById("adminLogoUpload").addEventListener("click", async () => {
+      const fileInput = document.getElementById("adminLogoFile");
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) {
+        alert("Wybierz plik logo.");
+        return;
+      }
+      const form = new FormData();
+      form.append("file", file);
+      try {
+        const b = await api("/admin/branding/logo", { method: "POST", body: form });
+        fileInput.value = "";
+        updateBrandingPreview(b);
+        alert("Logo wgrane.");
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById("adminLogoRemove").addEventListener("click", async () => {
+      if (!confirm("Usunąć logo i wrócić do tekstu?")) return;
+      try {
+        const b = await api("/admin/branding/logo", { method: "DELETE" });
+        updateBrandingPreview(b);
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById("adminSiteName").addEventListener("input", () => {
+      updateBrandingPreview({
+        siteName: document.getElementById("adminSiteName").value,
+        siteTagline: document.getElementById("adminSiteTagline").value,
+        logoType: document.getElementById("adminPreviewLogoImg").hidden ? "text" : "image",
+        logoUrl: document.getElementById("adminPreviewLogoImg").src || "",
+      });
+    });
+
+    document.getElementById("adminSiteTagline").addEventListener("input", () => {
+      document.getElementById("adminPreviewTagline").textContent =
+        document.getElementById("adminSiteTagline").value || "HD movies at the smallest file size";
     });
 
     function renderMoviesPagination(data) {
@@ -638,6 +800,7 @@
     });
 
     loadStats();
+    loadBranding();
     loadMovies();
     loadFiles();
     loadAutoScrape();

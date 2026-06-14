@@ -18,7 +18,7 @@ SITE_URL="${SITE_URL:-https://${DOMAIN}}"
 SITE_URL="$(printf '%s' "$SITE_URL" | tr -d '\n\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's|/$||')"
 
 cd "$APP_DIR"
-mkdir -p deploy/caddy public/js public/css public/downloads backend/data
+mkdir -p deploy/caddy public/js public/css public/downloads public/uploads backend/data
 
 if [ -f backend/data/movies.db ]; then
   echo "==> SQLite database preserved ($(du -h backend/data/movies.db | awk '{print $1}'))"

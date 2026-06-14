@@ -20,12 +20,60 @@
     sort: "date_added",
   };
 
-  function initSiteMeta() {
+  let brandingCache = null;
+
+  async function fetchBranding() {
+    if (brandingCache) return brandingCache;
+    try {
+      const base = cfg().apiBase || "/api/v1";
+      const res = await fetch(`${base}/site/branding`);
+      const data = await res.json();
+      brandingCache = data;
+      window.YTS_CONFIG = {
+        ...cfg(),
+        siteName: data.siteName,
+        siteTagline: data.siteTagline,
+        logoUrl: data.logoUrl,
+        logoType: data.logoType,
+      };
+    } catch {
+      brandingCache = {
+        siteName: cfg().siteName || "YTS",
+        siteTagline: cfg().siteTagline || "HD movies at the smallest file size",
+        logoUrl: "",
+        logoType: "text",
+      };
+    }
+    return brandingCache;
+  }
+
+  function applyBranding(b) {
     const tagline = document.getElementById("siteTagline");
     const footer = document.getElementById("footerText");
-    const name = cfg().siteName || "YTS";
-    if (tagline) tagline.textContent = cfg().siteTagline || "HD at smallest size";
+    const logoText = document.getElementById("siteLogoText");
+    const logoImg = document.getElementById("siteLogoImg");
+    const name = b.siteName || cfg().siteName || "YTS";
+    const tag = b.siteTagline || cfg().siteTagline || "HD movies at the smallest file size";
+
+    if (tagline) tagline.textContent = tag;
     if (footer) footer.textContent = `© ${new Date().getFullYear()} ${name} — The Official Home of YIFY Movies`;
+
+    if (b.logoType === "image" && b.logoUrl && logoImg) {
+      logoImg.src = b.logoUrl;
+      logoImg.alt = name;
+      logoImg.hidden = false;
+      if (logoText) logoText.hidden = true;
+    } else {
+      if (logoText) {
+        logoText.textContent = name;
+        logoText.hidden = false;
+      }
+      if (logoImg) logoImg.hidden = true;
+    }
+  }
+
+  async function initSiteMeta() {
+    applyBranding(await fetchBranding());
   }
 
   function navigate(url) {
@@ -456,7 +504,7 @@
   }
 
   async function router() {
-    initSiteMeta();
+    await initSiteMeta();
     const route = parseRoute();
 
     if (route.view === "home") return renderHome();
@@ -494,6 +542,5 @@
   window.addEventListener("popstate", router);
 
   migrateLegacyUrl();
-  initSiteMeta();
   router();
 })();

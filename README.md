@@ -27,6 +27,7 @@ W panelu:
 - statystyki bazy (ile filmów)
 - **Start scraping** — pobiera N filmów z yts.bz do SQLite
 - **Pliki witryny** — tworzenie/upload plików weryfikacyjnych (Google, Bing) w katalogu głównym
+- **Wygląd witryny** — zmiana nazwy/logo i tagline w nagłówku
 
 ## GitHub secrets
 
@@ -65,6 +66,10 @@ python3 scrape_yts.py -n 20
 | `PUT /api/v1/admin/files` | Bearer | `{path, content}` — utwórz/edytuj plik tekstowy |
 | `POST /api/v1/admin/files/upload` | Bearer | multipart upload pliku weryfikacyjnego |
 | `DELETE /api/v1/admin/files?path=...` | Bearer | usuń plik (oprócz chronionych) |
+| `GET /api/v1/site/branding` | — | nazwa, tagline i logo witryny |
+| `GET/POST /api/v1/admin/branding` | Bearer | edycja nazwy i tagline |
+| `POST /api/v1/admin/branding/logo` | Bearer | upload logo (PNG/JPG/WEBP/SVG) |
+| `DELETE /api/v1/admin/branding/logo` | Bearer | usuń logo, wróć do tekstu |
 
 ## Deploy
 
