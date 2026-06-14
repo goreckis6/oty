@@ -18,6 +18,12 @@ SITE_URL="${SITE_URL:-https://${DOMAIN}}"
 cd "$APP_DIR"
 mkdir -p deploy/caddy public/js public/css public/downloads backend/data
 
+if [ -f backend/data/movies.db ]; then
+  echo "==> SQLite database preserved ($(du -h backend/data/movies.db | awk '{print $1}'))"
+else
+  echo "==> No movies.db yet — first API start seeds from test_movies.json if empty"
+fi
+
 cat > public/js/config.js <<EOF
 window.YTS_CONFIG = {
   apiBase: "/api/v1",

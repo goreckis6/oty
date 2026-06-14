@@ -41,6 +41,7 @@ W panelu:
 - Plik: `backend/data/movies.db`
 - Przy pierwszym uruchomieniu importuje `test_movies.json` jeśli baza pusta
 - Volume Docker: `./backend/data:/app/data` — dane przetrwają redeploy
+- **Deploy nie kasuje bazy** — `rsync` wyklucza `backend/data/*.db` (plik jest w `.gitignore`, ale zostaje na VPS)
 
 ## CLI scraping
 

@@ -52,6 +52,10 @@ jobs:
             --exclude 'node_modules' \
             --exclude 'secrets' \
             --exclude '.env' \
+            --exclude 'backend/data/*.db' \
+            --exclude 'backend/data/*.db-journal' \
+            --exclude 'backend/data/*.db-wal' \
+            --exclude 'backend/data/*.db-shm' \
             -e "ssh -i ~/.ssh/deploy_key -p $DEPLOY_PORT -o StrictHostKeyChecking=accept-new" \
             ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
 
