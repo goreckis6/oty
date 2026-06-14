@@ -29,18 +29,35 @@
     if (footer) footer.textContent = `© ${new Date().getFullYear()} ${name}. Connected to your API.`;
   }
 
+  function navigate(url) {
+    if (url === location.pathname + location.search) {
+      router();
+      return;
+    }
+    history.pushState(null, "", url);
+    router();
+  }
+
+  function browseUrl() {
+    const params = new URLSearchParams();
+    if (state.query) params.set("q", state.query);
+    if (state.genre !== "All") params.set("genre", state.genre);
+    if (state.page > 1) params.set("page", String(state.page));
+    const qs = params.toString();
+    return qs ? `/browse?${qs}` : "/browse";
+  }
+
   function showLoading() {
     app.innerHTML = `<div class="loading"><div class="spinner"></div><p>Loading…</p></div>`;
   }
 
   function showError(msg) {
-    const api = cfg().apiBase || "/api/v2";
+    const api = cfg().apiBase || "/api/v1";
     app.innerHTML = `
       <div class="error-box">
         <p><strong>Could not reach API</strong></p>
         <p>${escapeHtml(msg)}</p>
         <code>API: ${escapeHtml(api)}</code>
-        <p style="margin-top:1rem;font-size:0.85rem">Set <code>YTS_API_URL</code> in GitHub secrets or deploy env.</p>
       </div>`;
   }
 
@@ -57,7 +74,7 @@
     const genres = (m.genres || []).slice(0, 2).join(" · ");
     const rating = m.rating ? m.rating.toFixed(1) : "—";
     return `
-      <a class="movie-card" href="#/movie/${m.id}">
+      <a class="movie-card" href="/movie/${m.id}">
         <div class="movie-card__poster">
           <img src="${escapeHtml(img)}" alt="${escapeHtml(m.title)}" loading="lazy" />
           <span class="movie-card__rating">${rating}</span>
@@ -77,7 +94,7 @@
     return `<div class="movie-grid">${movies.map(movieCard).join("")}</div>`;
   }
 
-  function renderPagination(movieCount, limit, page, onPage) {
+  function renderPagination(movieCount, limit, page) {
     const totalPages = Math.max(1, Math.ceil(movieCount / limit));
     if (totalPages <= 1) return "";
 
@@ -98,12 +115,13 @@
       </div>`;
   }
 
-  function bindPagination(movieCount, limit, page, navigate) {
+  function bindPagination(movieCount, limit, page) {
     const el = document.getElementById("pagination");
     if (!el) return;
     el.querySelectorAll("button[data-page]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        navigate(parseInt(btn.dataset.page, 10));
+        state.page = parseInt(btn.dataset.page, 10);
+        navigate(browseUrl());
       });
     });
   }
@@ -144,7 +162,7 @@
         <section class="section">
           <div class="section__head">
             <h2 class="section__title">Latest Movies</h2>
-            <a class="section__link" href="#/browse">Browse all →</a>
+            <a class="section__link" href="/browse">Browse all →</a>
           </div>
           ${renderGrid(latest.movies)}
         </section>
@@ -180,10 +198,10 @@
             <h2 class="section__title">${escapeHtml(title)}</h2>
           </div>
           ${renderGrid(data.movies)}
-          ${renderPagination(data.movie_count, data.limit, data.page_number, renderBrowse)}
+          ${renderPagination(data.movie_count, data.limit, data.page_number)}
         </section>`;
 
-      bindPagination(data.movie_count, data.limit, data.page_number, renderBrowse);
+      bindPagination(data.movie_count, data.limit, data.page_number);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       showError(err.message);
@@ -220,7 +238,7 @@
         .join("");
 
       const genres = (m.genres || [])
-        .map((g) => `<a class="genre-tag" href="#/browse?genre=${encodeURIComponent(g)}">${escapeHtml(g)}</a>`)
+        .map((g) => `<a class="genre-tag" href="/browse?genre=${encodeURIComponent(g)}">${escapeHtml(g)}</a>`)
         .join("");
 
       const trailerBtn = m.yt_trailer_code
@@ -289,18 +307,25 @@
   }
 
   function parseRoute() {
-    const hash = location.hash.slice(1) || "/";
-    const [path, queryStr] = hash.split("?");
-    const parts = path.split("/").filter(Boolean);
-    const params = new URLSearchParams(queryStr || "");
+    const path = location.pathname.replace(/\/+$/, "") || "/";
+    const params = new URLSearchParams(location.search);
 
     if (params.get("genre")) state.genre = params.get("genre");
     if (params.get("q")) state.query = params.get("q");
 
-    if (!parts.length || parts[0] === "") return { view: "home" };
-    if (parts[0] === "browse") return { view: "browse", page: parseInt(params.get("page") || "1", 10) };
-    if (parts[0] === "movie" && parts[1]) return { view: "movie", id: parts[1] };
+    if (path === "/" || path === "") return { view: "home" };
+    if (path === "/browse") {
+      return { view: "browse", page: parseInt(params.get("page") || "1", 10) };
+    }
+    const movieMatch = path.match(/^\/movie\/(\d+)$/);
+    if (movieMatch) return { view: "movie", id: movieMatch[1] };
     return { view: "home" };
+  }
+
+  function migrateHashUrl() {
+    if (!location.hash.startsWith("#/")) return;
+    const target = location.hash.slice(1) || "/";
+    history.replaceState(null, "", target);
   }
 
   async function router() {
@@ -317,15 +342,26 @@
     e.preventDefault();
     state.query = searchInput.value.trim();
     state.page = 1;
-    location.hash = state.query ? `#/browse?q=${encodeURIComponent(state.query)}` : "#/browse";
+    navigate(state.query ? `/browse?q=${encodeURIComponent(state.query)}` : "/browse");
   });
 
   applyFilters.addEventListener("click", () => {
     readFiltersFromUI();
-    location.hash = "#/browse";
+    navigate(browseUrl());
   });
 
-  window.addEventListener("hashchange", router);
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest("a[href^='/']");
+    if (!link || link.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    const url = link.getAttribute("href");
+    if (!url || url.startsWith("/api/")) return;
+    e.preventDefault();
+    navigate(url);
+  });
+
+  window.addEventListener("popstate", router);
+
+  migrateHashUrl();
   initSiteMeta();
   router();
 })();

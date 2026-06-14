@@ -47,9 +47,12 @@ ${DOMAIN} {
 	handle /api/v1/* {
 		reverse_proxy 127.0.0.1:8080
 	}
-	root * /srv
-	file_server
-	encode gzip
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+		encode gzip
+	}
 }
 EOF
 
