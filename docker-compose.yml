@@ -36,7 +36,9 @@ services:
     image: caddy:2-alpine
     container_name: site-caddy
     restart: always
-    network_mode: host
+    ports:
+      - "80:80"
+      - "443:443"
     depends_on:
       api:
         condition: service_healthy

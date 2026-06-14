@@ -1,9 +1,12 @@
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from auth import authenticate, create_token, require_admin
@@ -26,6 +29,7 @@ from sources import (
 )
 
 API_PREFIX = "/api/v1"
+PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "/app/public"))
 
 tmdb: TmdbClient | None = None
 torrents: TorrentSearch | None = None
@@ -107,6 +111,24 @@ def require_store() -> MovieStore:
 
 def use_store() -> bool:
     return DATA_SOURCE in ("sqlite", "scrape") and store is not None
+
+
+def _spa_index() -> FileResponse:
+    index = PUBLIC_DIR / "index.html"
+    if not index.is_file():
+        raise HTTPException(status_code=503, detail="Frontend not found")
+    return FileResponse(index, media_type="text/html")
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+async def spa_home() -> FileResponse:
+    return _spa_index()
+
+
+@app.get("/browse", response_class=HTMLResponse, include_in_schema=False)
+@app.get("/twojastara", response_class=HTMLResponse, include_in_schema=False)
+async def spa_shell() -> FileResponse:
+    return _spa_index()
 
 
 @app.get(f"{API_PREFIX}/health")
@@ -441,3 +463,13 @@ async def movie_seo_page(slug: str) -> HTMLResponse:
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return HTMLResponse(render_movie_page(data["movie"]))
+
+
+for _static_name in ("css", "js", "uploads", "downloads"):
+    _static_dir = PUBLIC_DIR / _static_name
+    if _static_dir.is_dir():
+        app.mount(
+            f"/{_static_name}",
+            StaticFiles(directory=_static_dir),
+            name=f"static_{_static_name}",
+        )

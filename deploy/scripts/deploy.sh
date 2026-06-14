@@ -67,26 +67,25 @@ cat > deploy/caddy/Caddyfile <<EOF
 ${GLOBAL_BLOCK}
 
 ${DOMAIN} {
-	handle /api/v1/* {
-		reverse_proxy 127.0.0.1:8080
-	}
-	handle /movies/* {
-		reverse_proxy 127.0.0.1:8080
-	}
-	handle /sitemap* {
-		reverse_proxy 127.0.0.1:8080
-	}
-	handle /robots.txt {
-		reverse_proxy 127.0.0.1:8080
-	}
-	handle {
-		root * /srv
-		try_files {path} /index.html
-		file_server
-		encode gzip
-	}
+	@api path /api/v1/*
+	@movies path /movies/*
+	@seo path /robots.txt /sitemap.xml /sitemap*
+
+	reverse_proxy @api api:8080
+	reverse_proxy @movies api:8080
+	reverse_proxy @seo api:8080
+
+	root * /srv
+	try_files {path} /index.html
+	file_server
+	encode gzip
 }
 EOF
+
+if [ ! -f public/index.html ]; then
+  echo "FATAL: missing public/index.html — cannot serve frontend" >&2
+  exit 1
+fi
 
 echo "==> Building and starting API + Caddy..."
 export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE ADMIN_USER ADMIN_PASSWORD JWT_SECRET SITE_URL SITE_NAME SITE_TAGLINE
@@ -115,6 +114,13 @@ if ! curl -sf "http://127.0.0.1:8080/api/v1/health" | grep -q '"status"'; then
   curl -sv "http://127.0.0.1:8080/api/v1/health" 2>&1 | tail -20 || true
   exit 1
 fi
+
+if ! curl -sf "http://127.0.0.1:8080/" | head -c 256 | grep -qi '<!DOCTYPE html'; then
+  echo "FATAL: homepage is not serving HTML from API fallback" >&2
+  curl -sv "http://127.0.0.1:8080/" 2>&1 | tail -20 || true
+  exit 1
+fi
+echo "==> Homepage HTML OK"
 
 if [ "$DB_SIZE_BEFORE" -gt 0 ]; then
   if [ ! -f "$DB_FILE" ]; then
