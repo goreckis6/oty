@@ -15,6 +15,10 @@ Trigger: **push na `main`** lub **Actions → Deploy → Run workflow**
 | `DEPLOY_PATH` | `/opt/ytdown` | opcjonalnie |
 | `DOMAIN` | `yts.cool` | opcjonalnie (HTTPS + health check) |
 | `ACME_EMAIL` | `admin@example.com` | opcjonalnie (Let's Encrypt) |
+| `YTS_API_BACKEND` | `127.0.0.1:8080` | API na tym samym VPS (proxy przez Caddy) |
+| `YTS_API_URL` | `https://twoja-api/api/v2` | zewnętrzne API (zamiast proxy) |
+| `SITE_NAME` | `YTS` | opcjonalnie |
+| `SITE_TAGLINE` | `HD at smallest size` | opcjonalnie |
 
 ## Klucz SSH
 
@@ -29,7 +33,7 @@ cat /root/.ssh/deploy/id_ed25519   # → GitHub Secret DEPLOY_SSH_KEY
 ## Co robi workflow
 
 1. `rsync` plików na VPS (`--delete` — usuwa stare pliki aplikacji)
-2. `deploy/scripts/deploy.sh` — zatrzymuje legacy YTDown, uruchamia Caddy + `public/`
+2. `deploy/scripts/deploy.sh` — Caddy + frontend YTS, opcjonalny proxy `/api/v2` → backend
 3. health check: `https://$DOMAIN/` (jeśli `DOMAIN` ustawione)
 
 ## DNS

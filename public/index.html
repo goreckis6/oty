@@ -1,3 +1,96 @@
-# Coming soon
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Browse and download YIFY movies in HD quality." />
+  <title>YTS — Movies</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%236AC045' rx='12' width='100' height='100'/><text x='50' y='68' text-anchor='middle' fill='white' font-size='48' font-weight='bold' font-family='sans-serif'>Y</text></svg>" />
+</head>
+<body>
+  <header class="header">
+    <div class="header__inner">
+      <a href="#/" class="logo">
+        <span class="logo__mark">YTS</span>
+        <span class="logo__sub" id="siteTagline"></span>
+      </a>
+      <form class="search" id="searchForm">
+        <input type="search" id="searchInput" placeholder="Search movies…" autocomplete="off" />
+        <button type="submit" aria-label="Search">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+      </form>
+      <nav class="nav">
+        <a href="#/">Home</a>
+        <a href="#/browse">Browse</a>
+      </nav>
+    </div>
+  </header>
 
-New site will be deployed here.
+  <div class="filters-bar" id="filtersBar" hidden>
+    <div class="filters-bar__inner">
+      <label>Quality
+        <select id="filterQuality">
+          <option value="All">All</option>
+          <option value="480p">480p</option>
+          <option value="720p">720p</option>
+          <option value="1080p">1080p</option>
+          <option value="1080p.x265">1080p.x265</option>
+          <option value="2160p">2160p</option>
+          <option value="3D">3D</option>
+        </select>
+      </label>
+      <label>Genre
+        <select id="filterGenre">
+          <option value="All">All</option>
+          <option>Action</option><option>Adventure</option><option>Animation</option>
+          <option>Biography</option><option>Comedy</option><option>Crime</option>
+          <option>Documentary</option><option>Drama</option><option>Family</option>
+          <option>Fantasy</option><option>History</option><option>Horror</option>
+          <option>Music</option><option>Mystery</option><option>Romance</option>
+          <option>Sci-Fi</option><option>Sport</option><option>Thriller</option>
+          <option>War</option><option>Western</option>
+        </select>
+      </label>
+      <label>Rating
+        <select id="filterRating">
+          <option value="0">All</option>
+          <option value="9">9+</option><option value="8">8+</option><option value="7">7+</option>
+          <option value="6">6+</option><option value="5">5+</option>
+        </select>
+      </label>
+      <label>Order
+        <select id="filterSort">
+          <option value="date_added">Latest</option>
+          <option value="year">Year</option>
+          <option value="rating">IMDb Rating</option>
+          <option value="like_count">YTS Likes</option>
+          <option value="download_count">Downloads</option>
+          <option value="seeds">Seeds</option>
+          <option value="title">Alphabetical</option>
+        </select>
+      </label>
+      <button type="button" class="btn-apply" id="applyFilters">Apply</button>
+    </div>
+  </div>
+
+  <main class="main" id="app">
+    <div class="loading" id="globalLoading">
+      <div class="spinner"></div>
+      <p>Loading…</p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p id="footerText"></p>
+  </footer>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
