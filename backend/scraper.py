@@ -5,8 +5,10 @@ from typing import Any
 import httpx
 
 from database import Database, normalize_title
+from seo import register_movies_for_seo
 
 YTS_BASE = os.environ.get("YTS_SCRAPE_URL", "https://yts.bz/api/v2").rstrip("/")
+SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")
 PAGE_SIZE = 50
 MAX_PAGES = 50
 
@@ -128,10 +130,20 @@ async def scrape_movies(count: int = 10) -> dict[str, Any]:
     db.set_meta("last_scrape", __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat())
     db.set_meta("last_scrape_count", str(saved))
 
+    seo_urls = register_movies_for_seo(db, detailed)
+    if seo_urls:
+        logs.append(f"SEO: {len(seo_urls)} nowych stron gotowych (meta + sitemap automatycznie).")
+        for url in seo_urls:
+            logs.append(f"  → {url}")
+    elif saved == 0:
+        logs.append("SEO: brak nowych stron (sitemap bez zmian).")
+
     return {
         "saved": saved,
         "skipped": skipped,
         "skipped_duplicates": skipped_duplicates,
+        "seo_urls": seo_urls,
+        "sitemap_url": f"{SITE_URL}/sitemap.xml" if SITE_URL else "/sitemap.xml",
         "source": YTS_BASE,
         "total_in_db": db.count_movies(),
         "logs": logs,

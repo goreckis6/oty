@@ -3,13 +3,14 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from pydantic import BaseModel, Field
 
 from auth import authenticate, create_token, require_admin
 from database import Database
 from movie_store import MovieStore
 from scraper import scrape_movies
+from seo import build_robots, build_sitemap, build_sitemap_part, register_movies_for_seo, render_movie_page
 from sources import (
     APIBAY_URL,
     DATA_SOURCE,
@@ -127,7 +128,7 @@ async def admin_movies(_: str = Depends(require_admin)) -> dict[str, Any]:
     }
 
 
-@app.delete(f"{API_PREFIX}/admin/movies/{movie_id}")
+@app.delete(f"{API_PREFIX}/admin/movies/{{movie_id}}")
 async def admin_delete_movie(
     movie_id: int,
     _: str = Depends(require_admin),
@@ -226,3 +227,45 @@ async def movie_comments() -> JSONResponse:
 @app.get(f"{API_PREFIX}/movie_reviews.json")
 async def movie_reviews() -> JSONResponse:
     return JSONResponse(ok({"reviews": []}))
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+async def robots_txt() -> str:
+    return build_robots()
+
+
+@app.get("/sitemap.xml")
+async def sitemap_xml() -> Response:
+    assert db is not None
+    entries = db.list_sitemap_entries() if use_store() else []
+    xml = build_sitemap(entries)
+    return Response(
+        content=xml,
+        media_type="application/xml",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
+@app.get("/sitemap{index}.xml")
+async def sitemap_part(index: int) -> Response:
+    assert db is not None
+    entries = db.list_sitemap_entries() if use_store() else []
+    xml = build_sitemap_part(entries, index)
+    if xml is None:
+        raise HTTPException(status_code=404, detail="Sitemap not found")
+    return Response(
+        content=xml,
+        media_type="application/xml",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
+@app.get("/movies/{slug}", response_class=HTMLResponse)
+async def movie_seo_page(slug: str) -> HTMLResponse:
+    if not use_store():
+        raise HTTPException(status_code=404, detail="Movie not found")
+    try:
+        data = require_store().movie_details(slug=slug)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return HTMLResponse(render_movie_page(data["movie"]))

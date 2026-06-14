@@ -7,9 +7,14 @@ services:
       - "127.0.0.1:8080:8080"
     volumes:
       - ./backend/data:/app/data
+      - ./public:/app/public:ro
     environment:
       DATA_SOURCE: ${DATA_SOURCE:-sqlite}
       DB_PATH: /app/data/movies.db
+      PUBLIC_DIR: /app/public
+      SITE_URL: ${SITE_URL:-http://localhost}
+      SITE_NAME: ${SITE_NAME:-YTS}
+      SITE_TAGLINE: ${SITE_TAGLINE:-HD movies at the smallest file size}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
       TORRENT_SOURCE: ${TORRENT_SOURCE:-apibay}
       YTS_SCRAPE_URL: ${YTS_SCRAPE_URL:-https://yts.bz/api/v2}

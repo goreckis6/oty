@@ -186,6 +186,13 @@ class Database:
             ).fetchall()
         return [dict(r) for r in rows]
 
+    def list_sitemap_entries(self) -> list[dict[str, Any]]:
+        return [
+            {"slug": row["slug"], "updated_at": row["updated_at"]}
+            for row in self.list_rows()
+            if row.get("slug")
+        ]
+
     def delete_movie(self, movie_id: int) -> bool:
         with self.connect() as conn:
             cur = conn.execute("DELETE FROM movies WHERE id = ?", (movie_id,))

@@ -13,6 +13,7 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
 JWT_SECRET="${JWT_SECRET:-change-me-in-production}"
 SITE_NAME="${SITE_NAME:-YTS}"
 SITE_TAGLINE="${SITE_TAGLINE:-HD movies at the smallest file size}"
+SITE_URL="${SITE_URL:-https://${DOMAIN}}"
 
 cd "$APP_DIR"
 mkdir -p deploy/caddy public/js public/css public/downloads backend/data
@@ -20,6 +21,7 @@ mkdir -p deploy/caddy public/js public/css public/downloads backend/data
 cat > public/js/config.js <<EOF
 window.YTS_CONFIG = {
   apiBase: "/api/v1",
+  siteUrl: "${SITE_URL}",
   siteName: "${SITE_NAME}",
   siteTagline: "${SITE_TAGLINE}",
   trackers: [
@@ -50,6 +52,15 @@ ${DOMAIN} {
 	handle /api/v1/* {
 		reverse_proxy 127.0.0.1:8080
 	}
+	handle /movies/* {
+		reverse_proxy 127.0.0.1:8080
+	}
+	handle /sitemap* {
+		reverse_proxy 127.0.0.1:8080
+	}
+	handle /robots.txt {
+		reverse_proxy 127.0.0.1:8080
+	}
 	handle {
 		root * /srv
 		try_files {path} /index.html
@@ -60,7 +71,7 @@ ${DOMAIN} {
 EOF
 
 echo "==> Building and starting API + Caddy..."
-export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE ADMIN_USER ADMIN_PASSWORD JWT_SECRET
+export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE ADMIN_USER ADMIN_PASSWORD JWT_SECRET SITE_URL SITE_NAME SITE_TAGLINE
 docker compose up -d --build --remove-orphans
 
 echo "==> Waiting for services on VPS..."

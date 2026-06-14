@@ -1237,6 +1237,31 @@ a:hover {
   padding: 1.5rem !important;
 }
 
+.seo-prerender {
+  max-width: var(--container);
+  margin: 2rem auto;
+  padding: 0 15px;
+  color: var(--text);
+}
+
+.seo-prerender h1 {
+  font-size: 1.6rem;
+  margin-bottom: 1rem;
+}
+
+.seo-prerender img {
+  max-width: 220px;
+  border-radius: var(--radius);
+  margin: 0 0 1rem;
+  display: block;
+}
+
+.seo-prerender p {
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+  line-height: 1.6;
+}
+
 /* Footer */
 .footer {
   flex-shrink: 0;

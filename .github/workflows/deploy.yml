@@ -74,19 +74,45 @@ jobs:
           DOMAIN_CLEAN=$(echo "$DOMAIN" | tr -d '\n\r' | sed 's|https\?://||' | sed 's|/$||')
           echo "Checking https://${DOMAIN_CLEAN} (via ${DEPLOY_HOST}:443)..."
           sleep 15
+
+          check_api() {
+            curl -4 -sfL --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health"
+          }
+
+          check_frontend() {
+            curl -4 -sfL --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/" >/dev/null
+          }
+
           for i in $(seq 1 18); do
-            if curl -4 -sfL --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/"; then
-              echo ""
+            if check_frontend; then
               echo "==> Frontend OK"
-              curl -4 -sfL --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health"
-              echo ""
-              echo "==> Deploy OK: https://${DOMAIN_CLEAN}"
-              exit 0
+              for j in $(seq 1 12); do
+                if check_api; then
+                  echo ""
+                  echo "==> API OK"
+                  echo "==> Deploy OK: https://${DOMAIN_CLEAN}"
+                  exit 0
+                fi
+                echo "API health attempt ${j}/12 failed, retry in 5s..."
+                sleep 5
+              done
+              echo "API health failed after frontend was ready"
+              curl -4 -svk --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health" 2>&1 | tail -30 || true
+              exit 1
             fi
-            if curl -4 -sfL --max-time 20 "https://${DOMAIN_CLEAN}/"; then
-              echo ""
-              echo "==> Deploy OK (direct DNS): https://${DOMAIN_CLEAN}"
-              exit 0
+            if curl -4 -sfL --max-time 20 "https://${DOMAIN_CLEAN}/" >/dev/null; then
+              echo "==> Frontend OK (direct DNS)"
+              for j in $(seq 1 12); do
+                if curl -4 -sfL --max-time 20 "https://${DOMAIN_CLEAN}/api/v1/health"; then
+                  echo ""
+                  echo "==> API OK"
+                  echo "==> Deploy OK (direct DNS): https://${DOMAIN_CLEAN}"
+                  exit 0
+                fi
+                echo "API health attempt ${j}/12 failed, retry in 5s..."
+                sleep 5
+              done
+              exit 1
             fi
             echo "attempt ${i}/18 failed, retry in 10s..."
             sleep 10

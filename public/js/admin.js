@@ -215,6 +215,9 @@
         if (result.skipped_duplicates) {
           log.textContent += `, ${result.skipped_duplicates} duplikatów tytułu`;
         }
+        if (result.seo_urls && result.seo_urls.length) {
+          log.textContent += `\nSEO: ${result.seo_urls.length} stron dodanych do sitemap.`;
+        }
         loadStats();
         loadMovies();
       } catch (err) {

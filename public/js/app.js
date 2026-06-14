@@ -24,7 +24,6 @@
     const tagline = document.getElementById("siteTagline");
     const footer = document.getElementById("footerText");
     const name = cfg().siteName || "YTS";
-    document.title = `${name} — Movies`;
     if (tagline) tagline.textContent = cfg().siteTagline || "HD at smallest size";
     if (footer) footer.textContent = `© ${new Date().getFullYear()} ${name} — The Official Home of YIFY Movies`;
   }
@@ -207,6 +206,7 @@
           </div>
           <div class="movies-row movies-row--upcoming">${upcoming.movies.map((m) => movieCard(m)).join("")}</div>
         </section>` : ""}`;
+      if (window.YtsSeo) window.YtsSeo.setHome();
     } catch (err) {
       showError(err.message);
     }
@@ -235,6 +235,7 @@
 
       bindPagination(data.movie_count, data.limit, data.page_number);
       window.scrollTo({ top: 0, behavior: "smooth" });
+      if (window.YtsSeo) window.YtsSeo.setBrowse(state.query);
     } catch (err) {
       showError(err.message);
     }
@@ -347,7 +348,7 @@
           </div>
         </article>`;
 
-      document.title = `${m.title} (${m.year}) YIFY - ${cfg().siteName || "YTS"}`;
+      if (window.YtsSeo) window.YtsSeo.setMovie(m);
     } catch (err) {
       showError(err.message);
     }
@@ -406,6 +407,7 @@
     if (route.view === "movie") return renderMovie(route.slug);
     if (route.view === "admin" && window.YtsAdmin) {
       setFiltersVisible(false);
+      if (window.YtsSeo) window.YtsSeo.setAdmin();
       return window.YtsAdmin.render(app);
     }
     return renderHome();
