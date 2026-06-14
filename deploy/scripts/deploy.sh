@@ -17,6 +17,18 @@ SITE_TAGLINE="${SITE_TAGLINE:-HD movies at the smallest file size}"
 SITE_URL="${SITE_URL:-https://${DOMAIN}}"
 SITE_URL="$(printf '%s' "$SITE_URL" | tr -d '\n\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's|/$||')"
 
+caddy_url() {
+  curl -4 -sfk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}$1"
+}
+
+response_contains() {
+  local needle="$1"
+  shift
+  local body
+  body=$("$@" 2>/dev/null || true)
+  case "$body" in *"$needle"*) return 0 ;; *) return 1 ;; esac
+}
+
 cd "$APP_DIR"
 mkdir -p deploy/caddy public/js public/css public/downloads public/uploads backend/data
 
@@ -151,7 +163,7 @@ if [ "$API_OK" -ne 1 ]; then
   exit 1
 fi
 
-if ! curl -sf "http://127.0.0.1:8080/api/v1/health" | grep -q '"status"'; then
+if ! response_contains '"status"' curl -sf http://127.0.0.1:8080/api/v1/health; then
   echo "FATAL: API health endpoint returned unexpected response" >&2
   curl -sv "http://127.0.0.1:8080/api/v1/health" 2>&1 | tail -20 || true
   exit 1
@@ -163,18 +175,6 @@ if ! response_contains '<!DOCTYPE html' curl -sf http://127.0.0.1:8080/; then
   exit 1
 fi
 echo "==> Homepage HTML OK"
-
-caddy_url() {
-  curl -4 -sfk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}$1"
-}
-
-response_contains() {
-  local needle="$1"
-  shift
-  local body
-  body=$("$@" 2>/dev/null || true)
-  case "$body" in *"$needle"*) return 0 ;; *) return 1 ;; esac
-}
 
 if ! response_contains '"status"' caddy_url /api/v1/health; then
   echo "FATAL: API not reachable through Caddy (HTTPS)" >&2
