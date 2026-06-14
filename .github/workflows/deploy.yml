@@ -65,13 +65,19 @@ jobs:
       - name: Health check
         if: env.DOMAIN != ''
         run: |
-          for i in 1 2 3 4 5 6 8 10; do
-            if curl -sf "https://${DOMAIN}/"; then
+          echo "Waiting for https://${DOMAIN} (Caddy + Let's Encrypt may need a few minutes)..."
+          sleep 20
+          for i in $(seq 1 24); do
+            if curl -sf --max-time 20 "https://${DOMAIN}/"; then
               echo ""
+              echo "==> Frontend OK: https://${DOMAIN}/"
+              curl -sf --max-time 20 "https://${DOMAIN}/api/v1/health" && echo "==> API OK"
               echo "==> Deploy OK: https://${DOMAIN}"
               exit 0
             fi
+            echo "attempt ${i}/24 failed, retry in 10s..."
             sleep 10
           done
           echo "Health check failed for https://${DOMAIN}/"
+          curl -sv --max-time 20 "https://${DOMAIN}/" 2>&1 | tail -15 || true
           exit 1

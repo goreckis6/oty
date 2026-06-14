@@ -57,6 +57,15 @@ echo "==> Building and starting API + Caddy..."
 export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE
 docker compose up -d --build --remove-orphans
 
+echo "==> Waiting for services on VPS..."
+for i in $(seq 1 45); do
+  if curl -sf "http://127.0.0.1:8080/api/v1/health" >/dev/null 2>&1; then
+    echo "    API container ready (${i}x2s)"
+    break
+  fi
+  sleep 2
+done
+
 echo "==> Deploy OK — https://${DOMAIN}"
 echo "    API: https://${DOMAIN}/api/v1/"
 echo "    Data: ${DATA_SOURCE} | Torrents: ${TORRENT_SOURCE}"
