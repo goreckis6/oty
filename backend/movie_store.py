@@ -1,7 +1,7 @@
 import os
 from typing import Any
 
-from database import Database
+from database import Database, normalize_title
 
 SUMMARY_KEYS = (
     "id", "imdb_code", "title", "title_english", "title_long", "slug",
@@ -93,11 +93,14 @@ class MovieStore:
 
     def list_all_admin(self) -> list[dict[str, Any]]:
         new_ids = self.new_ids
+        duplicate_titles = self.db.duplicate_title_keys()
         items = []
         for row in self.db.list_rows():
+            title_key = normalize_title(row.get("title"))
             items.append({
                 **row,
                 "is_new": int(row["id"]) in new_ids,
+                "is_duplicate_title": bool(title_key and title_key in duplicate_titles),
                 "url": f"/movies/{row['slug']}",
             })
         return items

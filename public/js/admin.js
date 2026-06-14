@@ -30,6 +30,14 @@
       .replace(/>/g, "&gt;");
   }
 
+  function escapeAttr(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
   function renderLogin(app, onSuccess) {
     app.innerHTML = `
       <div class="admin-wrap">
@@ -84,7 +92,7 @@
 
           <section class="admin-section">
             <h2>Filmy w bazie</h2>
-            <p class="admin-hint">Filmy z ostatniego scrapingu mają oznaczenie NEW do następnego scrapingu.</p>
+            <p class="admin-hint">Każdy scraping dopisuje nowe filmy do bazy (istniejące są pomijane). Ostatnio dodane mają NEW do następnego scrapingu.</p>
             <div class="admin-movies-wrap">
               <table class="admin-movies" id="adminMoviesTable">
                 <thead>
@@ -94,11 +102,11 @@
                     <th>Rok</th>
                     <th>Rating</th>
                     <th>Slug</th>
-                    <th></th>
+                    <th>Akcje</th>
                   </tr>
                 </thead>
                 <tbody id="adminMoviesBody">
-                  <tr><td colspan="6" class="admin-movies-empty">Ładowanie…</td></tr>
+                  <tr><td colspan="7" class="admin-movies-empty">Ładowanie…</td></tr>
                 </tbody>
               </table>
             </div>
@@ -106,7 +114,7 @@
 
           <section class="admin-section">
             <h2>Scrape from YTS</h2>
-            <p class="admin-hint">Pobiera filmy z yts.bz i zapisuje do bazy SQLite.</p>
+            <p class="admin-hint">Pobiera kolejne nowe filmy z yts.bz i dopisuje do bazy SQLite (bez usuwania poprzednich).</p>
             <form id="scrapeForm" class="admin-scrape">
               <label>
                 Liczba filmów
@@ -143,26 +151,49 @@
         const data = await api("/admin/movies");
         const movies = data.movies || [];
         if (!movies.length) {
-          tbody.innerHTML = `<tr><td colspan="6" class="admin-movies-empty">Brak filmów w bazie.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="7" class="admin-movies-empty">Brak filmów w bazie.</td></tr>`;
           return;
         }
         tbody.innerHTML = movies
           .map(
             (m) => `
-          <tr class="${m.is_new ? "admin-movies__row--new" : ""}">
-            <td>${m.is_new ? '<span class="badge-new">NEW</span>' : ""}</td>
-            <td class="admin-movies__title">${escapeHtml(m.title || "—")}</td>
+          <tr class="${m.is_new ? "admin-movies__row--new" : ""}${m.is_duplicate_title ? " admin-movies__row--dup" : ""}">
+            <td>
+              ${m.is_new ? '<span class="badge-new">NEW</span>' : ""}
+              ${m.is_duplicate_title ? '<span class="badge-dup" title="Powtarzający się tytuł">DUP</span>' : ""}
+            </td>
+            <td class="admin-movies__title">${escapeHtml(m.title || "—")}${m.is_duplicate_title ? ' <span class="admin-movies__dup-hint">(duplikat tytułu)</span>' : ""}</td>
             <td>${m.year || "—"}</td>
             <td>${m.rating != null ? Number(m.rating).toFixed(1) : "—"}</td>
             <td class="admin-movies__slug">${escapeHtml(m.slug || "—")}</td>
-            <td><a class="admin-movies__link" href="${escapeHtml(m.url)}" target="_blank" rel="noopener">Podgląd</a></td>
+            <td class="admin-movies__actions">
+              <a class="admin-movies__link" href="${escapeHtml(m.url)}" target="_blank" rel="noopener">Podgląd</a>
+              <button type="button" class="btn-admin-delete" data-id="${m.id}" data-title="${escapeAttr(m.title || "")}">Usuń</button>
+            </td>
           </tr>`
           )
           .join("");
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
       }
     }
+
+    document.getElementById("adminMoviesBody").addEventListener("click", async (e) => {
+      const btn = e.target.closest(".btn-admin-delete");
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const title = btn.dataset.title || id;
+      if (!confirm(`Usunąć film „${title}” z bazy?`)) return;
+      btn.disabled = true;
+      try {
+        await api(`/admin/movies/${id}`, { method: "DELETE" });
+        loadStats();
+        loadMovies();
+      } catch (err) {
+        alert(err.message);
+        btn.disabled = false;
+      }
+    });
 
     document.getElementById("scrapeForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -177,7 +208,13 @@
           body: JSON.stringify({ count }),
         });
         log.textContent += (result.logs || []).join("\n") + "\n";
-        log.textContent += `\n✓ Zapisano ${result.saved} filmów (w bazie: ${result.total_in_db})`;
+        log.textContent += `\n✓ Dodano ${result.saved} nowych filmów (w bazie: ${result.total_in_db})`;
+        if (result.skipped) {
+          log.textContent += `, pominięto ${result.skipped} już istniejących`;
+        }
+        if (result.skipped_duplicates) {
+          log.textContent += `, ${result.skipped_duplicates} duplikatów tytułu`;
+        }
         loadStats();
         loadMovies();
       } catch (err) {

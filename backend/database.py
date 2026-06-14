@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -12,6 +13,13 @@ JSON_FALLBACK = Path(__file__).resolve().parent / "data" / "test_movies.json"
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def normalize_title(title: str | None) -> str:
+    if not title:
+        return ""
+    t = re.sub(r"\s+", " ", title.lower().strip())
+    return t
 
 
 class Database:
@@ -69,6 +77,26 @@ class Database:
         with self.connect() as conn:
             row = conn.execute("SELECT COUNT(*) AS c FROM movies").fetchone()
             return int(row["c"])
+
+    def existing_ids(self) -> set[int]:
+        with self.connect() as conn:
+            rows = conn.execute("SELECT id FROM movies").fetchall()
+        return {int(r["id"]) for r in rows}
+
+    def existing_titles(self) -> set[str]:
+        with self.connect() as conn:
+            rows = conn.execute("SELECT title FROM movies WHERE title IS NOT NULL").fetchall()
+        return {normalize_title(r["title"]) for r in rows if normalize_title(r["title"])}
+
+    def duplicate_title_keys(self) -> set[str]:
+        counts: dict[str, int] = {}
+        with self.connect() as conn:
+            rows = conn.execute("SELECT title FROM movies WHERE title IS NOT NULL").fetchall()
+        for row in rows:
+            key = normalize_title(row["title"])
+            if key:
+                counts[key] = counts.get(key, 0) + 1
+        return {key for key, count in counts.items() if count > 1}
 
     def upsert_movie(self, movie: dict[str, Any]) -> None:
         mid = int(movie["id"])
@@ -157,6 +185,24 @@ class Database:
                 "SELECT id, slug, title, year, rating, updated_at FROM movies ORDER BY updated_at DESC"
             ).fetchall()
         return [dict(r) for r in rows]
+
+    def delete_movie(self, movie_id: int) -> bool:
+        with self.connect() as conn:
+            cur = conn.execute("DELETE FROM movies WHERE id = ?", (movie_id,))
+            deleted = cur.rowcount > 0
+        if not deleted:
+            return False
+
+        current_batch = list(self.get_last_batch_ids())
+        if movie_id in current_batch:
+            self.set_last_batch_ids([i for i in current_batch if i != movie_id])
+
+        upcoming = self.get_upcoming()
+        if upcoming:
+            filtered = [m for m in upcoming if int(m.get("id") or 0) != movie_id]
+            if len(filtered) != len(upcoming):
+                self.set_upcoming(filtered)
+        return True
 
     def delete_all_movies(self) -> None:
         with self.connect() as conn:

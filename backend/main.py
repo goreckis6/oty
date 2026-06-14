@@ -127,6 +127,21 @@ async def admin_movies(_: str = Depends(require_admin)) -> dict[str, Any]:
     }
 
 
+@app.delete(f"{API_PREFIX}/admin/movies/{movie_id}")
+async def admin_delete_movie(
+    movie_id: int,
+    _: str = Depends(require_admin),
+) -> dict[str, Any]:
+    assert db is not None
+    if not db.delete_movie(movie_id):
+        raise HTTPException(status_code=404, detail="Movie not found")
+    return {
+        "status": "ok",
+        "deleted_id": movie_id,
+        "total_in_db": db.count_movies(),
+    }
+
+
 @app.post(f"{API_PREFIX}/admin/scrape")
 async def admin_scrape(
     body: ScrapeRequest,

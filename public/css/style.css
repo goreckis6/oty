@@ -449,6 +449,29 @@ a:hover {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 
+.badge-dup {
+  display: inline-block;
+  background: #c45c5c;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 3px 6px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  margin-left: 4px;
+}
+
+.admin-movies__row--dup {
+  background: rgba(196, 92, 92, 0.08);
+}
+
+.admin-movies__dup-hint {
+  color: #c45c5c;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 .movie-box__title {
   font-size: 0.82rem;
   font-weight: 600;
@@ -1176,6 +1199,36 @@ a:hover {
 
 .admin-movies__link:hover {
   text-decoration: underline;
+}
+
+.admin-movies__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.btn-admin-delete {
+  background: transparent;
+  border: 1px solid #a44;
+  color: #e88;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-admin-delete:hover:not(:disabled) {
+  background: rgba(196, 92, 92, 0.15);
+  color: #faa;
+}
+
+.btn-admin-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .admin-movies-empty {
