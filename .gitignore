@@ -1,27 +1,23 @@
-# Python
+# Python / Node (when you add an app)
 __pycache__/
 *.py[cod]
-backend/.venv/
 .venv/
-*.egg-info/
-
-# Local binaries (use system ffmpeg on server)
-bin/
+node_modules/
+dist/
+build/
 
 # Secrets & local config
 .env
 certs/
 secrets/
-cookies.txt
-cookies.json
 *.pem
 
-# Downloads on server
+# Server runtime
 downloads/*
 !downloads/.gitkeep
-/tmp/ytdown_*/
 
 # OS / editor
 .DS_Store
 .idea/
 .vscode/
+.local-packages/

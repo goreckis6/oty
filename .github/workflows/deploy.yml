@@ -9,9 +9,6 @@ concurrency:
   group: deploy-production
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -20,9 +17,8 @@ jobs:
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/ytdown' }}
-      DOMAIN: ${{ secrets.DOMAIN || 'yts.cool' }}
+      DOMAIN: ${{ secrets.DOMAIN || '' }}
       ACME_EMAIL: ${{ secrets.ACME_EMAIL || '' }}
-      DEPLOY_MODE: ${{ secrets.DEPLOY_MODE || 'docker' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -31,7 +27,7 @@ jobs:
         run: |
           test -n "$DEPLOY_USER" || (echo "Missing DEPLOY_USER" && exit 1)
           test -n "${{ secrets.DEPLOY_SSH_KEY }}" || (echo "Missing DEPLOY_SSH_KEY" && exit 1)
-          test -n "$DEPLOY_HOST" || (echo "Missing DEPLOY_HOST (IP VPS)" && exit 1)
+          test -n "$DEPLOY_HOST" || (echo "Missing DEPLOY_HOST" && exit 1)
 
       - name: Setup SSH
         run: |
@@ -44,53 +40,30 @@ jobs:
         run: |
           rsync -avz --delete \
             --exclude '.git' \
-            --exclude 'backend/.venv' \
-            --exclude 'bin' \
-            --exclude 'certs' \
-            --exclude 'downloads' \
+            --exclude '.venv' \
+            --exclude 'node_modules' \
             --exclude 'secrets' \
             --exclude '.env' \
             -e "ssh -i ~/.ssh/deploy_key -p $DEPLOY_PORT -o StrictHostKeyChecking=accept-new" \
             ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
 
-      - name: Install YouTube cookies
-        env:
-          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
-        run: |
-          if [ -z "$YOUTUBE_COOKIES" ]; then
-            echo "Brak sekretu YOUTUBE_COOKIES — pomijam (cookies muszą być już na serwerze w secrets/cookies.txt)"
-            exit 0
-          fi
-          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=accept-new \
-            "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "mkdir -p '${DEPLOY_PATH}/secrets' && chmod 700 '${DEPLOY_PATH}/secrets'"
-          printf '%s\n' "$YOUTUBE_COOKIES" | ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" \
-            "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "cat > '${DEPLOY_PATH}/secrets/cookies.txt' && chmod 644 '${DEPLOY_PATH}/secrets/cookies.txt'"
-          echo "==> cookies.txt wgrane na serwer"
-
       - name: Remote deploy
-        timeout-minutes: 15
+        timeout-minutes: 10
         run: |
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o ServerAliveInterval=30 "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "chmod +x ${DEPLOY_PATH}/deploy/scripts/*.sh && \
-             APP_DIR='${DEPLOY_PATH}' DOMAIN='${DOMAIN}' ACME_EMAIL='${ACME_EMAIL}' DEPLOY_MODE='${DEPLOY_MODE}' bash -x '${DEPLOY_PATH}/deploy/scripts/deploy-single.sh'"
+             APP_DIR='${DEPLOY_PATH}' DOMAIN='${DOMAIN}' ACME_EMAIL='${ACME_EMAIL}' bash '${DEPLOY_PATH}/deploy/scripts/deploy.sh'"
 
       - name: Health check
+        if: env.DOMAIN != ''
         run: |
-          for i in 1 2 3 4 5 6 8 9 10 11 12; do
-            if curl -sf "http://${DEPLOY_HOST}/api/health" -H "Host: ${DOMAIN}"; then
-              echo ""
-              echo "==> Caddy OK na serwerze (IP: ${DEPLOY_HOST})"
-            fi
-            if curl -sf "https://${DOMAIN}/api/health"; then
+          for i in 1 2 3 4 5 6 8 10; do
+            if curl -sf "https://${DOMAIN}/"; then
               echo ""
               echo "==> Deploy OK: https://${DOMAIN}"
               exit 0
             fi
             sleep 10
           done
-          echo "Health check failed"
-          echo "  DNS: yts.cool A → ${DEPLOY_HOST} (usuń inne rekordy A)"
-          echo "  Test: curl -v http://${DEPLOY_HOST}/api/health -H 'Host: ${DOMAIN}'"
+          echo "Health check failed for https://${DOMAIN}/"
           exit 1

@@ -1,6 +1,0 @@
-# Użyj na workerze ZA load balancerem (port widoczny dla LB).
-#   docker compose -f docker-compose.yml -f docker-compose.worker.yml up -d --build
-services:
-  ytdown:
-    ports:
-      - "3000:8080"

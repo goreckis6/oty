@@ -1,3 +1,0 @@
-yts.cool {
-	reverse_proxy ytdown:8080
-}
