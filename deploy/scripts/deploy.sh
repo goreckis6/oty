@@ -157,7 +157,7 @@ if ! curl -sf "http://127.0.0.1:8080/api/v1/health" | grep -q '"status"'; then
   exit 1
 fi
 
-if ! curl -sf "http://127.0.0.1:8080/" | head -c 256 | grep -qi '<!DOCTYPE html'; then
+if ! response_contains '<!DOCTYPE html' curl -sf http://127.0.0.1:8080/; then
   echo "FATAL: homepage is not serving HTML from API fallback" >&2
   curl -sv "http://127.0.0.1:8080/" 2>&1 | tail -20 || true
   exit 1
@@ -168,18 +168,26 @@ caddy_url() {
   curl -4 -sfk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}$1"
 }
 
-if ! caddy_url "/api/v1/health" | grep -q '"status"'; then
+response_contains() {
+  local needle="$1"
+  shift
+  local body
+  body=$("$@" 2>/dev/null || true)
+  case "$body" in *"$needle"*) return 0 ;; *) return 1 ;; esac
+}
+
+if ! response_contains '"status"' caddy_url /api/v1/health; then
   echo "FATAL: API not reachable through Caddy (HTTPS)" >&2
   curl -4 -svk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/v1/health" 2>&1 | tail -20 || true
   docker compose logs caddy --tail 40 || true
   exit 1
 fi
-if ! caddy_url "/api/v1/list_movies.json?limit=1" | grep -q '"movie_count"'; then
+if ! response_contains '"movie_count"' caddy_url /api/v1/list_movies.json?limit=1; then
   echo "FATAL: movies API not returning JSON through Caddy" >&2
   curl -4 -svk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/v1/list_movies.json?limit=1" 2>&1 | tail -20 || true
   exit 1
 fi
-if ! caddy_url "/" | head -c 256 | grep -qi '<!DOCTYPE html'; then
+if ! response_contains '<!DOCTYPE html' caddy_url /; then
   echo "FATAL: homepage not serving HTML through Caddy" >&2
   curl -4 -svk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/" 2>&1 | tail -20 || true
   exit 1
