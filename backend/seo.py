@@ -7,8 +7,12 @@ from pathlib import Path
 from typing import Any
 from xml.etree.ElementTree import Element, SubElement, tostring
 
+def normalize_site_url(url: str) -> str:
+    return url.strip().rstrip("/")
+
+
 PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "/app/public"))
-SITE_URL = os.environ.get("SITE_URL", "http://localhost").rstrip("/")
+SITE_URL = normalize_site_url(os.environ.get("SITE_URL", "http://localhost"))
 SITE_NAME = os.environ.get("SITE_NAME", "YTS")
 SITE_TAGLINE = os.environ.get("SITE_TAGLINE", "HD movies at the smallest file size")
 SITEMAP_MAX_URLS = 200

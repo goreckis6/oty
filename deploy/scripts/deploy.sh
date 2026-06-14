@@ -4,6 +4,7 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/ytdown}"
 DOMAIN="${DOMAIN:-localhost}"
+DOMAIN="$(printf '%s' "$DOMAIN" | tr -d '\n\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's|https\?://||' -e 's|/$||')"
 ACME_EMAIL="${ACME_EMAIL:-}"
 DATA_SOURCE="${DATA_SOURCE:-sqlite}"
 TMDB_API_KEY="${TMDB_API_KEY:-}"
@@ -14,6 +15,7 @@ JWT_SECRET="${JWT_SECRET:-change-me-in-production}"
 SITE_NAME="${SITE_NAME:-YTS}"
 SITE_TAGLINE="${SITE_TAGLINE:-HD movies at the smallest file size}"
 SITE_URL="${SITE_URL:-https://${DOMAIN}}"
+SITE_URL="$(printf '%s' "$SITE_URL" | tr -d '\n\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's|/$||')"
 
 cd "$APP_DIR"
 mkdir -p deploy/caddy public/js public/css public/downloads backend/data
