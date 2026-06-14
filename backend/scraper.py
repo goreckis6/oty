@@ -47,7 +47,7 @@ async def fetch_upcoming(client: httpx.AsyncClient, fallback: list[dict]) -> tup
 
 
 async def scrape_movies(count: int = 10) -> dict[str, Any]:
-    count = max(1, min(int(count), 50))
+    count = max(1, int(count))
     logs: list[str] = []
     db = Database()
     known_ids = db.existing_ids()

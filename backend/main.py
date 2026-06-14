@@ -74,7 +74,7 @@ class ScrapeRequest(BaseModel):
 class AutoScrapeRequest(BaseModel):
     enabled: bool = False
     interval_minutes: int = Field(default=60, ge=5, le=1440)
-    count: int = Field(default=10, ge=1, le=50)
+    count: int = Field(default=10, ge=1)
 
 
 class BulkDeleteRequest(BaseModel):

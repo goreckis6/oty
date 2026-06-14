@@ -46,7 +46,7 @@ class AutoScrapeService:
         interval = int(self.db.get_meta("auto_scrape_interval_min", str(DEFAULT_INTERVAL_MINUTES)) or DEFAULT_INTERVAL_MINUTES)
         count = int(self.db.get_meta("auto_scrape_count", str(DEFAULT_COUNT)) or DEFAULT_COUNT)
         interval = max(MIN_INTERVAL_MINUTES, min(interval, MAX_INTERVAL_MINUTES))
-        count = max(1, min(count, 50))
+        count = max(1, count)
         next_run = self.db.get_meta("auto_scrape_next_run")
         next_dt = _parse_iso(next_run)
         now = _now()
@@ -74,7 +74,7 @@ class AutoScrapeService:
 
     def save_settings(self, *, enabled: bool, interval_minutes: int, count: int) -> dict[str, Any]:
         interval_minutes = max(MIN_INTERVAL_MINUTES, min(int(interval_minutes), MAX_INTERVAL_MINUTES))
-        count = max(1, min(int(count), 50))
+        count = max(1, int(count))
         self.db.set_meta("auto_scrape_enabled", "1" if enabled else "0")
         self.db.set_meta("auto_scrape_interval_min", str(interval_minutes))
         self.db.set_meta("auto_scrape_count", str(count))

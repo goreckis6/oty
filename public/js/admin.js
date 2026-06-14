@@ -190,7 +190,7 @@
               </label>
               <label>
                 Filmów na cykl
-                <input type="number" id="autoScrapeCount" min="1" max="50" value="10" />
+                <input type="number" id="autoScrapeCount" min="1" value="10" />
               </label>
               <button type="submit" class="btn-browse" id="autoScrapeSave">Zapisz</button>
             </form>
