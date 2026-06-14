@@ -57,6 +57,9 @@ python3 scrape_yts.py -n 20
 | `POST /api/v1/admin/login` | — | `{username, password}` → token |
 | `GET /api/v1/admin/stats` | Bearer | statystyki |
 | `POST /api/v1/admin/scrape` | Bearer | `{count: 10}` |
+| `GET /api/v1/admin/auto-scrape` | Bearer | ustawienia auto-scrapingu |
+| `POST /api/v1/admin/auto-scrape` | Bearer | `{enabled, interval_minutes, count}` — min. 5 min |
+| `GET /api/v1/admin/movies?page=1&limit=100` | Bearer | lista filmów (100/200/300/500) |
 
 ## Deploy
 

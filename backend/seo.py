@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any
 from xml.etree.ElementTree import Element, SubElement, tostring
 
+from movie_enrichment import plot_synopsis
+
+
 def normalize_site_url(url: str) -> str:
     return url.strip().rstrip("/")
 
@@ -38,12 +41,7 @@ def movie_page_title(movie: dict[str, Any]) -> str:
 
 
 def movie_description(movie: dict[str, Any]) -> str:
-    summary = (
-        movie.get("description_full")
-        or movie.get("description_intro")
-        or movie.get("summary")
-        or ""
-    )
+    summary = plot_synopsis(movie)
     label = movie.get("title_long") or movie.get("title") or "Movie"
     base = f"Download {label} YIFY HD torrent in 720p, 1080p and x265."
     if summary:
@@ -171,10 +169,7 @@ def build_movie_prerender(movie: dict[str, Any]) -> str:
     year = movie.get("year") or ""
     slug = movie_slug(movie)
     summary = _clean_text(
-        movie.get("description_full")
-        or movie.get("description_intro")
-        or movie.get("summary")
-        or "No description available.",
+        plot_synopsis(movie) or "No description available.",
         500,
     )
     poster = movie.get("large_cover_image") or movie.get("medium_cover_image") or ""

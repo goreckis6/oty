@@ -75,6 +75,29 @@
   }
 
   function renderDashboard(app) {
+    let moviesPage = 1;
+    let moviesLimit = 100;
+    let autoRefreshTimer = null;
+    const selectedIds = new Set();
+
+    function updateBulkBar() {
+      const bar = document.getElementById("adminBulkBar");
+      const count = selectedIds.size;
+      if (!bar) return;
+      bar.hidden = count === 0;
+      document.getElementById("adminBulkCount").textContent = String(count);
+      const selectAll = document.getElementById("adminSelectAll");
+      if (selectAll) {
+        const boxes = [...document.querySelectorAll(".admin-movie-check")];
+        selectAll.checked = boxes.length > 0 && boxes.every((b) => b.checked);
+        selectAll.indeterminate = count > 0 && !selectAll.checked;
+      }
+    }
+
+    function getVisibleIds() {
+      return [...document.querySelectorAll(".admin-movie-check")].map((b) => parseInt(b.value, 10));
+    }
+
     app.innerHTML = `
       <div class="admin-wrap">
         <div class="admin-panel">
@@ -91,12 +114,66 @@
           </div>
 
           <section class="admin-section">
+            <h2>Scrape from YTS</h2>
+            <p class="admin-hint">Pobiera kolejne nowe filmy z yts.bz i dopisuje do bazy SQLite (bez usuwania poprzednich).</p>
+            <form id="scrapeForm" class="admin-scrape">
+              <label>
+                Liczba filmów
+                <input type="number" id="scrapeCount" min="1" max="50" value="10" />
+              </label>
+              <button type="submit" class="btn-browse" id="scrapeBtn">Start scraping</button>
+            </form>
+            <pre class="admin-log" id="adminLog">Ready.</pre>
+          </section>
+
+          <section class="admin-section">
+            <h2>Auto scraping</h2>
+            <p class="admin-hint">Automatyczny scraping w tle. Minimalny interwał: 5 minut.</p>
+            <form id="autoScrapeForm" class="admin-scrape admin-scrape--auto">
+              <label class="admin-check">
+                <input type="checkbox" id="autoScrapeEnabled" />
+                Włączone
+              </label>
+              <label>
+                Co ile minut
+                <input type="number" id="autoScrapeInterval" min="5" max="1440" value="60" />
+              </label>
+              <label>
+                Filmów na cykl
+                <input type="number" id="autoScrapeCount" min="1" max="50" value="10" />
+              </label>
+              <button type="submit" class="btn-browse" id="autoScrapeSave">Zapisz</button>
+            </form>
+            <div class="admin-auto-status" id="autoScrapeStatus">Ładowanie statusu…</div>
+          </section>
+
+          <section class="admin-section">
             <h2>Filmy w bazie</h2>
             <p class="admin-hint">Każdy scraping dopisuje nowe filmy do bazy (istniejące są pomijane). Ostatnio dodane mają NEW do następnego scrapingu.</p>
+            <div class="admin-list-toolbar">
+              <label>
+                Na stronę
+                <select id="adminMoviesLimit">
+                  <option value="100">100</option>
+                  <option value="200">200</option>
+                  <option value="300">300</option>
+                  <option value="500">500</option>
+                </select>
+              </label>
+              <span class="admin-list-meta" id="adminMoviesMeta">—</span>
+              <div class="admin-pagination" id="adminMoviesPagination"></div>
+            </div>
+            <div class="admin-bulk-bar" id="adminBulkBar" hidden>
+              <span><strong id="adminBulkCount">0</strong> zaznaczonych</span>
+              <button type="button" class="btn-admin-delete" id="adminBulkDelete">Usuń zaznaczone</button>
+            </div>
             <div class="admin-movies-wrap">
               <table class="admin-movies" id="adminMoviesTable">
                 <thead>
                   <tr>
+                    <th class="admin-movies__check">
+                      <input type="checkbox" id="adminSelectAll" title="Zaznacz wszystkie na stronie" />
+                    </th>
                     <th></th>
                     <th>Tytuł</th>
                     <th>Rok</th>
@@ -111,25 +188,89 @@
               </table>
             </div>
           </section>
-
-          <section class="admin-section">
-            <h2>Scrape from YTS</h2>
-            <p class="admin-hint">Pobiera kolejne nowe filmy z yts.bz i dopisuje do bazy SQLite (bez usuwania poprzednich).</p>
-            <form id="scrapeForm" class="admin-scrape">
-              <label>
-                Liczba filmów
-                <input type="number" id="scrapeCount" min="1" max="50" value="10" />
-              </label>
-              <button type="submit" class="btn-browse" id="scrapeBtn">Start scraping</button>
-            </form>
-            <pre class="admin-log" id="adminLog">Ready.</pre>
-          </section>
         </div>
       </div>`;
 
     document.getElementById("adminLogout").addEventListener("click", () => {
+      if (autoRefreshTimer) clearInterval(autoRefreshTimer);
       clearToken();
       window.YtsAdmin.render(app);
+    });
+
+    document.getElementById("adminMoviesLimit").value = String(moviesLimit);
+    document.getElementById("adminMoviesLimit").addEventListener("change", (e) => {
+      moviesLimit = parseInt(e.target.value, 10) || 100;
+      moviesPage = 1;
+      loadMovies();
+    });
+
+    function renderMoviesPagination(data) {
+      const el = document.getElementById("adminMoviesPagination");
+      const totalPages = data.total_pages || 1;
+      if (totalPages <= 1) {
+        el.innerHTML = "";
+        return;
+      }
+      el.innerHTML = `
+        <button type="button" class="btn-admin-outline" data-page="prev" ${moviesPage <= 1 ? "disabled" : ""}>←</button>
+        <span>${moviesPage} / ${totalPages}</span>
+        <button type="button" class="btn-admin-outline" data-page="next" ${moviesPage >= totalPages ? "disabled" : ""}>→</button>`;
+      el.querySelectorAll("button[data-page]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (btn.dataset.page === "prev" && moviesPage > 1) moviesPage -= 1;
+          if (btn.dataset.page === "next" && moviesPage < totalPages) moviesPage += 1;
+          loadMovies();
+        });
+      });
+    }
+
+    function formatAutoStatus(s) {
+      const lines = [];
+      lines.push(s.enabled ? "Status: włączone" : "Status: wyłączone");
+      if (s.running) lines.push("Teraz: scraping w toku…");
+      if (s.next_run) lines.push(`Następny: ${s.next_run}`);
+      if (s.last_run) lines.push(`Ostatni auto: ${s.last_run}`);
+      if (s.last_result) {
+        const r = s.last_result;
+        if (r.error) lines.push(`Błąd: ${r.error}`);
+        else lines.push(`Ostatni wynik: +${r.saved || 0} (w bazie: ${r.total_in_db || "?"})`);
+      }
+      return lines.join(" · ");
+    }
+
+    async function loadAutoScrape() {
+      const statusEl = document.getElementById("autoScrapeStatus");
+      try {
+        const s = await api("/admin/auto-scrape");
+        document.getElementById("autoScrapeEnabled").checked = !!s.enabled;
+        document.getElementById("autoScrapeInterval").value = s.interval_minutes || 60;
+        document.getElementById("autoScrapeCount").value = s.count || 10;
+        statusEl.textContent = formatAutoStatus(s);
+      } catch (err) {
+        statusEl.textContent = `Błąd: ${err.message}`;
+      }
+    }
+
+    document.getElementById("autoScrapeForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("autoScrapeSave");
+      btn.disabled = true;
+      try {
+        await api("/admin/auto-scrape", {
+          method: "POST",
+          body: JSON.stringify({
+            enabled: document.getElementById("autoScrapeEnabled").checked,
+            interval_minutes: parseInt(document.getElementById("autoScrapeInterval").value, 10) || 60,
+            count: parseInt(document.getElementById("autoScrapeCount").value, 10) || 10,
+          }),
+        });
+        await loadAutoScrape();
+        loadStats();
+      } catch (err) {
+        document.getElementById("autoScrapeStatus").textContent = `Błąd: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+      }
     });
 
     async function loadStats() {
@@ -148,16 +289,23 @@
     async function loadMovies() {
       const tbody = document.getElementById("adminMoviesBody");
       try {
-        const data = await api("/admin/movies");
+        const data = await api(`/admin/movies?page=${moviesPage}&limit=${moviesLimit}`);
         const movies = data.movies || [];
+        document.getElementById("adminMoviesMeta").textContent =
+          `Strona ${data.page}/${data.total_pages} · ${data.movie_count} filmów`;
+        renderMoviesPagination(data);
         if (!movies.length) {
           tbody.innerHTML = `<tr><td colspan="7" class="admin-movies-empty">Brak filmów w bazie.</td></tr>`;
+          updateBulkBar();
           return;
         }
         tbody.innerHTML = movies
           .map(
             (m) => `
           <tr class="${m.is_new ? "admin-movies__row--new" : ""}${m.is_duplicate_title ? " admin-movies__row--dup" : ""}">
+            <td class="admin-movies__check">
+              <input type="checkbox" class="admin-movie-check" value="${m.id}" ${selectedIds.has(m.id) ? "checked" : ""} />
+            </td>
             <td>
               ${m.is_new ? '<span class="badge-new">NEW</span>' : ""}
               ${m.is_duplicate_title ? '<span class="badge-dup" title="Powtarzający się tytuł">DUP</span>' : ""}
@@ -173,10 +321,54 @@
           </tr>`
           )
           .join("");
+        updateBulkBar();
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="7" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
       }
     }
+
+    document.getElementById("adminSelectAll").addEventListener("change", (e) => {
+      const checked = e.target.checked;
+      getVisibleIds().forEach((id) => {
+        if (checked) selectedIds.add(id);
+        else selectedIds.delete(id);
+      });
+      document.querySelectorAll(".admin-movie-check").forEach((box) => {
+        box.checked = checked;
+      });
+      updateBulkBar();
+    });
+
+    document.getElementById("adminMoviesBody").addEventListener("change", (e) => {
+      const box = e.target.closest(".admin-movie-check");
+      if (!box) return;
+      const id = parseInt(box.value, 10);
+      if (box.checked) selectedIds.add(id);
+      else selectedIds.delete(id);
+      updateBulkBar();
+    });
+
+    document.getElementById("adminBulkDelete").addEventListener("click", async () => {
+      const ids = [...selectedIds];
+      if (!ids.length) return;
+      if (!confirm(`Usunąć ${ids.length} zaznaczonych filmów z bazy?`)) return;
+      const btn = document.getElementById("adminBulkDelete");
+      btn.disabled = true;
+      try {
+        const result = await api("/admin/movies/bulk-delete", {
+          method: "POST",
+          body: JSON.stringify({ ids }),
+        });
+        ids.forEach((id) => selectedIds.delete(id));
+        loadStats();
+        loadMovies();
+        alert(`Usunięto ${result.deleted} filmów.`);
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     document.getElementById("adminMoviesBody").addEventListener("click", async (e) => {
       const btn = e.target.closest(".btn-admin-delete");
@@ -187,6 +379,7 @@
       btn.disabled = true;
       try {
         await api(`/admin/movies/${id}`, { method: "DELETE" });
+        selectedIds.delete(parseInt(id, 10));
         loadStats();
         loadMovies();
       } catch (err) {
@@ -229,6 +422,11 @@
 
     loadStats();
     loadMovies();
+    loadAutoScrape();
+    autoRefreshTimer = setInterval(() => {
+      loadAutoScrape();
+      loadStats();
+    }, 30000);
   }
 
   async function render(app) {

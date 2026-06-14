@@ -4,6 +4,15 @@ from typing import Any
 from database import Database, normalize_title
 from movie_enrichment import enrich_movie
 
+ADMIN_PAGE_SIZES = (100, 200, 300, 500)
+
+
+def _normalize_admin_limit(limit: int) -> int:
+    if limit in ADMIN_PAGE_SIZES:
+        return limit
+    return 100
+
+
 SUMMARY_KEYS = (
     "id", "imdb_code", "title", "title_english", "title_long", "slug",
     "year", "rating", "runtime", "genres", "summary",
@@ -92,11 +101,13 @@ class MovieStore:
     def movies(self) -> list[dict[str, Any]]:
         return self.db.all_movies()
 
-    def list_all_admin(self) -> list[dict[str, Any]]:
+    def list_all_admin(self, page: int = 1, limit: int = 100) -> dict[str, Any]:
+        limit = _normalize_admin_limit(limit)
         new_ids = self.new_ids
         duplicate_titles = self.db.duplicate_title_keys()
+        rows, total = self.db.list_rows_paginated(page=page, limit=limit)
         items = []
-        for row in self.db.list_rows():
+        for row in rows:
             title_key = normalize_title(row.get("title"))
             items.append({
                 **row,
@@ -104,7 +115,15 @@ class MovieStore:
                 "is_duplicate_title": bool(title_key and title_key in duplicate_titles),
                 "url": f"/movies/{row['slug']}",
             })
-        return items
+        total_pages = max(1, (total + limit - 1) // limit)
+        return {
+            "movies": items,
+            "movie_count": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages,
+            "page_sizes": list(ADMIN_PAGE_SIZES),
+        }
 
     def list_movies(self, params: dict[str, Any]) -> dict[str, Any]:
         page = int(params.get("page") or 1)

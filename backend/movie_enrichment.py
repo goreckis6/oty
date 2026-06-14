@@ -33,6 +33,24 @@ SUBTITLE_LABELS: dict[str, str] = {
 }
 
 
+def plot_synopsis(movie: dict[str, Any]) -> str:
+    """Best available plot text from YTS fields (synopsis/summary/descriptions)."""
+    for key in ("synopsis", "summary", "description_full", "description_intro", "plot_summary"):
+        value = (movie.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def merge_listing_movie(listing: dict[str, Any], movie: dict[str, Any]) -> dict[str, Any]:
+    """Copy plot fields from list_movies entry when details omit them."""
+    merged = dict(movie)
+    for key in ("synopsis", "summary", "description_intro", "description_full"):
+        if not (merged.get(key) or "").strip() and (listing.get(key) or "").strip():
+            merged[key] = listing[key]
+    return merged
+
+
 def _screenshots(movie: dict[str, Any]) -> list[str]:
     shots: list[str] = []
     seen: set[str] = set()
@@ -123,6 +141,13 @@ def subtitle_entries(codes: list[str]) -> list[dict[str, str]]:
 def enrich_movie(movie: dict[str, Any]) -> dict[str, Any]:
     """Add normalized media fields used by the frontend."""
     enriched = dict(movie)
+    synopsis = plot_synopsis(enriched)
+    enriched["synopsis"] = synopsis
+    if synopsis:
+        if not (enriched.get("description_full") or "").strip():
+            enriched["description_full"] = synopsis
+        if not (enriched.get("summary") or "").strip():
+            enriched["summary"] = synopsis
     enriched["screenshots"] = _screenshots(movie)
     enriched.update(_trailer(movie))
 

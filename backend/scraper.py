@@ -5,7 +5,7 @@ from typing import Any
 import httpx
 
 from database import Database, normalize_title
-from movie_enrichment import enrich_movie_async
+from movie_enrichment import enrich_movie_async, merge_listing_movie
 from seo import register_movies_for_seo
 
 YTS_BASE = os.environ.get("YTS_SCRAPE_URL", "https://yts.bz/api/v2").rstrip("/")
@@ -95,7 +95,7 @@ async def scrape_movies(count: int = 10) -> dict[str, Any]:
                     with_cast="true",
                 )
                 assert detail is not None
-                movie = detail["movie"]
+                movie = merge_listing_movie(m, detail["movie"])
                 movie = await enrich_movie_async(client, movie)
                 detailed.append(movie)
                 known_ids.add(mid)

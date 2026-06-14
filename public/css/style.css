@@ -1206,6 +1206,96 @@ a:hover {
   font: inherit;
 }
 
+.admin-scrape select {
+  display: block;
+  margin-top: 0.35rem;
+  min-width: 90px;
+  padding: 8px 10px;
+  background: #444;
+  border: 1px solid #555;
+  border-radius: var(--radius);
+  color: #fff;
+  font: inherit;
+}
+
+.admin-check {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 1.4rem;
+}
+
+.admin-check input {
+  display: inline-block;
+  width: auto;
+  margin-top: 0;
+}
+
+.admin-auto-status {
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  background: #1e1e1e;
+  border: 1px solid #444;
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  color: #aaa;
+  line-height: 1.5;
+}
+
+.admin-list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.admin-list-toolbar label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.admin-list-meta {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.admin-pagination span {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  min-width: 4rem;
+  text-align: center;
+}
+
+.admin-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: rgba(196, 92, 92, 0.1);
+  border: 1px solid #633;
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+}
+
+.admin-movies__check {
+  width: 2rem;
+  text-align: center;
+}
+
+.admin-movies__check input {
+  cursor: pointer;
+}
+
 .admin-log {
   background: #1a1a1a;
   border: 1px solid #444;

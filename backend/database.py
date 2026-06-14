@@ -186,6 +186,22 @@ class Database:
             ).fetchall()
         return [dict(r) for r in rows]
 
+    def list_rows_paginated(self, page: int = 1, limit: int = 100) -> tuple[list[dict[str, Any]], int]:
+        page = max(1, page)
+        limit = max(1, limit)
+        offset = (page - 1) * limit
+        with self.connect() as conn:
+            total = int(conn.execute("SELECT COUNT(*) AS c FROM movies").fetchone()["c"])
+            rows = conn.execute(
+                """
+                SELECT id, slug, title, year, rating, updated_at
+                FROM movies ORDER BY updated_at DESC
+                LIMIT ? OFFSET ?
+                """,
+                (limit, offset),
+            ).fetchall()
+        return [dict(r) for r in rows], total
+
     def list_sitemap_entries(self) -> list[dict[str, Any]]:
         return [
             {"slug": row["slug"], "updated_at": row["updated_at"]}
@@ -210,6 +226,13 @@ class Database:
             if len(filtered) != len(upcoming):
                 self.set_upcoming(filtered)
         return True
+
+    def delete_movies(self, movie_ids: list[int]) -> int:
+        deleted = 0
+        for movie_id in movie_ids:
+            if self.delete_movie(int(movie_id)):
+                deleted += 1
+        return deleted
 
     def delete_all_movies(self) -> None:
         with self.connect() as conn:

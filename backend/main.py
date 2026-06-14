@@ -7,6 +7,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Res
 from pydantic import BaseModel, Field
 
 from auth import authenticate, create_token, require_admin
+from auto_scraper import AutoScrapeService, run_scrape_locked, start_auto_scraper, stop_auto_scraper
 from database import Database
 from movie_store import MovieStore
 from scraper import scrape_movies
@@ -39,7 +40,10 @@ async def lifespan(_: FastAPI):
     elif TMDB_KEY:
         tmdb = TmdbClient(TMDB_KEY)
     torrents = TorrentSearch()
+    if DATA_SOURCE in ("sqlite", "scrape"):
+        start_auto_scraper(db)
     yield
+    await stop_auto_scraper()
     if tmdb:
         await tmdb.close()
     if torrents:
@@ -63,6 +67,16 @@ class LoginRequest(BaseModel):
 
 class ScrapeRequest(BaseModel):
     count: int = Field(default=10, ge=1, le=50)
+
+
+class AutoScrapeRequest(BaseModel):
+    enabled: bool = False
+    interval_minutes: int = Field(default=60, ge=5, le=1440)
+    count: int = Field(default=10, ge=1, le=50)
+
+
+class BulkDeleteRequest(BaseModel):
+    ids: list[int] = Field(min_length=1, max_length=500)
 
 
 def require_tmdb() -> TmdbClient:
@@ -119,13 +133,15 @@ async def admin_stats(_: str = Depends(require_admin)) -> dict[str, Any]:
 
 
 @app.get(f"{API_PREFIX}/admin/movies")
-async def admin_movies(_: str = Depends(require_admin)) -> dict[str, Any]:
+async def admin_movies(
+    request: Request,
+    _: str = Depends(require_admin),
+) -> dict[str, Any]:
     store = require_store()
-    return {
-        "status": "ok",
-        "movies": store.list_all_admin(),
-        "new_count": len(store.new_ids),
-    }
+    page = max(1, int(request.query_params.get("page") or 1))
+    limit = int(request.query_params.get("limit") or 100)
+    data = store.list_all_admin(page=page, limit=limit)
+    return {"status": "ok", "new_count": len(store.new_ids), **data}
 
 
 @app.delete(f"{API_PREFIX}/admin/movies/{{movie_id}}")
@@ -143,16 +159,52 @@ async def admin_delete_movie(
     }
 
 
+@app.post(f"{API_PREFIX}/admin/movies/bulk-delete")
+async def admin_bulk_delete_movies(
+    body: BulkDeleteRequest,
+    _: str = Depends(require_admin),
+) -> dict[str, Any]:
+    assert db is not None
+    unique_ids = list(dict.fromkeys(body.ids))
+    deleted = db.delete_movies(unique_ids)
+    return {
+        "status": "ok",
+        "deleted": deleted,
+        "requested": len(unique_ids),
+        "total_in_db": db.count_movies(),
+    }
+
+
 @app.post(f"{API_PREFIX}/admin/scrape")
 async def admin_scrape(
     body: ScrapeRequest,
     _: str = Depends(require_admin),
 ) -> dict[str, Any]:
     try:
-        result = await scrape_movies(body.count)
+        result = await run_scrape_locked(body.count)
         return {"status": "ok", **result}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.get(f"{API_PREFIX}/admin/auto-scrape")
+async def admin_auto_scrape_get(_: str = Depends(require_admin)) -> dict[str, Any]:
+    assert db is not None
+    return {"status": "ok", **AutoScrapeService(db).get_settings()}
+
+
+@app.post(f"{API_PREFIX}/admin/auto-scrape")
+async def admin_auto_scrape_save(
+    body: AutoScrapeRequest,
+    _: str = Depends(require_admin),
+) -> dict[str, Any]:
+    assert db is not None
+    settings = AutoScrapeService(db).save_settings(
+        enabled=body.enabled,
+        interval_minutes=body.interval_minutes,
+        count=body.count,
+    )
+    return {"status": "ok", **settings}
 
 
 @app.get(f"{API_PREFIX}/list_movies.json")
