@@ -1,9 +1,20 @@
 services:
+  api:
+    build: ./backend
+    container_name: site-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      YTS_UPSTREAM: ${YTS_UPSTREAM:-https://yts.bz/api/v2}
+
   caddy:
     image: caddy:2-alpine
     container_name: site-caddy
     restart: unless-stopped
     network_mode: host
+    depends_on:
+      - api
     volumes:
       - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./public:/srv:ro

@@ -1,5 +1,5 @@
 (function () {
-  const cfg = () => window.YTS_CONFIG || { apiBase: "/api/v2" };
+  const cfg = () => window.YTS_CONFIG || { apiBase: "/api/v1" };
 
   function apiUrl(path, params) {
     const base = cfg().apiBase.replace(/\/$/, "");

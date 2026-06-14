@@ -1,6 +1,6 @@
 // Overwritten on VPS deploy when YTS_API_URL / SITE_NAME secrets are set.
 window.YTS_CONFIG = {
-  apiBase: "/api/v2",
+  apiBase: "/api/v1",
   siteName: "YTS",
   siteTagline: "HD movies at the smallest file size",
   trackers: [
