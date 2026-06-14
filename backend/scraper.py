@@ -129,6 +129,8 @@ async def scrape_movies(count: int = 10) -> dict[str, Any]:
     saved = db.upsert_movies(detailed)
     batch_ids = [int(m["id"]) for m in detailed]
     db.set_last_batch_ids(batch_ids)
+    known_ids = db.existing_ids()
+    upcoming = [m for m in upcoming if int(m.get("id") or 0) in known_ids]
     db.set_upcoming(upcoming)
     db.set_meta("last_scrape", __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat())
     db.set_meta("last_scrape_count", str(saved))

@@ -164,6 +164,9 @@ class MovieStore:
 
     def list_upcoming(self) -> dict[str, Any]:
         upcoming = self.db.get_upcoming()
+        if upcoming:
+            existing_ids = self.db.existing_ids()
+            upcoming = [m for m in upcoming if self.db._upcoming_in_db(m, existing_ids)]
         if not upcoming:
             upcoming = _summaries(self.movies[:4], self.new_ids)
         else:

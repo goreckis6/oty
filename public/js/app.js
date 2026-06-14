@@ -98,13 +98,22 @@
     app.innerHTML = `<div class="loading"><div class="spinner"></div><p>Loading…</p></div>`;
   }
 
-  function showError(msg) {
+  function showError(msg, title = "Could not reach API") {
     const api = cfg().apiBase || "/api/v1";
     app.innerHTML = `
       <div class="error-box">
-        <p><strong>Could not reach API</strong></p>
+        <p><strong>${escapeHtml(title)}</strong></p>
         <p>${escapeHtml(msg)}</p>
         <code>API: ${escapeHtml(api)}</code>
+      </div>`;
+  }
+
+  function showNotFound(label) {
+    app.innerHTML = `
+      <div class="error-box">
+        <p><strong>Movie not found</strong></p>
+        <p>${escapeHtml(label || "This movie is not in the catalog.")}</p>
+        <p><a href="/">← Back to home</a></p>
       </div>`;
   }
 
@@ -455,7 +464,11 @@
 
       if (window.YtsSeo) window.YtsSeo.setMovie(m);
     } catch (err) {
-      showError(err.message);
+      if (err.status === 404 || /not found/i.test(err.message || "")) {
+        showNotFound(err.message);
+      } else {
+        showError(err.message);
+      }
     }
   }
 

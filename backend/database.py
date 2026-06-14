@@ -32,6 +32,7 @@ class Database:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
         self._remove_legacy_seed_movies()
+        self.prune_upcoming()
 
     @contextmanager
     def connect(self):
@@ -75,6 +76,25 @@ class Database:
             if self.delete_movie(movie_id):
                 removed += 1
         self.set_meta("legacy_seed_removed", "1")
+        self.prune_upcoming()
+
+    def _upcoming_in_db(self, movie: dict[str, Any], existing_ids: set[int]) -> bool:
+        movie_id = int(movie.get("id") or 0)
+        if movie_id and movie_id in existing_ids:
+            return True
+        slug = (movie.get("slug") or "").strip()
+        return bool(slug and self.get_movie(slug=slug))
+
+    def prune_upcoming(self) -> int:
+        upcoming = self.get_upcoming()
+        if not upcoming:
+            return 0
+        existing_ids = self.existing_ids()
+        pruned = [m for m in upcoming if self._upcoming_in_db(m, existing_ids)]
+        removed = len(upcoming) - len(pruned)
+        if removed:
+            self.set_upcoming(pruned)
+        return removed
 
     def count_movies(self) -> int:
         with self.connect() as conn:

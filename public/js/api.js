@@ -19,9 +19,21 @@
 
   async function request(path, params) {
     const res = await fetch(apiUrl(path, params));
-    const json = await res.json();
+    let json = {};
+    try {
+      json = await res.json();
+    } catch {
+      json = {};
+    }
     if (!res.ok || json.status === "error") {
-      throw new Error(json.status_message || `API error (${res.status})`);
+      const detail = json.detail;
+      const msg =
+        (typeof detail === "string" && detail) ||
+        json.status_message ||
+        `API error (${res.status})`;
+      const err = new Error(msg);
+      err.status = res.status;
+      throw err;
     }
     return json.data;
   }
