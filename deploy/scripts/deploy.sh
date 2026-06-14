@@ -95,18 +95,25 @@ cat > deploy/caddy/Caddyfile <<EOF
 ${GLOBAL_BLOCK}
 
 ${DOMAIN} {
-	@api path /api/v1/*
-	@movies path /movies/*
-	@seo path /robots.txt /sitemap.xml /sitemap*
-
-	reverse_proxy @api 127.0.0.1:8080
-	reverse_proxy @movies 127.0.0.1:8080
-	reverse_proxy @seo 127.0.0.1:8080
-
-	root * /srv
-	try_files {path} /index.html
-	file_server
 	encode gzip
+
+	handle /api/v1/* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	handle /movies/* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	handle /robots.txt /sitemap.xml /sitemap* {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
 }
 EOF
 
@@ -149,6 +156,19 @@ if ! curl -sf "http://127.0.0.1:8080/" | head -c 256 | grep -qi '<!DOCTYPE html'
   exit 1
 fi
 echo "==> Homepage HTML OK"
+
+if ! curl -sf "http://127.0.0.1/api/v1/health" | grep -q '"status"'; then
+  echo "FATAL: API not reachable through Caddy on port 80" >&2
+  curl -sv "http://127.0.0.1/api/v1/health" 2>&1 | tail -20 || true
+  docker compose logs caddy --tail 40 || true
+  exit 1
+fi
+if ! curl -sf "http://127.0.0.1/api/v1/list_movies.json?limit=1" | grep -q '"movie_count"'; then
+  echo "FATAL: movies API not returning JSON through Caddy" >&2
+  curl -sv "http://127.0.0.1/api/v1/list_movies.json?limit=1" 2>&1 | tail -20 || true
+  exit 1
+fi
+echo "==> API routing through Caddy OK"
 
 if [ "$DB_SIZE_BEFORE" -gt 0 ]; then
   if [ ! -f "$DB_FILE" ]; then

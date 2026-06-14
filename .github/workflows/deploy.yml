@@ -100,7 +100,13 @@ jobs:
           sleep 15
 
           check_api() {
-            curl -4 -sfL --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health"
+            body=$(curl -4 -sfL --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health" 2>/dev/null || true)
+            echo "$body" | grep -q '"status"'
+          }
+
+          check_movies_api() {
+            body=$(curl -4 -sfL --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/list_movies.json?limit=1" 2>/dev/null || true)
+            echo "$body" | grep -q '"movie_count"'
           }
 
           check_frontend() {
@@ -112,7 +118,7 @@ jobs:
             if check_frontend; then
               echo "==> Frontend OK"
               for j in $(seq 1 12); do
-                if check_api; then
+                if check_api && check_movies_api; then
                   echo ""
                   echo "==> API OK"
                   echo "==> Deploy OK: https://${DOMAIN_CLEAN}"
@@ -128,7 +134,7 @@ jobs:
             if curl -4 -sfL --max-time 20 "https://${DOMAIN_CLEAN}/" | head -c 256 | grep -qi '<!DOCTYPE html'; then
               echo "==> Frontend OK (direct DNS)"
               for j in $(seq 1 12); do
-                if curl -4 -sfL --max-time 20 "https://${DOMAIN_CLEAN}/api/v1/health"; then
+                if check_api && check_movies_api; then
                   echo ""
                   echo "==> API OK"
                   echo "==> Deploy OK (direct DNS): https://${DOMAIN_CLEAN}"

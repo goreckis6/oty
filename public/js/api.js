@@ -19,6 +19,10 @@
 
   async function request(path, params) {
     const res = await fetch(apiUrl(path, params));
+    const ctype = res.headers.get("content-type") || "";
+    if (ctype.includes("text/html")) {
+      throw new Error("API returned HTML instead of JSON (check reverse proxy /api/v1)");
+    }
     let json = {};
     try {
       json = await res.json();
@@ -30,10 +34,15 @@
       const msg =
         (typeof detail === "string" && detail) ||
         json.status_message ||
-        `API error (${res.status})`;
+        (res.headers.get("content-type")?.includes("text/html")
+          ? "API returned HTML instead of JSON (check reverse proxy /api/v1)"
+          : `API error (${res.status})`);
       const err = new Error(msg);
       err.status = res.status;
       throw err;
+    }
+    if (!json.data) {
+      throw new Error("API response missing data");
     }
     return json.data;
   }
