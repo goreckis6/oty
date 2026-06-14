@@ -6,7 +6,11 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     environment:
-      YTS_UPSTREAM: ${YTS_UPSTREAM:-https://yts.bz/api/v2}
+      TMDB_API_KEY: ${TMDB_API_KEY:-}
+      TORRENT_SOURCE: ${TORRENT_SOURCE:-apibay}
+      APIBAY_URL: ${APIBAY_URL:-https://apibay.org}
+      TORZNAB_URL: ${TORZNAB_URL:-}
+      TORZNAB_API_KEY: ${TORZNAB_API_KEY:-}
 
   caddy:
     image: caddy:2-alpine

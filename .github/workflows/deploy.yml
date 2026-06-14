@@ -19,7 +19,8 @@ jobs:
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/ytdown' }}
       DOMAIN: ${{ secrets.DOMAIN || '' }}
       ACME_EMAIL: ${{ secrets.ACME_EMAIL || '' }}
-      YTS_UPSTREAM: ${{ secrets.YTS_UPSTREAM || 'https://yts.bz/api/v2' }}
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY || '' }}
+      TORRENT_SOURCE: ${{ secrets.TORRENT_SOURCE || 'apibay' }}
       SITE_NAME: ${{ secrets.SITE_NAME || 'YTS' }}
       SITE_TAGLINE: ${{ secrets.SITE_TAGLINE || '' }}
     steps:
@@ -56,7 +57,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o ServerAliveInterval=30 "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "chmod +x ${DEPLOY_PATH}/deploy/scripts/*.sh && \
              APP_DIR='${DEPLOY_PATH}' DOMAIN='${DOMAIN}' ACME_EMAIL='${ACME_EMAIL}' \
-             YTS_UPSTREAM='${YTS_UPSTREAM}' \
+             TMDB_API_KEY='${TMDB_API_KEY}' TORRENT_SOURCE='${TORRENT_SOURCE}' \
              SITE_NAME='${SITE_NAME}' SITE_TAGLINE='${SITE_TAGLINE}' \
              bash '${DEPLOY_PATH}/deploy/scripts/deploy.sh'"
 

@@ -15,7 +15,9 @@ Trigger: **push na `main`** lub **Actions → Deploy → Run workflow**
 | `DEPLOY_PATH` | `/opt/ytdown` | opcjonalnie |
 | `DOMAIN` | `yts.cool` | opcjonalnie (HTTPS + health check) |
 | `ACME_EMAIL` | `admin@example.com` | opcjonalnie (Let's Encrypt) |
-| `YTS_UPSTREAM` | `https://yts.bz/api/v2` | źródło danych dla backendu `/api/v1` |
+| `TMDB_API_KEY` | klucz z themoviedb.org | ✅ (metadane filmów) |
+| `TORRENT_SOURCE` | `apibay` / `torznab` / `none` | opcjonalnie |
+| `TORZNAB_URL` | URL Jackett/Prowlarr | jeśli `TORRENT_SOURCE=torznab` |
 | `SITE_NAME` | `YTS` | opcjonalnie |
 | `SITE_TAGLINE` | `HD at smallest size` | opcjonalnie |
 

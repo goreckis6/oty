@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Deploy on VPS — Caddy + YTS frontend + API backend on /api/v1
+# Deploy on VPS — Caddy + frontend + API (TMDB + torrent search)
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/ytdown}"
 DOMAIN="${DOMAIN:-localhost}"
 ACME_EMAIL="${ACME_EMAIL:-}"
-YTS_UPSTREAM="${YTS_UPSTREAM:-https://yts.bz/api/v2}"
+TMDB_API_KEY="${TMDB_API_KEY:-}"
+TORRENT_SOURCE="${TORRENT_SOURCE:-apibay}"
 SITE_NAME="${SITE_NAME:-YTS}"
 SITE_TAGLINE="${SITE_TAGLINE:-HD movies at the smallest file size}"
 
@@ -52,10 +53,10 @@ ${DOMAIN} {
 EOF
 
 echo "==> Building and starting API + Caddy..."
-export YTS_UPSTREAM
+export TMDB_API_KEY TORRENT_SOURCE
 docker compose up -d --build --remove-orphans
 
 echo "==> Deploy OK — https://${DOMAIN}"
 echo "    API: https://${DOMAIN}/api/v1/"
-echo "    Upstream: ${YTS_UPSTREAM}"
+echo "    Metadata: TMDB | Torrents: ${TORRENT_SOURCE}"
 docker compose ps
