@@ -7,7 +7,7 @@ services:
       - "127.0.0.1:8080:8080"
     volumes:
       - ./backend/data:/app/data
-      - ./public:/app/public:ro
+      - ./public:/app/public
     environment:
       DATA_SOURCE: ${DATA_SOURCE:-sqlite}
       DB_PATH: /app/data/movies.db

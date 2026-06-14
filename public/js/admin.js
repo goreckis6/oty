@@ -14,7 +14,9 @@
   }
 
   async function api(path, options = {}) {
-    const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+    const headers = { ...(options.headers || {}) };
+    const isForm = options.body instanceof FormData;
+    if (!isForm) headers["Content-Type"] = "application/json";
     const token = getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(`/api/v1${path}`, { ...options, headers });
@@ -148,6 +150,63 @@
           </section>
 
           <section class="admin-section">
+            <h2>Pliki witryny</h2>
+            <p class="admin-hint">Dodaj pliki weryfikacyjne (Google, Bing) w katalogu głównym witryny. Będą dostępne pod adresem <code>https://twoja-domena/nazwa-pliku.html</code>. Chronione: <code>index.html</code>, katalogi <code>js/</code> i <code>css/</code>.</p>
+            <div class="admin-files-toolbar">
+              <button type="button" class="btn-admin-outline" id="adminFilesRefresh">Odśwież</button>
+            </div>
+            <div class="admin-files-create">
+              <h3>Nowy plik</h3>
+              <form id="adminFileCreateForm" class="admin-file-form">
+                <label>
+                  Nazwa pliku
+                  <input type="text" id="adminFileName" placeholder="google123abc.html" pattern="[A-Za-z0-9._-]+" required />
+                </label>
+                <label>
+                  Treść
+                  <textarea id="adminFileContent" rows="5" placeholder="google-site-verification: google123abc.html"></textarea>
+                </label>
+                <button type="submit" class="btn-browse">Utwórz plik</button>
+              </form>
+              <form id="adminFileUploadForm" class="admin-file-form">
+                <h3>Upload pliku</h3>
+                <label>
+                  Nazwa na serwerze
+                  <input type="text" id="adminUploadName" placeholder="BingSiteAuth.xml" pattern="[A-Za-z0-9._-]+" />
+                </label>
+                <label>
+                  Plik
+                  <input type="file" id="adminUploadFile" accept=".html,.htm,.txt,.xml,.json" required />
+                </label>
+                <button type="submit" class="btn-browse">Wyślij plik</button>
+              </form>
+            </div>
+            <div class="admin-files-wrap">
+              <table class="admin-files" id="adminFilesTable">
+                <thead>
+                  <tr>
+                    <th>Plik</th>
+                    <th>Rozmiar</th>
+                    <th>Zmieniony</th>
+                    <th>Akcje</th>
+                  </tr>
+                </thead>
+                <tbody id="adminFilesBody">
+                  <tr><td colspan="4" class="admin-movies-empty">Ładowanie…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="admin-file-editor" id="adminFileEditor" hidden>
+              <h3>Edycja: <span id="adminFileEditorName"></span></h3>
+              <textarea id="adminFileEditorContent" rows="8"></textarea>
+              <div class="admin-file-editor__actions">
+                <button type="button" class="btn-browse" id="adminFileEditorSave">Zapisz</button>
+                <button type="button" class="btn-admin-outline" id="adminFileEditorCancel">Anuluj</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="admin-section">
             <h2>Filmy w bazie</h2>
             <p class="admin-hint">Każdy scraping dopisuje nowe filmy do bazy (istniejące są pomijane). Ostatnio dodane mają NEW do następnego scrapingu.</p>
             <div class="admin-list-toolbar">
@@ -230,6 +289,151 @@
       if (Number.isNaN(d.getTime())) return iso;
       return d.toLocaleString("pl-PL", { dateStyle: "short", timeStyle: "medium" });
     }
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    let editingFilePath = "";
+
+    async function loadFiles() {
+      const tbody = document.getElementById("adminFilesBody");
+      try {
+        const data = await api("/admin/files");
+        const files = data.files || [];
+        if (!files.length) {
+          tbody.innerHTML = `<tr><td colspan="4" class="admin-movies-empty">Brak plików w katalogu głównym.</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = files
+          .map(
+            (f) => `
+          <tr>
+            <td class="admin-files__path">
+              <a href="${escapeAttr(f.url)}" target="_blank" rel="noopener">${escapeHtml(f.path)}</a>
+            </td>
+            <td>${formatFileSize(f.size)}</td>
+            <td>${formatAdminTime(f.modified_at)}</td>
+            <td class="admin-movies__actions">
+              ${f.editable && !f.protected ? `<button type="button" class="btn-admin-outline btn-file-edit" data-path="${escapeAttr(f.path)}">Edytuj</button>` : ""}
+              ${f.protected ? "" : `<button type="button" class="btn-admin-delete btn-file-delete" data-path="${escapeAttr(f.path)}">Usuń</button>`}
+            </td>
+          </tr>`
+          )
+          .join("");
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    document.getElementById("adminFilesRefresh").addEventListener("click", loadFiles);
+
+    document.getElementById("adminFileCreateForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const path = document.getElementById("adminFileName").value.trim();
+      const content = document.getElementById("adminFileContent").value;
+      try {
+        await api("/admin/files", {
+          method: "PUT",
+          body: JSON.stringify({ path, content, overwrite: false }),
+        });
+        document.getElementById("adminFileName").value = "";
+        document.getElementById("adminFileContent").value = "";
+        loadFiles();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById("adminFileUploadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById("adminUploadFile");
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      const customName = document.getElementById("adminUploadName").value.trim();
+      const path = customName || file.name;
+      const form = new FormData();
+      form.append("path", path);
+      form.append("file", file);
+      form.append("overwrite", "true");
+      try {
+        await api("/admin/files/upload", { method: "POST", body: form });
+        fileInput.value = "";
+        document.getElementById("adminUploadName").value = "";
+        loadFiles();
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    document.getElementById("adminFilesBody").addEventListener("click", async (e) => {
+      const editBtn = e.target.closest(".btn-file-edit");
+      const deleteBtn = e.target.closest(".btn-file-delete");
+      if (editBtn) {
+        const path = editBtn.dataset.path;
+        try {
+          const data = await api(`/admin/files/content?path=${encodeURIComponent(path)}`);
+          if (data.binary) {
+            alert("Ten plik nie jest tekstowy — użyj uploadu zamiast edycji.");
+            return;
+          }
+          editingFilePath = path;
+          document.getElementById("adminFileEditorName").textContent = path;
+          document.getElementById("adminFileEditorContent").value = data.content || "";
+          document.getElementById("adminFileEditor").hidden = false;
+        } catch (err) {
+          alert(err.message);
+        }
+        return;
+      }
+      if (deleteBtn) {
+        const path = deleteBtn.dataset.path;
+        if (!confirm(`Usunąć plik ${path}?`)) return;
+        deleteBtn.disabled = true;
+        try {
+          await api(`/admin/files?path=${encodeURIComponent(path)}`, { method: "DELETE" });
+          if (editingFilePath === path) {
+            editingFilePath = "";
+            document.getElementById("adminFileEditor").hidden = true;
+          }
+          loadFiles();
+        } catch (err) {
+          alert(err.message);
+        } finally {
+          deleteBtn.disabled = false;
+        }
+      }
+    });
+
+    document.getElementById("adminFileEditorSave").addEventListener("click", async () => {
+      if (!editingFilePath) return;
+      const btn = document.getElementById("adminFileEditorSave");
+      btn.disabled = true;
+      try {
+        await api("/admin/files", {
+          method: "PUT",
+          body: JSON.stringify({
+            path: editingFilePath,
+            content: document.getElementById("adminFileEditorContent").value,
+            overwrite: true,
+          }),
+        });
+        document.getElementById("adminFileEditor").hidden = true;
+        editingFilePath = "";
+        loadFiles();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById("adminFileEditorCancel").addEventListener("click", () => {
+      editingFilePath = "";
+      document.getElementById("adminFileEditor").hidden = true;
+    });
 
     function formatAutoStatus(s) {
       const lines = [];
@@ -435,6 +639,7 @@
 
     loadStats();
     loadMovies();
+    loadFiles();
     loadAutoScrape();
     autoRefreshTimer = setInterval(() => {
       loadAutoScrape();

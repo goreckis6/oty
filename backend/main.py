@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from pydantic import BaseModel, Field
@@ -12,6 +12,7 @@ from database import Database
 from movie_store import MovieStore
 from scraper import scrape_movies
 from seo import build_robots, build_sitemap, build_sitemap_part, register_movies_for_seo, render_movie_page
+from site_files import delete_site_file, list_site_files, read_site_file, upload_site_file, write_site_file
 from sources import (
     APIBAY_URL,
     DATA_SOURCE,
@@ -77,6 +78,12 @@ class AutoScrapeRequest(BaseModel):
 
 class BulkDeleteRequest(BaseModel):
     ids: list[int] = Field(min_length=1, max_length=500)
+
+
+class SiteFileWriteRequest(BaseModel):
+    path: str = Field(min_length=1, max_length=200)
+    content: str = ""
+    overwrite: bool = True
 
 
 def require_tmdb() -> TmdbClient:
@@ -205,6 +212,67 @@ async def admin_auto_scrape_save(
         count=body.count,
     )
     return {"status": "ok", **settings}
+
+
+@app.get(f"{API_PREFIX}/admin/files")
+async def admin_list_files(_: str = Depends(require_admin)) -> dict[str, Any]:
+    return {"status": "ok", "files": list_site_files()}
+
+
+@app.get(f"{API_PREFIX}/admin/files/content")
+async def admin_read_file(
+    request: Request,
+    _: str = Depends(require_admin),
+) -> dict[str, Any]:
+    path = request.query_params.get("path", "")
+    try:
+        return {"status": "ok", **read_site_file(path)}
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.put(f"{API_PREFIX}/admin/files")
+async def admin_write_file(
+    body: SiteFileWriteRequest,
+    _: str = Depends(require_admin),
+) -> dict[str, Any]:
+    try:
+        info = write_site_file(body.path, body.content, overwrite=body.overwrite)
+        return {"status": "ok", "file": info}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post(f"{API_PREFIX}/admin/files/upload")
+async def admin_upload_file(
+    path: str = Form(...),
+    file: UploadFile = File(...),
+    overwrite: bool = Form(default=True),
+    _: str = Depends(require_admin),
+) -> dict[str, Any]:
+    data = await file.read()
+    try:
+        info = upload_site_file(path, data, overwrite=overwrite)
+        return {"status": "ok", "file": info}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.delete(f"{API_PREFIX}/admin/files")
+async def admin_delete_file(
+    request: Request,
+    _: str = Depends(require_admin),
+) -> dict[str, Any]:
+    path = request.query_params.get("path", "")
+    try:
+        delete_site_file(path)
+        return {"status": "ok", "deleted": path}
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get(f"{API_PREFIX}/list_movies.json")

@@ -26,6 +26,7 @@ Domyślne dane logowania (zmień w GitHub Secrets!):
 W panelu:
 - statystyki bazy (ile filmów)
 - **Start scraping** — pobiera N filmów z yts.bz do SQLite
+- **Pliki witryny** — tworzenie/upload plików weryfikacyjnych (Google, Bing) w katalogu głównym
 
 ## GitHub secrets
 
@@ -60,6 +61,10 @@ python3 scrape_yts.py -n 20
 | `GET /api/v1/admin/auto-scrape` | Bearer | ustawienia auto-scrapingu |
 | `POST /api/v1/admin/auto-scrape` | Bearer | `{enabled, interval_minutes, count}` — min. 5 min |
 | `GET /api/v1/admin/movies?page=1&limit=100` | Bearer | lista filmów (100/200/300/500) |
+| `GET /api/v1/admin/files` | Bearer | pliki w katalogu głównym witryny |
+| `PUT /api/v1/admin/files` | Bearer | `{path, content}` — utwórz/edytuj plik tekstowy |
+| `POST /api/v1/admin/files/upload` | Bearer | multipart upload pliku weryfikacyjnego |
+| `DELETE /api/v1/admin/files?path=...` | Bearer | usuń plik (oprócz chronionych) |
 
 ## Deploy
 
