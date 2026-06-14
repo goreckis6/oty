@@ -41,20 +41,28 @@
       });
     },
 
-    movieDetails(movieId) {
-      return request("/movie_details.json", {
-        movie_id: movieId,
-        with_images: "true",
-        with_cast: "true",
-      });
+    movieDetails(idOrSlug) {
+      const params = { with_images: "true", with_cast: "true" };
+      if (/^\d+$/.test(String(idOrSlug))) {
+        params.movie_id = idOrSlug;
+      } else {
+        params.slug = idOrSlug;
+      }
+      return request("/movie_details.json", params);
     },
 
     listUpcoming() {
       return request("/list_upcoming.json");
     },
 
-    movieSuggestions(movieId) {
-      return request("/movie_suggestions.json", { movie_id: movieId });
+    movieSuggestions(idOrSlug) {
+      const params = {};
+      if (/^\d+$/.test(String(idOrSlug))) {
+        params.movie_id = idOrSlug;
+      } else {
+        params.slug = idOrSlug;
+      }
+      return request("/movie_suggestions.json", params);
     },
 
     buildMagnet(torrent, title) {

@@ -69,6 +69,12 @@
       .replace(/"/g, "&quot;");
   }
 
+  function movieHref(m) {
+    if (m.slug) return `/movies/${m.slug}`;
+    const t = (m.title || "movie").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    return `/movies/${t}-${m.year || ""}`;
+  }
+
   function setFiltersVisible(show) {
     filtersBar.classList.toggle("is-hidden", !show);
   }
@@ -82,7 +88,7 @@
       .join("");
 
     return `
-      <a class="movie-box" href="/movie/${m.id}">
+      <a class="movie-box" href="${movieHref(m)}">
         <div class="movie-box__img">
           <img src="${escapeHtml(img)}" alt="${escapeHtml(m.title)}" loading="lazy" />
           <div class="movie-box__rating">${rating} <span>/ 10</span></div>
@@ -233,32 +239,39 @@
     }
   }
 
-  async function renderMovie(id) {
+  async function renderMovie(slugOrId) {
     setFiltersVisible(false);
     showLoading();
 
     try {
       const [details, suggestions] = await Promise.all([
-        YtsApi.movieDetails(id),
-        YtsApi.movieSuggestions(id).catch(() => ({ movies: [] })),
+        YtsApi.movieDetails(slugOrId),
+        YtsApi.movieSuggestions(slugOrId).catch(() => ({ movies: [] })),
       ]);
 
       const m = details.movie;
-      const torrents = (m.torrents || [])
+
+      if (m.slug && location.pathname !== `/movies/${m.slug}`) {
+        history.replaceState(null, "", `/movies/${m.slug}`);
+      }
+
+      const torrentCards = (m.torrents || [])
         .map((t) => {
           const magnet = YtsApi.buildMagnet(t, m.title_long || m.title);
           const torrentUrl = t.url || "#";
           return `
-            <tr>
-              <td><strong>${escapeHtml(t.quality)}</strong> ${t.type ? `<span style="color:var(--text-muted)">${escapeHtml(t.type)}</span>` : ""}</td>
-              <td>${escapeHtml(t.size || "—")}</td>
-              <td class="seeds">${t.seeds ?? 0}</td>
-              <td class="peers">${t.peers ?? 0}</td>
-              <td>
-                <a class="btn-dl" href="${escapeHtml(torrentUrl)}" target="_blank" rel="noopener">Torrent</a>
+            <div class="dl-box">
+              <div class="dl-box__quality">${escapeHtml(t.quality)}</div>
+              <div class="dl-box__size">${escapeHtml(t.size || "—")}</div>
+              <div class="dl-box__peers">
+                <span class="seeds">${t.seeds ?? 0} seeds</span>
+                <span class="peers">${t.peers ?? 0} peers</span>
+              </div>
+              <div class="dl-box__actions">
+                <a class="btn-dl" href="${escapeHtml(torrentUrl)}" target="_blank" rel="noopener">Download</a>
                 <a class="btn-dl btn-magnet" href="${escapeHtml(magnet)}">Magnet</a>
-              </td>
-            </tr>`;
+              </div>
+            </div>`;
         })
         .join("");
 
@@ -266,49 +279,74 @@
         .map((g) => `<a class="genre-tag" href="/browse?genre=${encodeURIComponent(g)}">${escapeHtml(g)}</a>`)
         .join("");
 
+      const cast = (m.cast || []).slice(0, 8)
+        .map((c) => `<span class="cast-name">${escapeHtml(c.name || "")}</span>`)
+        .join("");
+
       const trailerBtn = m.yt_trailer_code
-        ? `<a class="btn-trailer" href="https://www.youtube.com/watch?v=${escapeHtml(m.yt_trailer_code)}" target="_blank" rel="noopener">▶ Watch Trailer</a>`
+        ? `<a class="btn-trailer" href="https://www.youtube.com/watch?v=${escapeHtml(m.yt_trailer_code)}" target="_blank" rel="noopener">▶ Trailer</a>`
         : "";
 
+      const rating = m.rating ? m.rating.toFixed(1) : "—";
+
       app.innerHTML = `
-        <article class="movie-detail">
-          <div class="movie-detail__hero">
-            <div class="movie-detail__bg" style="background-image:url('${escapeHtml(m.background_image || m.large_cover_image || "")}')"></div>
-            <div class="movie-detail__hero-inner">
-              <img class="movie-detail__poster" src="${escapeHtml(m.medium_cover_image || m.large_cover_image || "")}" alt="${escapeHtml(m.title)}" />
-              <div class="movie-detail__info">
-                <h1 class="movie-detail__title">${escapeHtml(m.title)}</h1>
-                <p class="movie-detail__year">${m.year || ""} · ${m.runtime || "?"} min · ${escapeHtml(m.language || "")} · ${escapeHtml(m.mpa_rating || "")}</p>
-                <div class="movie-detail__stats">
-                  <span class="rating">★ ${m.rating ? m.rating.toFixed(1) : "—"}</span>
-                  <span>${(m.download_count || 0).toLocaleString()} downloads</span>
-                  <span>${(m.like_count || 0).toLocaleString()} likes</span>
+        <article class="movie-page">
+          <div class="movie-banner" style="background-image:url('${escapeHtml(m.background_image || m.large_cover_image || "")}')">
+            <div class="movie-banner__overlay"></div>
+          </div>
+
+          <div class="movie-page__inner container">
+            <div class="movie-layout">
+              <aside class="movie-sidebar">
+                <img class="movie-sidebar__poster" src="${escapeHtml(m.large_cover_image || m.medium_cover_image || "")}" alt="${escapeHtml(m.title)}" />
+                <div class="imdb-box">
+                  <span class="imdb-box__score">${rating}</span>
+                  <span class="imdb-box__label">/ 10</span>
                 </div>
-                <div class="movie-detail__genres">${genres}</div>
-                <p class="movie-detail__desc">${escapeHtml(m.description_full || m.description_intro || m.summary || "")}</p>
-                <div class="movie-detail__trailer">${trailerBtn}</div>
+                <ul class="movie-specs">
+                  <li><span>Year</span><strong>${m.year || "—"}</strong></li>
+                  <li><span>Runtime</span><strong>${m.runtime || "?"} min</strong></li>
+                  <li><span>Language</span><strong>${escapeHtml(m.language || "—")}</strong></li>
+                  ${m.imdb_code ? `<li><span>IMDb</span><strong>${escapeHtml(m.imdb_code)}</strong></li>` : ""}
+                  <li><span>Downloads</span><strong>${(m.download_count || 0).toLocaleString()}</strong></li>
+                  <li><span>Likes</span><strong>${(m.like_count || 0).toLocaleString()}</strong></li>
+                </ul>
+                ${trailerBtn}
+              </aside>
+
+              <div class="movie-main">
+                <h1 class="movie-main__title">${escapeHtml(m.title)} <span class="movie-main__year">${m.year || ""}</span></h1>
+                <div class="movie-main__genres">${genres}</div>
+
+                <section class="movie-section">
+                  <h2 class="movie-section__title">Available in:</h2>
+                  <div class="dl-boxes">
+                    ${torrentCards || '<p class="empty-msg">No torrents available.</p>'}
+                  </div>
+                </section>
+
+                <section class="movie-section">
+                  <h2 class="movie-section__title">Synopsis</h2>
+                  <p class="movie-synopsis">${escapeHtml(m.description_full || m.description_intro || m.summary || "No description.")}</p>
+                </section>
+
+                ${cast ? `
+                <section class="movie-section">
+                  <h2 class="movie-section__title">Cast</h2>
+                  <div class="cast-list">${cast}</div>
+                </section>` : ""}
               </div>
             </div>
-          </div>
 
-          <div class="torrents">
-            <div class="torrents__title">Available Torrents</div>
-            <table>
-              <thead>
-                <tr><th>Quality</th><th>Size</th><th>Seeds</th><th>Peers</th><th>Download</th></tr>
-              </thead>
-              <tbody>${torrents || "<tr><td colspan='5'>No torrents listed.</td></tr>"}</tbody>
-            </table>
+            ${suggestions.movies && suggestions.movies.length ? `
+            <section class="section-block movie-similar">
+              <div class="section-head"><h2>Similar YIFY Movies</h2></div>
+              ${renderGrid(suggestions.movies)}
+            </section>` : ""}
           </div>
-
-          ${suggestions.movies && suggestions.movies.length ? `
-          <section class="section-block">
-            <div class="section-head"><h2>Similar YIFY Movies</h2></div>
-            ${renderGrid(suggestions.movies)}
-          </section>` : ""}
         </article>`;
 
-      document.title = `${m.title} (${m.year}) — ${cfg().siteName || "YTS"}`;
+      document.title = `${m.title} (${m.year}) YIFY - ${cfg().siteName || "YTS"}`;
     } catch (err) {
       showError(err.message);
     }
@@ -343,15 +381,18 @@
     if (path === "/browse") {
       return { view: "browse", page: parseInt(params.get("page") || "1", 10) };
     }
-    const movieMatch = path.match(/^\/movie\/(\d+)$/);
-    if (movieMatch) return { view: "movie", id: movieMatch[1] };
+    const moviesMatch = path.match(/^\/movies\/([^/]+)$/);
+    if (moviesMatch) return { view: "movie", slug: decodeURIComponent(moviesMatch[1]) };
+    const legacyMatch = path.match(/^\/movie\/(\d+)$/);
+    if (legacyMatch) return { view: "movie", slug: legacyMatch[1] };
     return { view: "home" };
   }
 
-  function migrateHashUrl() {
-    if (!location.hash.startsWith("#/")) return;
-    const target = location.hash.slice(1) || "/";
-    history.replaceState(null, "", target);
+  function migrateLegacyUrl() {
+    if (location.hash.startsWith("#/")) {
+      const target = location.hash.slice(1) || "/";
+      history.replaceState(null, "", target);
+    }
   }
 
   async function router() {
@@ -360,7 +401,7 @@
 
     if (route.view === "home") return renderHome();
     if (route.view === "browse") return renderBrowse(route.page);
-    if (route.view === "movie") return renderMovie(route.id);
+    if (route.view === "movie") return renderMovie(route.slug);
     return renderHome();
   }
 
@@ -387,7 +428,7 @@
 
   window.addEventListener("popstate", router);
 
-  migrateHashUrl();
+  migrateLegacyUrl();
   initSiteMeta();
   router();
 })();

@@ -526,7 +526,212 @@ a:hover {
   padding: 0 0.5rem;
 }
 
-/* ── Movie detail ── */
+/* ── Movie page (YTS style) ── */
+.movie-page {
+  position: relative;
+}
+
+.movie-banner {
+  height: 280px;
+  background-size: cover;
+  background-position: center top;
+  position: relative;
+}
+
+.movie-banner__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(26, 26, 26, 0.3) 0%, var(--bg) 100%);
+}
+
+.movie-page__inner {
+  position: relative;
+  margin-top: -120px;
+  padding-bottom: 2rem;
+}
+
+.movie-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.movie-sidebar {
+  position: sticky;
+  top: 140px;
+}
+
+.movie-sidebar__poster {
+  width: 100%;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.imdb-box {
+  background: #222;
+  border: 2px solid var(--yellow);
+  border-radius: var(--radius);
+  text-align: center;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.imdb-box__score {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--yellow);
+  line-height: 1;
+}
+
+.imdb-box__label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.movie-specs {
+  list-style: none;
+  background: #333;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.movie-specs li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  border-bottom: 1px solid #444;
+}
+
+.movie-specs li:last-child {
+  border-bottom: none;
+}
+
+.movie-specs span {
+  color: var(--text-muted);
+}
+
+.movie-specs strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.movie-main__title {
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+.movie-main__year {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 0.85em;
+}
+
+.movie-main__genres {
+  margin-bottom: 1.5rem;
+}
+
+.movie-section {
+  margin-bottom: 1.75rem;
+}
+
+.movie-section__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--green);
+  border-bottom: 2px solid var(--green);
+  padding-bottom: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.dl-boxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.dl-box {
+  background: #333;
+  border: 1px solid #444;
+  border-radius: var(--radius);
+  padding: 14px;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+
+.dl-box:hover {
+  border-color: var(--green);
+}
+
+.dl-box__quality {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--green);
+  margin-bottom: 0.35rem;
+}
+
+.dl-box__size {
+  font-size: 0.85rem;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+.dl-box__peers {
+  font-size: 0.72rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.dl-box__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dl-box__actions .btn-dl {
+  display: block;
+  text-align: center;
+  margin: 0;
+}
+
+.movie-synopsis {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1.8;
+}
+
+.cast-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cast-name {
+  background: #444;
+  color: #ddd;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+}
+
+.movie-similar {
+  margin-top: 2rem;
+  padding: 0;
+  max-width: 100%;
+}
+
+/* Legacy detail (unused) */
 .movie-detail {
   max-width: var(--container);
   margin: 0 auto;
@@ -735,6 +940,31 @@ a:hover {
 }
 
 @media (max-width: 768px) {
+  .movie-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .movie-sidebar {
+    position: static;
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .movie-sidebar__poster {
+    grid-row: span 2;
+    margin-bottom: 0;
+  }
+
+  .imdb-box {
+    margin-bottom: 0;
+  }
+
+  .movie-specs {
+    grid-column: 1 / -1;
+  }
+
   .header-row {
     gap: 0.75rem;
   }

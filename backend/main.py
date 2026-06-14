@@ -101,10 +101,14 @@ async def list_upcoming() -> JSONResponse:
 @app.get(f"{API_PREFIX}/movie_suggestions.json")
 async def movie_suggestions(request: Request) -> JSONResponse:
     movie_id = request.query_params.get("movie_id")
-    if not movie_id:
-        raise HTTPException(status_code=400, detail="movie_id required")
+    slug = request.query_params.get("slug")
+    if not movie_id and not slug:
+        raise HTTPException(status_code=400, detail="movie_id or slug required")
     if DATA_SOURCE == "scrape":
-        data = require_cache().movie_suggestions(int(movie_id))
+        data = require_cache().movie_suggestions(
+            int(movie_id) if movie_id else None,
+            slug,
+        )
         return JSONResponse(ok(data))
     client = require_tmdb()
     data = await client.movie_suggestions(int(movie_id))
@@ -114,12 +118,16 @@ async def movie_suggestions(request: Request) -> JSONResponse:
 @app.get(f"{API_PREFIX}/movie_details.json")
 async def movie_details(request: Request) -> JSONResponse:
     movie_id = request.query_params.get("movie_id")
-    if not movie_id:
-        raise HTTPException(status_code=400, detail="movie_id required")
+    slug = request.query_params.get("slug")
+    if not movie_id and not slug:
+        raise HTTPException(status_code=400, detail="movie_id or slug required")
 
     if DATA_SOURCE == "scrape":
         try:
-            data = require_cache().movie_details(int(movie_id))
+            data = require_cache().movie_details(
+                int(movie_id) if movie_id else None,
+                slug,
+            )
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         return JSONResponse(ok(data))

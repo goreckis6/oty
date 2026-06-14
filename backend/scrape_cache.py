@@ -132,31 +132,49 @@ class ScrapeCache:
             "movies": summaries,
         }
 
-    def movie_details(self, movie_id: int) -> dict[str, Any]:
+    def movie_details(
+        self, movie_id: int | None = None, slug: str | None = None
+    ) -> dict[str, Any]:
         for m in self.movies:
-            if m.get("id") == movie_id:
+            if movie_id is not None and m.get("id") == movie_id:
                 return {"movie": m}
-        raise KeyError(f"Movie {movie_id} not in cache")
+            if slug and (m.get("slug") or "").lower() == slug.lower():
+                return {"movie": m}
+        raise KeyError(f"Movie not found: id={movie_id} slug={slug}")
 
     def list_upcoming(self) -> dict[str, Any]:
         upcoming = self._cache.get("upcoming") or self.movies[:4]
         return {"movies": upcoming[:8]}
 
-    def movie_suggestions(self, movie_id: int) -> dict[str, Any]:
+    def movie_suggestions(
+        self, movie_id: int | None = None, slug: str | None = None
+    ) -> dict[str, Any]:
         target = None
         for m in self.movies:
-            if m.get("id") == movie_id:
+            if movie_id is not None and m.get("id") == movie_id:
+                target = m
+                break
+            if slug and (m.get("slug") or "").lower() == slug.lower():
                 target = m
                 break
         if not target:
-            return {"movies": self.movies[:4]}
+            return {"movies": self._summaries(self.movies[:4])}
 
+        mid = target.get("id")
         genres = set(target.get("genres") or [])
         similar = [
             m
             for m in self.movies
-            if m.get("id") != movie_id and genres.intersection(m.get("genres") or [])
+            if m.get("id") != mid and genres.intersection(m.get("genres") or [])
         ]
         if not similar:
-            similar = [m for m in self.movies if m.get("id") != movie_id]
-        return {"movies": similar[:4]}
+            similar = [m for m in self.movies if m.get("id") != mid]
+        return {"movies": self._summaries(similar[:4])}
+
+    def _summaries(self, movies: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        keys = (
+            "id", "imdb_code", "title", "title_english", "title_long", "slug",
+            "year", "rating", "runtime", "genres", "summary",
+            "medium_cover_image", "small_cover_image", "large_cover_image",
+        )
+        return [{k: m.get(k) for k in keys} for m in movies]
