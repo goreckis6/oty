@@ -105,7 +105,8 @@ ${DOMAIN} {
 		reverse_proxy 127.0.0.1:8080
 	}
 
-	handle /robots.txt /sitemap.xml /sitemap* {
+	@seo path /robots.txt /sitemap.xml /sitemap*
+	handle @seo {
 		reverse_proxy 127.0.0.1:8080
 	}
 
@@ -125,6 +126,12 @@ fi
 echo "==> Building and starting API + Caddy..."
 export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE ADMIN_USER ADMIN_PASSWORD JWT_SECRET SITE_URL SITE_NAME SITE_TAGLINE
 docker compose up -d --build --remove-orphans
+
+if [ "$(docker inspect -f '{{.State.Running}}' site-caddy 2>/dev/null || echo false)" != "true" ]; then
+  echo "FATAL: Caddy container is not running" >&2
+  docker compose logs caddy --tail 40 || true
+  exit 1
+fi
 
 echo "==> Waiting for services on VPS..."
 API_OK=0
