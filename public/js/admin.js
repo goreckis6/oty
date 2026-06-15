@@ -655,14 +655,20 @@
         const r = s.last_result;
         if (r.error) lines.push(`Błąd: ${r.error}`);
         else {
-          let msg = `Ostatni wynik: +${r.saved || 0}`;
+          let msg = `Ostatni wynik: +${r.saved ?? 0}`;
           if (r.skipped) msg += `, pominięto ${r.skipped}`;
           if (r.pages_scanned) msg += ` (${r.pages_scanned} str.)`;
           if (r.start_page) msg += `, od str. ${r.start_page}`;
           if (r.resume_page) msg += ` → nast. ${r.resume_page}`;
-          msg += ` (w bazie: ${r.total_in_db || "?"})`;
+          const inDb = s.movies_in_db ?? r.total_in_db;
+          msg += ` (w bazie: ${inDb ?? "?"})`;
+          if ((r.saved ?? 0) === 0 && r.pages_scanned) {
+            msg += " — w tym zakresie stron brak nowych, auto idzie dalej";
+          }
           lines.push(msg);
         }
+      } else if (s.movies_in_db != null) {
+        lines.push(`W bazie: ${s.movies_in_db}`);
       }
       return lines.join(" · ");
     }

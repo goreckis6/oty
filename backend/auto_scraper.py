@@ -62,6 +62,7 @@ class AutoScrapeService:
             "scheduler_alive": _task is not None and not _task.done(),
             "min_interval_minutes": MIN_INTERVAL_MINUTES,
             "scrape_resume_page": int(self.db.get_meta("scrape_resume_page", "1") or 1),
+            "movies_in_db": self.db.count_movies(),
         }
 
     def _last_result(self) -> dict[str, Any] | None:
