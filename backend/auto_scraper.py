@@ -13,7 +13,7 @@ from scraper import SCRAPE_LAST_SCAN_KEY, download_pending_movies, scrape_state,
 
 logger = logging.getLogger(__name__)
 
-MIN_INTERVAL_MINUTES = 5
+MIN_INTERVAL_MINUTES = 2
 MAX_INTERVAL_MINUTES = 24 * 60
 DEFAULT_INTERVAL_MINUTES = 60
 DEFAULT_COUNT = 10

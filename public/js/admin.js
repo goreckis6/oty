@@ -253,7 +253,7 @@
               </label>
               <label>
                 Co ile minut
-                <input type="number" id="autoScrapeInterval" min="5" max="1440" value="60" />
+                <input type="number" id="autoScrapeInterval" min="2" max="1440" value="60" />
               </label>
               <label>
                 Filmów na cykl
