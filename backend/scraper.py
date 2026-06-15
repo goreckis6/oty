@@ -26,6 +26,7 @@ FAST_SKIP_JUMP = int(os.environ.get("SCRAPE_FAST_SKIP_JUMP", "50"))
 SCRAPE_RESUME_PAGE_KEY = "scrape_resume_page"
 SCRAPE_LAST_SCAN_KEY = "scrape_last_scan"
 SCRAPE_PENDING_KEY = "scrape_pending_candidates"
+SCRAPE_QUEUE_META_KEY = "scrape_queue_meta"
 
 
 def _get_resume_page(db: Database) -> int:
@@ -79,14 +80,79 @@ def set_pending_candidates(db: Database, candidates: list[dict[str, Any]]) -> No
     db.set_meta(SCRAPE_PENDING_KEY, json.dumps(candidates, ensure_ascii=False))
 
 
-def pending_status(db: Database) -> dict[str, Any]:
+def save_queue_meta(
+    db: Database,
+    *,
+    pages_scanned: int,
+    skipped: int,
+    skipped_duplicates: int,
+    start_page: int,
+    candidates_found: int,
+) -> None:
+    db.set_meta(
+        SCRAPE_QUEUE_META_KEY,
+        json.dumps(
+            {
+                "saved_at": datetime.now(timezone.utc).isoformat(),
+                "pages_scanned": pages_scanned,
+                "skipped": skipped,
+                "skipped_duplicates": skipped_duplicates,
+                "start_page": start_page,
+                "candidates_found": candidates_found,
+                "resume_page": _get_resume_page(db),
+            },
+            ensure_ascii=False,
+        ),
+    )
+
+
+def scrape_state(db: Database) -> dict[str, Any]:
     items = get_pending_candidates(db)
+    last_scan: dict[str, Any] | None = None
+    raw_last = db.get_meta(SCRAPE_LAST_SCAN_KEY, "")
+    if raw_last:
+        try:
+            last_scan = json.loads(raw_last)
+        except json.JSONDecodeError:
+            last_scan = None
+
+    queue_meta: dict[str, Any] | None = None
+    raw_meta = db.get_meta(SCRAPE_QUEUE_META_KEY, "")
+    if raw_meta:
+        try:
+            queue_meta = json.loads(raw_meta)
+        except json.JSONDecodeError:
+            queue_meta = None
+
     return {
         "pending_count": len(items),
         "pending": [
             {"id": m.get("id"), "title": m.get("title"), "year": m.get("year")}
-            for m in items[:30]
+            for m in items[:50]
         ],
+        "resume_page": _get_resume_page(db),
+        "movies_in_db": db.count_movies(),
+        "last_scan": last_scan,
+        "queue_meta": queue_meta,
+    }
+
+
+def _load_queue_meta(db: Database) -> dict[str, Any] | None:
+    raw = db.get_meta(SCRAPE_QUEUE_META_KEY, "")
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def pending_status(db: Database) -> dict[str, Any]:
+    state = scrape_state(db)
+    return {
+        "pending_count": state["pending_count"],
+        "pending": state["pending"],
     }
 
 
@@ -544,6 +610,14 @@ async def scan_listings_only(count: int = 10) -> dict[str, Any]:
         logs.append(f"Pominięto {scan['skipped_duplicates']} filmów z powtarzającym się tytułem.")
 
     set_pending_candidates(db, scan["candidates"])
+    save_queue_meta(
+        db,
+        pages_scanned=scan["pages_scanned"],
+        skipped=scan["skipped"],
+        skipped_duplicates=scan["skipped_duplicates"],
+        start_page=start_page,
+        candidates_found=len(scan["candidates"]),
+    )
     _apply_scan_resume(db, scan, logs, background=False)
     _save_last_scan(db, background=False, start_page=start_page, scan=scan, saved=0)
 
@@ -598,6 +672,13 @@ async def download_pending_movies(count: int = 10) -> dict[str, Any]:
         )
 
     set_pending_candidates(db, remaining)
+    queue_meta = _load_queue_meta(db)
+    if remaining and queue_meta:
+        queue_meta["candidates_found"] = len(remaining)
+        queue_meta["saved_at"] = datetime.now(timezone.utc).isoformat()
+        db.set_meta(SCRAPE_QUEUE_META_KEY, json.dumps(queue_meta, ensure_ascii=False))
+    elif not remaining:
+        db.set_meta(SCRAPE_QUEUE_META_KEY, "")
     saved, seo_urls = await _save_scraped_movies(db, detailed, logs)
 
     if not detailed:

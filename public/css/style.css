@@ -1322,6 +1322,32 @@ a:hover {
   line-height: 1.5;
 }
 
+.admin-scrape-status {
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem 0.95rem;
+  background: #1a1a1a;
+  border: 1px solid #3a3a3a;
+  border-radius: var(--radius);
+}
+
+.admin-stats--scrape {
+  margin-bottom: 0.5rem;
+}
+
+.admin-scrape-queue {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0 0 1.1rem;
+  font-size: 0.8rem;
+  color: #ccc;
+  max-height: 10rem;
+  overflow-y: auto;
+}
+
+.admin-scrape-queue__id {
+  color: #777;
+  font-size: 0.72rem;
+}
+
 .admin-list-toolbar {
   display: flex;
   flex-wrap: wrap;

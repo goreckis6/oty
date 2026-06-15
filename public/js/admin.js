@@ -196,6 +196,16 @@
           <section class="admin-tab admin-section" data-tab="scraping" id="adminTabScraping" role="tabpanel" hidden>
             <h2>Scrape from YTS</h2>
             <p class="admin-hint">Skanuj: równolegle po 8 stronach, z przeskokiem przez bloki duplikatów. Potem Pobierz.</p>
+            <div class="admin-scrape-status" id="scrapeStatusPanel">
+              <div class="admin-stats admin-stats--scrape">
+                <div class="admin-stat"><span>W kolejce</span><strong id="scrapeStatPending">—</strong></div>
+                <div class="admin-stat"><span>Przeskan. stron</span><strong id="scrapeStatPages">—</strong></div>
+                <div class="admin-stat"><span>Nast. str. YTS</span><strong id="scrapeStatResume">—</strong></div>
+                <div class="admin-stat"><span>W bazie</span><strong id="scrapeStatDb">—</strong></div>
+              </div>
+              <p class="admin-hint" id="scrapeLastScanMeta">Ostatni skan: —</p>
+              <ul class="admin-scrape-queue" id="scrapeQueueList" hidden></ul>
+            </div>
             <form id="scrapeForm" class="admin-scrape">
               <label>
                 Liczba filmów
@@ -204,7 +214,6 @@
               <button type="button" class="btn-admin-outline" id="scrapeScanBtn">Skanuj</button>
               <button type="submit" class="btn-browse" id="scrapeBtn">Pobierz</button>
             </form>
-            <p class="admin-hint" id="scrapePendingMeta">Kolejka: —</p>
             <pre class="admin-log" id="adminLog">Ready.</pre>
 
             <h2 class="admin-tab__subtitle">Auto scraping</h2>
@@ -870,16 +879,62 @@
     });
 
     async function loadScrapeQueue() {
-      const el = document.getElementById("scrapePendingMeta");
-      if (!el) return;
+      const set = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      };
       try {
-        const q = await api("/admin/scrape/queue");
-        const n = q.pending_count || 0;
-        el.textContent = n
-          ? `Kolejka: ${n} filmów do pobrania`
-          : "Kolejka: pusta (najpierw Skanuj)";
+        const s = await api("/admin/scrape/queue");
+        const pending = s.pending_count || 0;
+        const meta = s.queue_meta || {};
+        const pages = meta.pages_scanned ?? s.last_scan?.pages_scanned;
+        set("scrapeStatPending", String(pending));
+        set("scrapeStatPages", pages != null ? String(pages) : "—");
+        set("scrapeStatResume", s.resume_page != null ? String(s.resume_page) : "—");
+        set("scrapeStatDb", s.movies_in_db != null ? String(s.movies_in_db) : "—");
+
+        const lastEl = document.getElementById("scrapeLastScanMeta");
+        if (lastEl) {
+          const parts = [];
+          if (meta.saved_at) {
+            parts.push(`Zapisano kolejkę: ${formatAdminTime(meta.saved_at)}`);
+          }
+          if (meta.candidates_found != null) {
+            parts.push(`znaleziono ${meta.candidates_found}`);
+          }
+          if (meta.skipped != null) {
+            parts.push(`pominięto ${meta.skipped} w bazie`);
+          }
+          if (meta.start_page != null && pages != null) {
+            parts.push(`skan str. ${meta.start_page}–${meta.start_page + pages - 1}`);
+          }
+          if (s.last_scan?.saved > 0) {
+            parts.push(`ostatnio pobrano +${s.last_scan.saved}`);
+          }
+          lastEl.textContent = parts.length ? parts.join(" · ") : "Ostatni skan: brak danych (kliknij Skanuj)";
+        }
+
+        const listEl = document.getElementById("scrapeQueueList");
+        if (listEl) {
+          const items = s.pending || [];
+          if (!items.length) {
+            listEl.hidden = true;
+            listEl.innerHTML = "";
+          } else {
+            listEl.hidden = false;
+            listEl.innerHTML = items
+              .map(
+                (m) =>
+                  `<li>${escapeHtml(m.title || "?")}${m.year ? ` (${m.year})` : ""} <span class="admin-scrape-queue__id">#${m.id}</span></li>`
+              )
+              .join("");
+          }
+        }
       } catch {
-        el.textContent = "Kolejka: —";
+        set("scrapeStatPending", "—");
+        set("scrapeStatPages", "—");
+        set("scrapeStatResume", "—");
+        set("scrapeStatDb", "—");
       }
     }
 

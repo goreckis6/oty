@@ -40,7 +40,7 @@ from auto_scraper import (
 )
 from database import Database
 from movie_store import MovieStore
-from scraper import pending_status
+from scraper import scrape_state
 from seo import build_robots, build_sitemap, build_sitemap_part, register_movies_for_seo, render_movie_page
 from site_files import delete_site_file, list_site_files, read_site_file, upload_site_file, write_site_file
 from site_branding import get_branding, remove_logo, save_branding, save_logo
@@ -432,7 +432,7 @@ async def admin_bulk_delete_movies(
 @app.get(f"{API_PREFIX}/admin/scrape/queue")
 async def admin_scrape_queue(_: str = Depends(require_admin)) -> dict[str, Any]:
     assert db is not None
-    return {"status": "ok", **pending_status(db)}
+    return {"status": "ok", **scrape_state(db)}
 
 
 @app.post(f"{API_PREFIX}/admin/scrape/scan")
