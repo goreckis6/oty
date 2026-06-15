@@ -147,24 +147,16 @@ ${DOMAIN} {
 	encode gzip
 
 	handle /api/v1/* {
-		reverse_proxy 127.0.0.1:8080 {
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Real-IP {remote_host}
-		}
+		reverse_proxy 127.0.0.1:8080
 	}
 
 	handle /movies/* {
-		reverse_proxy 127.0.0.1:8080 {
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Real-IP {remote_host}
-		}
+		reverse_proxy 127.0.0.1:8080
 	}
 
-	handle /browse /twojastara / {
-		reverse_proxy 127.0.0.1:8080 {
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Real-IP {remote_host}
-		}
+	@spa path / /browse /browse/* /twojastara /twojastara/*
+	handle @spa {
+		reverse_proxy 127.0.0.1:8080
 	}
 
 	@static path /css/* /js/* /uploads/*
@@ -176,10 +168,7 @@ ${DOMAIN} {
 
 	@seo path /robots.txt /sitemap.xml /sitemap*
 	handle @seo {
-		reverse_proxy 127.0.0.1:8080 {
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Real-IP {remote_host}
-		}
+		reverse_proxy 127.0.0.1:8080
 	}
 
 	handle {

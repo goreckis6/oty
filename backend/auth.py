@@ -54,23 +54,31 @@ def authenticate(password: str) -> bool:
     return hmac.compare_digest(password, ADMIN_PASSWORD)
 
 
+def _normalize_ip(ip: str) -> str:
+    ip = (ip or "").strip()
+    if ip.startswith("::ffff:"):
+        ip = ip[7:]
+    return ip
+
+
 def client_ip(request: Request) -> str:
-    peer = request.client.host if request.client else ""
+    peer = _normalize_ip(request.client.host if request.client else "")
     if peer in ("127.0.0.1", "::1"):
         forwarded = request.headers.get("x-forwarded-for")
         if forwarded:
-            return forwarded.split(",")[0].strip()
+            return _normalize_ip(forwarded.split(",")[0])
         real_ip = request.headers.get("x-real-ip")
         if real_ip:
-            return real_ip.strip()
+            return _normalize_ip(real_ip)
     return peer
 
 
 def assert_admin_client(request: Request) -> None:
     if not ADMIN_ALLOWED_IPS:
         return
-    allowed = {ip.strip() for ip in ADMIN_ALLOWED_IPS.split(",") if ip.strip()}
-    if client_ip(request) not in allowed:
+    allowed = {_normalize_ip(ip) for ip in ADMIN_ALLOWED_IPS.split(",") if ip.strip()}
+    seen = client_ip(request)
+    if seen not in allowed:
         raise HTTPException(status_code=404, detail="Not found")
 
 

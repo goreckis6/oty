@@ -16,6 +16,7 @@ from auth import (
     TOKEN_TTL_HOURS,
     assert_admin_client,
     authenticate,
+    client_ip,
     create_token,
     require_admin,
 )
@@ -186,6 +187,12 @@ async def health() -> dict[str, Any]:
         "tmdb_configured": bool(TMDB_KEY),
         "torrents": TORRENT_SOURCE,
     }
+
+
+@app.get(f"{API_PREFIX}/myip")
+async def my_ip(request: Request) -> dict[str, str]:
+    """Public helper: shows the client IP as seen by the server (for ADMIN_ALLOWED_IPS setup)."""
+    return {"ip": client_ip(request)}
 
 
 @app.get(f"{API_PREFIX}/site/branding")
