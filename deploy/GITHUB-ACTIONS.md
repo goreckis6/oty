@@ -40,6 +40,18 @@ twoja-domena  A  →  IP VPS
 
 Firewall: TCP **80**, **443**, **22**.
 
+## Migracja na nowy serwer
+
+Zobacz **[MIGRATE-SERVER.md](MIGRATE-SERVER.md)** — bootstrap, kopia `movies.db`, zmiana `DEPLOY_HOST`, DNS, wyłączenie starego VPS.
+
+Skrypty:
+
+| Skrypt | Gdzie uruchomić |
+|--------|-----------------|
+| `deploy/scripts/bootstrap-server.sh` | nowy VPS |
+| `deploy/scripts/migrate-data.sh` | laptop (SSH do obu serwerów) |
+| `deploy/scripts/shutdown-old-server.sh` | stary VPS (po przełączeniu DNS) |
+
 ## Ręczny deploy na VPS
 
 ```bash

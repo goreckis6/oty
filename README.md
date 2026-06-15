@@ -79,3 +79,20 @@ python3 scrape_yts.py -n 20
 ```bash
 git push origin main
 ```
+
+## Migracja na nowy serwer
+
+Pełna instrukcja: **[deploy/MIGRATE-SERVER.md](deploy/MIGRATE-SERVER.md)**
+
+```bash
+# 1. Nowy VPS
+bash deploy/scripts/bootstrap-server.sh
+
+# 2. Kopia danych (z laptopa)
+OLD_HOST=stare.ip NEW_HOST=nowe.ip bash deploy/scripts/migrate-data.sh
+
+# 3. GitHub Secret DEPLOY_HOST → nowe.ip, potem Deploy workflow
+
+# 4. Po przełączeniu DNS — wyłącz stary VPS
+bash deploy/scripts/shutdown-old-server.sh
+```
