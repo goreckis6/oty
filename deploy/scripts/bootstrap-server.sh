@@ -20,10 +20,10 @@ run_root() {
 echo "==> Bootstrap VPS for ytdown"
 echo "    APP_DIR=${APP_DIR}"
 
-if ! command -v curl >/dev/null 2>&1; then
-  echo "==> Installing curl..."
+if ! command -v curl >/dev/null 2>&1 || ! command -v rsync >/dev/null 2>&1; then
+  echo "==> Installing curl, rsync..."
   run_root apt-get update -qq
-  run_root apt-get install -y curl ca-certificates
+  run_root apt-get install -y curl ca-certificates rsync
 fi
 
 if ! command -v docker >/dev/null 2>&1; then

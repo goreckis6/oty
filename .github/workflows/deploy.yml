@@ -44,6 +44,16 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -p "$DEPLOY_PORT" "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
+      - name: Prepare server
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=accept-new \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "mkdir -p '${DEPLOY_PATH}' && \
+             if ! command -v rsync >/dev/null 2>&1; then \
+               echo '==> Installing rsync on VPS...'; \
+               apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y rsync; \
+             fi"
+
       - name: Rsync to server
         run: |
           # NEVER delete backend/data/movies.db — scraped movies live only on VPS.
