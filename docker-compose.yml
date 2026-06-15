@@ -28,12 +28,12 @@ services:
       test:
         [
           "CMD-SHELL",
-          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/v1/health', timeout=5)\"",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/v1/health', timeout=8)\"",
         ]
       interval: 5s
-      timeout: 5s
-      retries: 4
-      start_period: 8s
+      timeout: 10s
+      retries: 12
+      start_period: 45s
 
   caddy:
     image: caddy:2-alpine
@@ -42,7 +42,7 @@ services:
     network_mode: host
     depends_on:
       api:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./public:/srv:ro

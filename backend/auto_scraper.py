@@ -18,6 +18,7 @@ MAX_INTERVAL_MINUTES = 24 * 60
 DEFAULT_INTERVAL_MINUTES = 60
 DEFAULT_COUNT = 10
 TICK_SECONDS = 30
+STARTUP_DELAY_SECONDS = int(os.environ.get("AUTO_SCRAPE_STARTUP_DELAY", "60"))
 
 _scrape_lock = asyncio.Lock()
 _task: asyncio.Task | None = None
@@ -162,6 +163,9 @@ class AutoScrapeService:
 async def _loop(db: Database) -> None:
     service = AutoScrapeService(db)
     logger.info("auto-scrape scheduler started")
+    if STARTUP_DELAY_SECONDS > 0:
+        logger.info("auto-scrape delayed %ss after API startup", STARTUP_DELAY_SECONDS)
+        await asyncio.sleep(STARTUP_DELAY_SECONDS)
     while True:
         try:
             await service.tick()
@@ -203,7 +207,6 @@ def start_auto_scraper(db: Database) -> None:
     global _db
     _db = db
     _restart_loop_if_needed()
-    trigger_auto_scrape_tick()
 
 
 async def stop_auto_scraper() -> None:

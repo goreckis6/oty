@@ -38,7 +38,7 @@ from auto_scraper import (
     start_auto_scraper,
     stop_auto_scraper,
 )
-from database import Database
+from database import COUNT_CACHE_KEY, Database
 from movie_store import MovieStore
 from scraper import scrape_state
 from seo import build_robots, build_sitemap, build_sitemap_part, register_movies_for_seo, render_movie_page
@@ -69,7 +69,7 @@ db: Database | None = None
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     global tmdb, torrents, torrent_proxy, store, db
-    db = Database()
+    db = Database(defer_maintenance=True)
     if DATA_SOURCE in ("sqlite", "scrape"):
         store = MovieStore(db)
     elif TMDB_KEY:
@@ -79,6 +79,7 @@ async def lifespan(_: FastAPI):
     await torrent_proxy.start()
     if DATA_SOURCE in ("sqlite", "scrape"):
         start_auto_scraper(db)
+    asyncio.create_task(asyncio.to_thread(db.run_startup_maintenance), name="db-startup-maintenance")
     yield
     await stop_auto_scraper()
     if tmdb:
@@ -212,10 +213,15 @@ async def spa_admin() -> HTMLResponse:
 
 @app.get(f"{API_PREFIX}/health")
 async def health() -> dict[str, Any]:
+    movies_in_db: int | None = None
+    if db:
+        cached = db.get_meta(COUNT_CACHE_KEY, "")
+        if cached.isdigit():
+            movies_in_db = int(cached)
     return {
         "status": "ok",
         "data_source": DATA_SOURCE,
-        "movies_in_db": db.count_movies() if db else 0,
+        "movies_in_db": movies_in_db,
         "tmdb_configured": bool(TMDB_KEY),
         "torrents": TORRENT_SOURCE,
     }

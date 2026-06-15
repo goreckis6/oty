@@ -28,10 +28,14 @@ def normalize_title(title: str | None) -> str:
 
 
 class Database:
-    def __init__(self, path: Path | None = None) -> None:
+    def __init__(self, path: Path | None = None, *, defer_maintenance: bool = False) -> None:
         self.path = path or DB_PATH
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
+        if not defer_maintenance:
+            self.run_startup_maintenance()
+
+    def run_startup_maintenance(self) -> None:
         self._remove_legacy_seed_movies()
         self.prune_upcoming()
         if not self.get_meta(COUNT_CACHE_KEY, "").isdigit():
@@ -41,6 +45,8 @@ class Database:
     def connect(self):
         conn = sqlite3.connect(self.path)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=5000")
         try:
             yield conn
             conn.commit()

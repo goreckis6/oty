@@ -290,7 +290,7 @@ if [ "$WAIT_API" -eq 0 ]; then
 fi
 
 if [ "$WAIT_API" -eq 1 ]; then
-  for i in $(seq 1 20); do
+  for i in $(seq 1 60); do
     if api_healthy_now; then
       echo "    API container ready (${i}x1s)"
       API_OK=1
