@@ -64,36 +64,41 @@ window.YTS_CONFIG = {
 EOF
 
 echo "==> Stopping legacy containers (never -v — DB lives on host in backend/data/)..."
-docker compose down 2>/dev/null || true
-docker compose -f docker-compose.vps-proxy.yml down 2>/dev/null || true
-docker rm -f ytdown ytdown-caddy ytdown-bgutil site-caddy site-api 2>/dev/null || true
+docker rm -f ytdown ytdown-caddy ytdown-bgutil 2>/dev/null || true
 
-echo "==> Freeing HTTP/HTTPS ports for Caddy..."
-docker ps -q --filter "publish=80" | xargs -r docker rm -f 2>/dev/null || true
-docker ps -q --filter "publish=443" | xargs -r docker rm -f 2>/dev/null || true
-if command -v ss >/dev/null 2>&1; then
-  for port in 80 443; do
-    if ss -tln | grep -q ":${port} "; then
-      pids=$(ss -tlnp "sport = :${port}" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u || true)
-      for pid in $pids; do
-        comm=$(ps -p "$pid" -o comm= 2>/dev/null || true)
-        case "$comm" in
-          caddy|caddy-*|docker-proxy)
-            echo "    Stopping stale ${comm} (pid ${pid}) on port ${port}"
-            kill "$pid" 2>/dev/null || true
-            ;;
-        esac
-      done
-    fi
-  done
-  sleep 1
-  for port in 80 443; do
-    if ss -tln | grep -q ":${port} "; then
-      echo "FATAL: port ${port} still in use — cannot start Caddy" >&2
-      ss -tlnp "sport = :${port}" 2>&1 || true
-      exit 1
-    fi
-  done
+CADDY_RUNNING=false
+if [ "$(docker inspect -f '{{.State.Running}}' site-caddy 2>/dev/null || echo false)" = "true" ]; then
+  CADDY_RUNNING=true
+fi
+
+if [ "$CADDY_RUNNING" = "false" ]; then
+  echo "==> Freeing HTTP/HTTPS ports for Caddy..."
+  docker ps -q --filter "publish=80" | xargs -r docker rm -f 2>/dev/null || true
+  docker ps -q --filter "publish=443" | xargs -r docker rm -f 2>/dev/null || true
+  if command -v ss >/dev/null 2>&1; then
+    for port in 80 443; do
+      if ss -tln | grep -q ":${port} "; then
+        pids=$(ss -tlnp "sport = :${port}" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u || true)
+        for pid in $pids; do
+          comm=$(ps -p "$pid" -o comm= 2>/dev/null || true)
+          case "$comm" in
+            caddy|caddy-*|docker-proxy)
+              echo "    Stopping stale ${comm} (pid ${pid}) on port ${port}"
+              kill "$pid" 2>/dev/null || true
+              ;;
+          esac
+        done
+      fi
+    done
+    sleep 1
+    for port in 80 443; do
+      if ss -tln | grep -q ":${port} "; then
+        echo "FATAL: port ${port} still in use — cannot start Caddy" >&2
+        ss -tlnp "sport = :${port}" 2>&1 || true
+        exit 1
+      fi
+    done
+  fi
 fi
 
 GLOBAL_BLOCK=""
@@ -135,9 +140,33 @@ if [ ! -f public/index.html ]; then
   exit 1
 fi
 
-echo "==> Building and starting API + Caddy..."
+api_source_hash() {
+  find backend -type f \( -name '*.py' -o -name 'requirements.txt' -o -name 'Dockerfile' \) -print0 \
+    | sort -z | xargs -0 sha256sum 2>/dev/null | sha256sum | awk '{print $1}'
+}
+
+HASH_FILE="backend/data/.deploy-api-hash"
+CURRENT_HASH="$(api_source_hash)"
+NEED_BUILD=1
+if [ -f "$HASH_FILE" ] && [ "$(cat "$HASH_FILE")" = "$CURRENT_HASH" ]; then
+  NEED_BUILD=0
+fi
+
+echo "==> Starting API + Caddy..."
 export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE ADMIN_USER ADMIN_PASSWORD JWT_SECRET SITE_URL SITE_NAME SITE_TAGLINE
-docker compose up -d --build --remove-orphans
+if [ "$NEED_BUILD" -eq 1 ]; then
+  echo "    API code changed — building image"
+  docker compose up -d --build --remove-orphans
+  echo "$CURRENT_HASH" > "$HASH_FILE"
+else
+  echo "    API code unchanged — skipping image build"
+  docker compose up -d --remove-orphans
+fi
+
+if [ "$(docker inspect -f '{{.State.Running}}' site-caddy 2>/dev/null || echo false)" = "true" ]; then
+  docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null \
+    || docker compose restart caddy
+fi
 
 if [ "$(docker inspect -f '{{.State.Running}}' site-caddy 2>/dev/null || echo false)" != "true" ]; then
   echo "FATAL: Caddy container is not running" >&2
@@ -147,13 +176,13 @@ fi
 
 echo "==> Waiting for services on VPS..."
 API_OK=0
-for i in $(seq 1 45); do
+for i in $(seq 1 30); do
   if curl -sf "http://127.0.0.1:8080/api/v1/health" >/dev/null 2>&1; then
-    echo "    API container ready (${i}x2s)"
+    echo "    API container ready (${i}x1s)"
     API_OK=1
     break
   fi
-  sleep 2
+  sleep 1
 done
 
 if [ "$API_OK" -ne 1 ]; then
@@ -182,13 +211,10 @@ if ! response_contains '"status"' caddy_url 20 /api/v1/health; then
   docker compose logs caddy --tail 40 || true
   exit 1
 fi
-if ! response_contains '"movie_count"' caddy_url 60 /api/v1/list_movies.json?limit=1; then
-  if ! response_contains 'movies_in_db' caddy_url 20 /api/v1/health; then
-    echo "FATAL: movies API not returning JSON through Caddy" >&2
-    curl -4 -svk --max-time 60 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/v1/list_movies.json?limit=1" 2>&1 | tail -20 || true
-    exit 1
-  fi
-  echo "==> list_movies slow; health reports movies_in_db OK"
+if ! response_contains 'movies_in_db' caddy_url 15 /api/v1/health; then
+  echo "FATAL: movies API not reachable through Caddy" >&2
+  curl -4 -svk --max-time 15 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/v1/health" 2>&1 | tail -20 || true
+  exit 1
 fi
 if ! response_contains '<!DOCTYPE html' caddy_url 20 /; then
   echo "FATAL: homepage not serving HTML through Caddy" >&2

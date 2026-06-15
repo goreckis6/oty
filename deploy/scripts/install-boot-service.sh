@@ -28,6 +28,17 @@ run_root() {
   fi
 }
 
+unit_content() {
+  sed "s|@APP_DIR@|${APP_DIR}|g" "$UNIT_SRC"
+}
+
+if [ -f "$UNIT_DEST" ] && unit_content | cmp -s - "$UNIT_DEST" 2>/dev/null; then
+  if run_root systemctl is-enabled "$UNIT_NAME" >/dev/null 2>&1; then
+    echo "==> Boot service already installed (${UNIT_NAME})"
+    exit 0
+  fi
+fi
+
 echo "==> Enabling Docker on boot..."
 run_root systemctl enable docker.service
 
@@ -36,7 +47,9 @@ sed "s|@APP_DIR@|${APP_DIR}|g" "$UNIT_SRC" | run_root tee "$UNIT_DEST" >/dev/nul
 run_root chmod 644 "$UNIT_DEST"
 run_root systemctl daemon-reload
 run_root systemctl enable "$UNIT_NAME"
-run_root systemctl restart "$UNIT_NAME"
+if ! run_root systemctl is-active "$UNIT_NAME" >/dev/null 2>&1; then
+  run_root systemctl start "$UNIT_NAME"
+fi
 
 echo "==> Boot service active:"
 run_root systemctl --no-pager status "$UNIT_NAME" || true

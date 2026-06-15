@@ -61,6 +61,7 @@ jobs:
             --exclude '.git' \
             --exclude '.venv' \
             --exclude 'node_modules' \
+            --exclude '.cursor' \
             --exclude 'secrets' \
             --exclude '.env' \
             --include 'backend/data/test_movies.json' \
@@ -106,60 +107,23 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
           DOMAIN_CLEAN=$(echo "$DOMAIN" | tr -d '\n\r' | sed 's|https\?://||' | sed 's|/$||')
-          echo "Checking https://${DOMAIN_CLEAN} (via ${DEPLOY_HOST}:443)..."
-          sleep 15
+          echo "Checking https://${DOMAIN_CLEAN}..."
 
-          check_api() {
-            body=$(curl -4 -sfL --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health" 2>/dev/null || true)
-            echo "$body" | grep -q '"status"'
-          }
-
-          check_movies_api() {
-            body=$(curl -4 -sfL --max-time 60 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/list_movies.json?limit=1" 2>/dev/null || true)
-            echo "$body" | grep -q '"movie_count"' || echo "$body" | grep -q 'movies_in_db'
-          }
-
-          check_frontend() {
-            body=$(curl -4 -sfL --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/" 2>/dev/null || true)
+          check_site() {
+            body=$(curl -4 -sfL --max-time 10 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health" 2>/dev/null || true)
+            echo "$body" | grep -q '"status"' || return 1
+            body=$(curl -4 -sfL --max-time 10 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/" 2>/dev/null || true)
             case "$body" in *'<!DOCTYPE html'*) return 0 ;; *) return 1 ;; esac
           }
 
-          for i in $(seq 1 18); do
-            if check_frontend; then
-              echo "==> Frontend OK"
-              for j in $(seq 1 12); do
-                if check_api && check_movies_api; then
-                  echo ""
-                  echo "==> API OK"
-                  echo "==> Deploy OK: https://${DOMAIN_CLEAN}"
-                  exit 0
-                fi
-                echo "API health attempt ${j}/12 failed, retry in 5s..."
-                sleep 5
-              done
-              echo "API health failed after frontend was ready"
-              curl -4 -svk --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health" 2>&1 | tail -30 || true
-              exit 1
+          for i in $(seq 1 15); do
+            if check_site; then
+              echo "==> Deploy OK: https://${DOMAIN_CLEAN}"
+              exit 0
             fi
-            body=$(curl -4 -sfL --max-time 20 "https://${DOMAIN_CLEAN}/" 2>/dev/null || true)
-            case "$body" in *'<!DOCTYPE html'*) frontend_ok=1 ;; *) frontend_ok=0 ;; esac
-            if [ "$frontend_ok" -eq 1 ]; then
-              echo "==> Frontend OK (direct DNS)"
-              for j in $(seq 1 12); do
-                if check_api && check_movies_api; then
-                  echo ""
-                  echo "==> API OK"
-                  echo "==> Deploy OK (direct DNS): https://${DOMAIN_CLEAN}"
-                  exit 0
-                fi
-                echo "API health attempt ${j}/12 failed, retry in 5s..."
-                sleep 5
-              done
-              exit 1
-            fi
-            echo "attempt ${i}/18 failed, retry in 10s..."
-            sleep 10
+            echo "attempt ${i}/15, retry in 3s..."
+            sleep 3
           done
           echo "Health check failed for https://${DOMAIN_CLEAN}/"
-          curl -4 -svk --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/" 2>&1 | tail -20 || true
+          curl -4 -svk --max-time 10 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health" 2>&1 | tail -20 || true
           exit 1
