@@ -21,12 +21,22 @@ PAGES_PER_RUN_MANUAL = int(os.environ.get("SCRAPE_MAX_PAGES_MANUAL", "500"))
 FULL_SKIP_STOP_PAGES = int(os.environ.get("SCRAPE_FULL_SKIP_STOP", "3"))
 PARALLEL_LIST_PAGES = int(os.environ.get("SCRAPE_PARALLEL_PAGES", "8"))
 LISTING_TIMEOUT = float(os.environ.get("SCRAPE_LISTING_TIMEOUT", "12"))
+DETAIL_TIMEOUT = float(os.environ.get("SCRAPE_DETAIL_TIMEOUT", "60"))
 FAST_SKIP_AFTER = int(os.environ.get("SCRAPE_FAST_SKIP_AFTER", "15"))
 FAST_SKIP_JUMP = int(os.environ.get("SCRAPE_FAST_SKIP_JUMP", "50"))
 SCRAPE_RESUME_PAGE_KEY = "scrape_resume_page"
 SCRAPE_LAST_SCAN_KEY = "scrape_last_scan"
 SCRAPE_PENDING_KEY = "scrape_pending_candidates"
 SCRAPE_QUEUE_META_KEY = "scrape_queue_meta"
+
+
+def _scrape_http_client(**kwargs: Any) -> httpx.AsyncClient:
+    return httpx.AsyncClient(
+        follow_redirects=True,
+        timeout=httpx.Timeout(DETAIL_TIMEOUT, connect=15.0),
+        limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+        **kwargs,
+    )
 
 
 def _get_resume_page(db: Database) -> int:
@@ -527,6 +537,7 @@ async def _fetch_candidate_details(
         detail = await fetch_json(
             client,
             "movie_details.json",
+            timeout=DETAIL_TIMEOUT,
             movie_id=str(mid),
             with_images="true",
             with_cast="true",
@@ -587,10 +598,7 @@ async def scan_listings_only(count: int = 10) -> dict[str, Any]:
     if start_page > 1:
         logs.append(f"Kontynuacja od strony {start_page} (katalog YTS, sort. date_added).")
 
-    async with httpx.AsyncClient(
-        follow_redirects=True,
-        limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
-    ) as client:
+    async with _scrape_http_client() as client:
         scan = await _scan_listing_candidates(
             client,
             start_page=start_page,
@@ -661,7 +669,7 @@ async def download_pending_movies(count: int = 10) -> dict[str, Any]:
 
     known_ids = db.existing_ids()
     known_titles = db.existing_titles()
-    async with httpx.AsyncClient(follow_redirects=True) as client:
+    async with _scrape_http_client() as client:
         detailed = await _fetch_candidate_details(
             client,
             batch,
@@ -724,10 +732,7 @@ async def scrape_movies(count: int = 10, *, background: bool = False) -> dict[st
     if start_page > 1 and not background:
         logs.append(f"Kontynuacja od strony {start_page} (katalog YTS, sort. date_added).")
 
-    async with httpx.AsyncClient(
-        follow_redirects=True,
-        limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
-    ) as client:
+    async with _scrape_http_client() as client:
         scan = await _scan_listing_candidates(
             client,
             start_page=start_page,

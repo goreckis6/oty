@@ -186,7 +186,7 @@ async def fetch_opensubtitles_langs(
             "https://api.opensubtitles.com/api/v1/subtitles",
             params={"imdb_id": imdb_id, "ai_translated": "exclude", "machine_translated": "exclude"},
             headers={"Api-Key": api_key, "User-Agent": "ytdown/1.0"},
-            timeout=20.0,
+            timeout=30.0,
         )
         if res.status_code != 200:
             return None

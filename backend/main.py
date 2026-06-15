@@ -119,12 +119,12 @@ class LoginRequest(BaseModel):
 
 
 class ScrapeRequest(BaseModel):
-    count: int = Field(default=10, ge=1, le=200)
+    count: int = Field(default=10, ge=1)
 
 
 class AutoScrapeRequest(BaseModel):
     enabled: bool = False
-    interval_minutes: int = Field(default=60, ge=5, le=1440)
+    interval_minutes: int = Field(default=60, ge=2, le=1440)
     count: int = Field(default=10, ge=1)
 
 
