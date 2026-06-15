@@ -85,11 +85,19 @@ def _is_private_or_loopback(ip: str) -> bool:
 
 def client_ip(request: Request) -> str:
     peer = _normalize_ip(request.client.host if request.client else "")
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        candidate = _normalize_ip(forwarded.split(",")[0])
+        if candidate and not _is_private_or_loopback(candidate):
+            return candidate
+    real_ip = request.headers.get("x-real-ip")
+    if real_ip:
+        candidate = _normalize_ip(real_ip)
+        if candidate and not _is_private_or_loopback(candidate):
+            return candidate
     if _is_private_or_loopback(peer):
-        forwarded = request.headers.get("x-forwarded-for")
         if forwarded:
             return _normalize_ip(forwarded.split(",")[0])
-        real_ip = request.headers.get("x-real-ip")
         if real_ip:
             return _normalize_ip(real_ip)
     return peer

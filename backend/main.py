@@ -191,8 +191,14 @@ async def health() -> dict[str, Any]:
 
 @app.get(f"{API_PREFIX}/myip")
 async def my_ip(request: Request) -> dict[str, str]:
-    """Public helper: client IP as used for ADMIN_ALLOWED_IPS (after proxy headers)."""
-    return {"ip": client_ip(request)}
+    """Public helper: shows your public IP as used for ADMIN_ALLOWED_IPS."""
+    peer = request.client.host if request.client else ""
+    return {
+        "ip": client_ip(request),
+        "peer": peer or "",
+        "x_forwarded_for": request.headers.get("x-forwarded-for") or "",
+        "x_real_ip": request.headers.get("x-real-ip") or "",
+    }
 
 
 @app.get(f"{API_PREFIX}/site/branding")
