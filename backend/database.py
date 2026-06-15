@@ -229,14 +229,17 @@ class Database:
         return {normalize_title(r["title"]) for r in rows if normalize_title(r["title"])}
 
     def duplicate_title_keys(self) -> set[str]:
-        counts: dict[str, int] = {}
         with self.connect() as conn:
-            rows = conn.execute("SELECT title FROM movies WHERE title IS NOT NULL").fetchall()
-        for row in rows:
-            key = normalize_title(row["title"])
-            if key:
-                counts[key] = counts.get(key, 0) + 1
-        return {key for key, count in counts.items() if count > 1}
+            rows = conn.execute(
+                """
+                SELECT lower(trim(title)) AS k
+                FROM movies
+                WHERE title IS NOT NULL AND trim(title) != ''
+                GROUP BY k
+                HAVING COUNT(*) > 1
+                """
+            ).fetchall()
+        return {r["k"] for r in rows if r["k"]}
 
     def upsert_movie(self, movie: dict[str, Any]) -> None:
         mid = int(movie["id"])

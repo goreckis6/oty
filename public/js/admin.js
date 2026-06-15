@@ -106,7 +106,7 @@
 
   function renderDashboard(app) {
     let moviesPage = 1;
-    let moviesLimit = 100;
+    let moviesLimit = 50;
     const selectedIds = new Set();
 
     function updateBulkBar() {
@@ -341,6 +341,8 @@
       });
       sessionStorage.setItem(ADMIN_TAB_KEY, name);
       if (name === "files") loadFiles();
+      if (name === "branding") loadBranding();
+      if (name === "scraping") loadAutoScrape();
     }
 
     document.getElementById("adminTabs").addEventListener("click", (e) => {
@@ -694,37 +696,27 @@
       }
     });
 
-    async function loadStats() {
-      try {
-        const s = await api("/admin/stats");
-        document.getElementById("statCount").textContent = s.movies_count;
-        document.getElementById("statLast").textContent = s.last_scrape || "never";
-        document.getElementById("statBatch").textContent = s.last_scrape_count || "—";
-        document.getElementById("statNew").textContent = s.new_count ?? "—";
-      } catch (err) {
-        if (isAuthError(err)) {
-          clearToken();
-          window.YtsAdmin.render(app);
-        }
-      }
+    async function applyStats(s) {
+      document.getElementById("statCount").textContent = s.movies_count;
+      document.getElementById("statLast").textContent = s.last_scrape || "never";
+      document.getElementById("statBatch").textContent = s.last_scrape_count || "—";
+      document.getElementById("statNew").textContent = s.new_count ?? "—";
     }
 
-    async function loadMovies() {
+    function renderMoviesTable(data) {
       const tbody = document.getElementById("adminMoviesBody");
-      try {
-        const data = await api(`/admin/movies?page=${moviesPage}&limit=${moviesLimit}`);
-        const movies = data.movies || [];
-        document.getElementById("adminMoviesMeta").textContent =
-          `Strona ${data.page}/${data.total_pages} · ${data.movie_count} filmów`;
-        renderMoviesPagination(data);
-        if (!movies.length) {
-          tbody.innerHTML = `<tr><td colspan="7" class="admin-movies-empty">Brak filmów w bazie.</td></tr>`;
-          updateBulkBar();
-          return;
-        }
-        tbody.innerHTML = movies
-          .map(
-            (m) => `
+      const movies = data.movies || [];
+      document.getElementById("adminMoviesMeta").textContent =
+        `Strona ${data.page}/${data.total_pages} · ${data.movie_count} filmów`;
+      renderMoviesPagination(data);
+      if (!movies.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="admin-movies-empty">Brak filmów w bazie.</td></tr>`;
+        updateBulkBar();
+        return;
+      }
+      tbody.innerHTML = movies
+        .map(
+          (m) => `
           <tr class="${m.is_new ? "admin-movies__row--new" : ""}${m.is_duplicate_title ? " admin-movies__row--dup" : ""}">
             <td class="admin-movies__check">
               <input type="checkbox" class="admin-movie-check" value="${m.id}" ${selectedIds.has(m.id) ? "checked" : ""} />
@@ -742,9 +734,44 @@
               <button type="button" class="btn-admin-delete" data-id="${m.id}" data-title="${escapeAttr(m.title || "")}">Usuń</button>
             </td>
           </tr>`
-          )
-          .join("");
-        updateBulkBar();
+        )
+        .join("");
+      updateBulkBar();
+    }
+
+    async function loadBootstrap() {
+      const tbody = document.getElementById("adminMoviesBody");
+      try {
+        const data = await api(`/admin/bootstrap?page=${moviesPage}&limit=${moviesLimit}`);
+        applyStats(data);
+        renderMoviesTable(data);
+      } catch (err) {
+        if (isAuthError(err)) {
+          clearToken();
+          window.YtsAdmin.render(app);
+          return;
+        }
+        tbody.innerHTML = `<tr><td colspan="7" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const s = await api("/admin/stats");
+        applyStats(s);
+      } catch (err) {
+        if (isAuthError(err)) {
+          clearToken();
+          window.YtsAdmin.render(app);
+        }
+      }
+    }
+
+    async function loadMovies() {
+      const tbody = document.getElementById("adminMoviesBody");
+      try {
+        const data = await api(`/admin/movies?page=${moviesPage}&limit=${moviesLimit}`);
+        renderMoviesTable(data);
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="7" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
       }
@@ -783,8 +810,7 @@
           body: JSON.stringify({ ids }),
         });
         ids.forEach((id) => selectedIds.delete(id));
-        loadStats();
-        loadMovies();
+        loadBootstrap();
         alert(`Usunięto ${result.deleted} filmów.`);
       } catch (err) {
         alert(err.message);
@@ -803,8 +829,7 @@
       try {
         await api(`/admin/movies/${id}`, { method: "DELETE" });
         selectedIds.delete(parseInt(id, 10));
-        loadStats();
-        loadMovies();
+        loadBootstrap();
       } catch (err) {
         alert(err.message);
         btn.disabled = false;
@@ -834,8 +859,7 @@
         if (result.seo_urls && result.seo_urls.length) {
           log.textContent += `\nSEO: ${result.seo_urls.length} stron dodanych do sitemap.`;
         }
-        loadStats();
-        loadMovies();
+        loadBootstrap();
       } catch (err) {
         log.textContent += `\nError: ${err.message}`;
       } finally {
@@ -843,15 +867,11 @@
       }
     });
 
-    loadStats();
-    loadBranding();
-    loadMovies();
-    loadFiles();
-    loadAutoScrape();
+    loadBootstrap();
     clearAdminRefreshTimer();
     adminRefreshTimer = setInterval(() => {
-      loadAutoScrape();
       loadStats();
+      if ((sessionStorage.getItem(ADMIN_TAB_KEY) || "movies") === "scraping") loadAutoScrape();
     }, 30000);
   }
 

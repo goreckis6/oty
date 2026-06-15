@@ -118,16 +118,18 @@
   <script src="/js/api.js" defer></script>
   <script src="/js/app.js" defer></script>
   <script defer>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-E57KES06CY');
-    (function () {
-      var s = document.createElement('script');
-      s.async = true;
-      s.src = 'https://www.googletagmanager.com/gtag/js?id=G-E57KES06CY';
-      document.head.appendChild(s);
-    })();
+    if (!window.__ADMIN_PAGE__) {
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-E57KES06CY');
+      (function () {
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-E57KES06CY';
+        document.head.appendChild(s);
+      })();
+    }
   </script>
 </body>
 </html>

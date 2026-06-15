@@ -1,10 +1,13 @@
 import os
+import time
 from typing import Any
 
 from database import Database, normalize_title
 from movie_enrichment import enrich_movie
 
 ADMIN_PAGE_SIZES = (100, 200, 300, 500)
+_dup_keys_cache: tuple[float, set[str]] | None = None
+DUP_CACHE_SECONDS = 600
 
 
 def _normalize_admin_limit(limit: int) -> int:
@@ -88,6 +91,19 @@ class MovieStore:
     def __init__(self, db: Database | None = None) -> None:
         self.db = db or Database()
 
+    @classmethod
+    def invalidate_dup_cache(cls) -> None:
+        cls._dup_keys_cache = None
+
+    def _duplicate_title_keys(self) -> set[str]:
+        global _dup_keys_cache
+        now = time.monotonic()
+        if MovieStore._dup_keys_cache and now - MovieStore._dup_keys_cache[0] < DUP_CACHE_SECONDS:
+            return MovieStore._dup_keys_cache[1]
+        keys = self.db.duplicate_title_keys()
+        MovieStore._dup_keys_cache = (now, keys)
+        return keys
+
     @property
     def new_ids(self) -> set[int]:
         return self.db.get_last_batch_ids()
@@ -104,7 +120,7 @@ class MovieStore:
     def list_all_admin(self, page: int = 1, limit: int = 100) -> dict[str, Any]:
         limit = _normalize_admin_limit(limit)
         new_ids = self.new_ids
-        duplicate_titles = self.db.duplicate_title_keys()
+        duplicate_titles = self._duplicate_title_keys()
         rows, total = self.db.list_rows_paginated(page=page, limit=limit)
         items = []
         for row in rows:

@@ -182,9 +182,18 @@ async def spa_home() -> HTMLResponse:
 
 
 @app.get("/browse", response_class=HTMLResponse, include_in_schema=False)
-@app.get("/twojastara", response_class=HTMLResponse, include_in_schema=False)
-async def spa_shell() -> HTMLResponse:
+async def spa_browse() -> HTMLResponse:
     return _spa_index()
+
+
+@app.get("/twojastara", response_class=HTMLResponse, include_in_schema=False)
+async def spa_admin() -> HTMLResponse:
+    bootstrap = (
+        '<script>window.__ADMIN_PAGE__=true</script>'
+        '<link rel="preload" href="/js/admin.js" as="script">'
+        '<script src="/js/admin.js" defer></script>'
+    )
+    return _spa_html(bootstrap)
 
 
 @app.get(f"{API_PREFIX}/health")
@@ -295,6 +304,29 @@ async def admin_stats(_: str = Depends(require_admin)) -> dict[str, Any]:
     }
 
 
+@app.get(f"{API_PREFIX}/admin/bootstrap")
+async def admin_bootstrap(
+    request: Request,
+    _: str = Depends(require_admin),
+) -> dict[str, Any]:
+    """Single round-trip for admin dashboard initial load."""
+    assert db is not None
+    store = require_store()
+    page = max(1, int(request.query_params.get("page") or 1))
+    limit = int(request.query_params.get("limit") or 50)
+    new_count = len(db.get_last_batch_ids())
+    movies = store.list_all_admin(page=page, limit=limit)
+    return {
+        "status": "ok",
+        "movies_count": db.count_movies(),
+        "last_scrape": db.get_meta("last_scrape"),
+        "last_scrape_count": db.get_meta("last_scrape_count"),
+        "new_count": new_count,
+        "data_source": DATA_SOURCE,
+        **movies,
+    }
+
+
 @app.get(f"{API_PREFIX}/admin/movies")
 async def admin_movies(
     request: Request,
@@ -302,7 +334,7 @@ async def admin_movies(
 ) -> dict[str, Any]:
     store = require_store()
     page = max(1, int(request.query_params.get("page") or 1))
-    limit = int(request.query_params.get("limit") or 100)
+    limit = int(request.query_params.get("limit") or 50)
     data = store.list_all_admin(page=page, limit=limit)
     return {"status": "ok", "new_count": len(store.new_ids), **data}
 
@@ -315,6 +347,7 @@ async def admin_delete_movie(
     assert db is not None
     if not db.delete_movie(movie_id):
         raise HTTPException(status_code=404, detail="Movie not found")
+    MovieStore.invalidate_dup_cache()
     return {
         "status": "ok",
         "deleted_id": movie_id,
@@ -330,6 +363,7 @@ async def admin_bulk_delete_movies(
     assert db is not None
     unique_ids = list(dict.fromkeys(body.ids))
     deleted = db.delete_movies(unique_ids)
+    MovieStore.invalidate_dup_cache()
     return {
         "status": "ok",
         "deleted": deleted,
@@ -345,6 +379,7 @@ async def admin_scrape(
 ) -> dict[str, Any]:
     try:
         result = await run_scrape_locked(body.count)
+        MovieStore.invalidate_dup_cache()
         return {"status": "ok", **result}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

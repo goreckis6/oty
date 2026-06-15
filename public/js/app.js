@@ -541,6 +541,17 @@
 
   async function loadAdmin() {
     if (window.YtsAdmin) return window.YtsAdmin;
+    const existing = document.querySelector('script[src="/js/admin.js"]');
+    if (existing) {
+      if (window.YtsAdmin) return window.YtsAdmin;
+      await new Promise((resolve, reject) => {
+        existing.addEventListener("load", resolve, { once: true });
+        existing.addEventListener("error", () => reject(new Error("Failed to load admin panel")), {
+          once: true,
+        });
+      });
+      return window.YtsAdmin;
+    }
     await new Promise((resolve, reject) => {
       const script = document.createElement("script");
       script.src = "/js/admin.js";
@@ -555,7 +566,6 @@
   let lastView = null;
 
   async function router() {
-    void initSiteMeta();
     const route = parseRoute();
 
     if (lastView === "admin" && route.view !== "admin" && window.YtsAdmin?.cleanup) {
@@ -563,15 +573,24 @@
     }
     lastView = route.view;
 
-    if (route.view === "home") return renderHome();
-    if (route.view === "browse") return renderBrowse(route.page);
-    if (route.view === "movie") return renderMovie(route.slug);
     if (route.view === "admin") {
       setFiltersVisible(false);
       if (window.YtsSeo) window.YtsSeo.setAdmin();
+      applyBranding({
+        siteName: cfg().siteName || "YTS",
+        siteTagline: cfg().siteTagline || "HD movies at the smallest file size",
+        logoUrl: cfg().logoUrl || "",
+        logoType: cfg().logoType || "text",
+      });
       const admin = await loadAdmin();
       return admin.render(app);
     }
+
+    void initSiteMeta();
+
+    if (route.view === "home") return renderHome();
+    if (route.view === "browse") return renderBrowse(route.page);
+    if (route.view === "movie") return renderMovie(route.slug);
     return renderHome();
   }
 
