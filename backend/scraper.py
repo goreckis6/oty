@@ -13,6 +13,7 @@ SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")
 PAGE_SIZE = 50
 MAX_LISTING_MOVIES = 80_000
 MAX_PAGES = (MAX_LISTING_MOVIES + PAGE_SIZE - 1) // PAGE_SIZE
+PAGES_PER_RUN = int(os.environ.get("SCRAPE_MAX_PAGES", "50"))
 
 
 async def fetch_json(
@@ -59,7 +60,15 @@ async def scrape_movies(count: int = 10) -> dict[str, Any]:
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
         page = 1
+        pages_scanned = 0
         while len(detailed) < count and page <= MAX_PAGES:
+            pages_scanned += 1
+            if pages_scanned > PAGES_PER_RUN:
+                logs.append(
+                    f"Limit skanowania: {PAGES_PER_RUN} stron na jedno uruchomienie "
+                    f"(uruchom ponownie lub ustaw SCRAPE_MAX_PAGES)."
+                )
+                break
             listing = await fetch_json(
                 client,
                 "list_movies.json",

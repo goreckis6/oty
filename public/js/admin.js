@@ -43,7 +43,7 @@
       const msg =
         (typeof detail === "string" && detail) ||
         (Array.isArray(detail) && detail[0]?.msg) ||
-        `Error ${res.status}`;
+        (res.status === 502 ? "Serwer niedostępny (502) — spróbuj za chwilę lub mniejszą liczbę filmów" : `Error ${res.status}`);
       const err = new Error(msg);
       err.status = res.status;
       throw err;
