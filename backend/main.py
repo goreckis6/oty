@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import os
@@ -46,25 +47,29 @@ from sources import (
     TmdbClient,
     ok,
 )
+from torrent_proxy import TorrentProxy, cache_path, normalize_hash
 
 API_PREFIX = "/api/v1"
 PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "/app/public"))
 
 tmdb: TmdbClient | None = None
 torrents: TorrentSearch | None = None
+torrent_proxy: TorrentProxy | None = None
 store: MovieStore | None = None
 db: Database | None = None
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    global tmdb, torrents, store, db
+    global tmdb, torrents, torrent_proxy, store, db
     db = Database()
     if DATA_SOURCE in ("sqlite", "scrape"):
         store = MovieStore(db)
     elif TMDB_KEY:
         tmdb = TmdbClient(TMDB_KEY)
     torrents = TorrentSearch()
+    torrent_proxy = TorrentProxy()
+    await torrent_proxy.start()
     if DATA_SOURCE in ("sqlite", "scrape"):
         start_auto_scraper(db)
     yield
@@ -73,6 +78,8 @@ async def lifespan(_: FastAPI):
         await tmdb.close()
     if torrents:
         await torrents.close()
+    if torrent_proxy:
+        await torrent_proxy.close()
 
 
 app = FastAPI(title="YTS API", version="1.0.0", lifespan=lifespan)
@@ -252,6 +259,47 @@ async def go_download(request: Request) -> RedirectResponse:
     if not _allowed_download_target(target):
         raise HTTPException(status_code=404, detail="Not found")
     return RedirectResponse(url=target, status_code=302)
+
+
+@app.get(f"{API_PREFIX}/torrent/{{info_hash}}", include_in_schema=False)
+async def torrent_download(info_hash: str, request: Request) -> Response:
+    normalized = normalize_hash(info_hash)
+    if not normalized:
+        raise HTTPException(status_code=404, detail="Not found")
+    if torrent_proxy is None:
+        raise HTTPException(status_code=503, detail="Unavailable")
+
+    cached_file = cache_path(normalized)
+    if cached_file.is_file():
+        return FileResponse(
+            cached_file,
+            media_type="application/x-bittorrent",
+            filename=f"{normalized}.torrent",
+            headers={"Cache-Control": "public, max-age=31536000, immutable"},
+        )
+
+    fallback_url: str | None = None
+    raw_src = (request.query_params.get("src") or "").strip()
+    if raw_src:
+        try:
+            candidate = _decode_go_param(raw_src)
+        except (ValueError, UnicodeDecodeError):
+            candidate = ""
+        if candidate and _allowed_download_target(candidate):
+            fallback_url = candidate
+
+    data = await torrent_proxy.fetch(normalized, fallback_url)
+    if not data:
+        raise HTTPException(status_code=404, detail="Torrent not found")
+    filename = f"{normalized}.torrent"
+    return Response(
+        content=data,
+        media_type="application/x-bittorrent",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "public, max-age=31536000, immutable",
+        },
+    )
 
 
 @app.get(f"{API_PREFIX}/site/branding")
@@ -559,6 +607,8 @@ async def movie_details(request: Request) -> JSONResponse:
             )
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
+        if torrent_proxy:
+            torrent_proxy.prefetch_movie(data["movie"])
         return JSONResponse(ok(data))
 
     client = require_tmdb()
@@ -568,6 +618,8 @@ async def movie_details(request: Request) -> JSONResponse:
     if torrents:
         found = await torrents.search(movie["title"], movie["year"], quality)
         movie["torrents"] = found
+    if torrent_proxy:
+        torrent_proxy.prefetch_movie(movie)
     return JSONResponse(ok(data))
 
 
