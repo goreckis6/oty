@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+DB_PATH = Path(os.environ.get("DB_PATH", str(Path(__file__).resolve().parent / "data" / "movies.db")))
 COUNT_CACHE_KEY = "movies_count_cache"
 
 # Legacy seed IDs from old test_movies.json — removed on first startup after upgrade.

@@ -1,0 +1,6 @@
+data/movies.db
+data/torrent_cache/
+data/.deploy-api-hash
+data/.deploy-env-hash
+__pycache__/
+*.pyc
