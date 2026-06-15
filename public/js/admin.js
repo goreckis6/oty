@@ -45,7 +45,6 @@
       <div class="admin-wrap">
         <div class="admin-card">
           <h1>Admin Panel</h1>
-          <p class="admin-sub">Log in to manage movies and scraping</p>
           <form id="adminLoginForm" class="admin-form">
             <label>Username<input type="text" id="adminUser" autocomplete="username" required /></label>
             <label>Password<input type="password" id="adminPass" autocomplete="current-password" required /></label>
