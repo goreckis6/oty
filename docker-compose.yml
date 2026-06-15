@@ -21,6 +21,7 @@ services:
       ADMIN_USER: ${ADMIN_USER:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      TOKEN_TTL_HOURS: ${TOKEN_TTL_HOURS:-720}
     healthcheck:
       test:
         [

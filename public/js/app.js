@@ -76,6 +76,17 @@
     applyBranding(await fetchBranding());
   }
 
+  window.YtsBranding = {
+    apply(b) {
+      if (!b) return;
+      brandingCache = b;
+      applyBranding(b);
+    },
+    reset() {
+      brandingCache = null;
+    },
+  };
+
   function navigate(url) {
     if (url === location.pathname + location.search) {
       router();

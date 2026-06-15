@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import time
 import re
 from pathlib import Path
 from typing import Any
@@ -75,7 +76,7 @@ def save_logo(db: Database, filename: str, data: bytes) -> dict[str, Any]:
     _clear_logo_files()
     target = _logo_path(ext)
     target.write_bytes(data)
-    db.set_meta("site_logo_url", f"/uploads/{target.name}")
+    db.set_meta("site_logo_url", f"/uploads/{target.name}?v={int(time.time())}")
     db.set_meta("site_logo_type", "image")
     return get_branding(db)
 

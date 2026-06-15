@@ -12,6 +12,7 @@ TORRENT_SOURCE="${TORRENT_SOURCE:-apibay}"
 ADMIN_USER="${ADMIN_USER:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
 JWT_SECRET="${JWT_SECRET:-change-me-in-production}"
+TOKEN_TTL_HOURS="${TOKEN_TTL_HOURS:-720}"
 SITE_NAME="${SITE_NAME:-YTS}"
 SITE_TAGLINE="${SITE_TAGLINE:-HD movies at the smallest file size}"
 SITE_URL="${SITE_URL:-https://${DOMAIN}}"
@@ -164,7 +165,7 @@ if [ -f "$HASH_FILE" ] && [ "$(cat "$HASH_FILE")" = "$CURRENT_HASH" ]; then
 fi
 
 echo "==> Starting API + Caddy..."
-export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE ADMIN_USER ADMIN_PASSWORD JWT_SECRET SITE_URL SITE_NAME SITE_TAGLINE
+export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE ADMIN_USER ADMIN_PASSWORD JWT_SECRET TOKEN_TTL_HOURS SITE_URL SITE_NAME SITE_TAGLINE
 if [ "$NEED_BUILD" -eq 1 ]; then
   echo "    API code changed — building image"
   docker compose up -d --build --remove-orphans

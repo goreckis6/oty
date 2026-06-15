@@ -40,6 +40,10 @@
       .replace(/>/g, "&gt;");
   }
 
+  function syncSiteBranding(b) {
+    if (window.YtsBranding && b) window.YtsBranding.apply(b);
+  }
+
   function renderLogin(app, onSuccess) {
     app.innerHTML = `
       <div class="admin-wrap">
@@ -359,6 +363,7 @@
         document.getElementById("adminSiteName").value = b.siteName || "";
         document.getElementById("adminSiteTagline").value = b.siteTagline || "";
         updateBrandingPreview(b);
+        syncSiteBranding(b);
       } catch (err) {
         console.error(err);
       }
@@ -375,7 +380,8 @@
           }),
         });
         updateBrandingPreview(b);
-        alert("Zapisano. Odśwież stronę główną, aby zobaczyć zmiany.");
+        syncSiteBranding(b);
+        alert("Zapisano.");
       } catch (err) {
         alert(err.message);
       }
@@ -394,6 +400,7 @@
         const b = await api("/admin/branding/logo", { method: "POST", body: form });
         fileInput.value = "";
         updateBrandingPreview(b);
+        syncSiteBranding(b);
         alert("Logo wgrane.");
       } catch (err) {
         alert(err.message);
@@ -405,6 +412,7 @@
       try {
         const b = await api("/admin/branding/logo", { method: "DELETE" });
         updateBrandingPreview(b);
+        syncSiteBranding(b);
       } catch (err) {
         alert(err.message);
       }

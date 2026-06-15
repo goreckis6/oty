@@ -11,7 +11,7 @@ from fastapi import Header, HTTPException
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 JWT_SECRET = os.environ.get("JWT_SECRET", "change-me-in-production")
-TOKEN_TTL_HOURS = int(os.environ.get("TOKEN_TTL_HOURS", "24"))
+TOKEN_TTL_HOURS = int(os.environ.get("TOKEN_TTL_HOURS", str(30 * 24)))
 
 
 def _sign(message: str) -> str:
