@@ -179,19 +179,20 @@ class MovieStore:
             raise KeyError(f"Movie not found: id={movie_id} slug={slug}")
         return {"movie": self._tag_new(movie)}
 
-    def list_upcoming(self) -> dict[str, Any]:
-        upcoming = self.db.get_upcoming()
+    def list_upcoming(self, limit: int = 20) -> dict[str, Any]:
+        limit = max(1, min(limit, 20))
+        upcoming = self.db.get_upcoming()[:limit]
         if upcoming:
-            upcoming = [m for m in upcoming if self.db.movie_in_catalog(m)]
+            upcoming = [m for m in upcoming if self.db.movie_in_catalog(m)][:limit]
         if not upcoming:
-            paged = self.db.list_movies_page(page=1, limit=4, sort_by="date_added", order="desc")
+            paged = self.db.list_movies_page(page=1, limit=limit, sort_by="date_added", order="desc")
             if paged:
                 upcoming = _summaries(paged[0], self.new_ids)
             else:
                 upcoming = _summaries([], self.new_ids)
         else:
             upcoming = _summaries(upcoming, self.new_ids)
-        return {"movies": upcoming[:8]}
+        return {"movies": upcoming[:limit]}
 
     def movie_suggestions(
         self, movie_id: int | None = None, slug: str | None = None

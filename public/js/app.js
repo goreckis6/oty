@@ -250,25 +250,9 @@
             <a href="/browse">Browse All →</a>
           </div>
           ${renderGrid(latest)}
-        </section>
-
-        <div id="upcomingSection"></div>`;
+        </section>`;
 
       if (window.YtsSeo) window.YtsSeo.setHome();
-
-      YtsApi.listUpcoming()
-        .then((upcoming) => {
-          const host = document.getElementById("upcomingSection");
-          if (!host || !upcoming.movies || !upcoming.movies.length) return;
-          host.innerHTML = `
-        <section class="section-block">
-          <div class="section-head">
-            <h2>Upcoming YIFY Movies</h2>
-          </div>
-          <div class="movies-row movies-row--upcoming">${upcoming.movies.map((m) => movieCard(m)).join("")}</div>
-        </section>`;
-        })
-        .catch(() => {});
     } catch (err) {
       showError(err.message);
     }

@@ -361,9 +361,10 @@ async def list_movies(request: Request) -> JSONResponse:
 
 
 @app.get(f"{API_PREFIX}/list_upcoming.json")
-async def list_upcoming() -> JSONResponse:
+async def list_upcoming(request: Request) -> JSONResponse:
+    limit = min(max(1, int(request.query_params.get("limit") or 20)), 20)
     if use_store():
-        return JSONResponse(ok(require_store().list_upcoming()))
+        return JSONResponse(ok(require_store().list_upcoming(limit=limit)))
     client = require_tmdb()
     data = await client.list_upcoming()
     return JSONResponse(ok(data))
