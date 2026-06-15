@@ -60,6 +60,7 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_movies_slug ON movies(slug);
                 CREATE INDEX IF NOT EXISTS idx_movies_year ON movies(year);
                 CREATE INDEX IF NOT EXISTS idx_movies_rating ON movies(rating);
+                CREATE INDEX IF NOT EXISTS idx_movies_updated_at ON movies(updated_at);
 
                 CREATE TABLE IF NOT EXISTS meta (
                     key TEXT PRIMARY KEY,
@@ -100,6 +101,37 @@ class Database:
         with self.connect() as conn:
             row = conn.execute("SELECT COUNT(*) AS c FROM movies").fetchone()
             return int(row["c"])
+
+    def list_movies_page(
+        self,
+        page: int = 1,
+        limit: int = 20,
+        sort_by: str = "date_added",
+        order: str = "desc",
+    ) -> tuple[list[dict[str, Any]], int] | None:
+        """Fast SQL pagination for unfiltered lists. None = caller should use full scan."""
+        sort_columns = {
+            "date_added": "updated_at",
+            "year": "year",
+            "rating": "rating",
+            "title": "title COLLATE NOCASE",
+        }
+        sort_column = sort_columns.get(sort_by)
+        if sort_column is None:
+            return None
+
+        page = max(1, page)
+        limit = max(1, min(limit, 50))
+        offset = (page - 1) * limit
+        order_sql = "ASC" if order == "asc" else "DESC"
+
+        with self.connect() as conn:
+            total = int(conn.execute("SELECT COUNT(*) AS c FROM movies").fetchone()["c"])
+            rows = conn.execute(
+                f"SELECT data FROM movies ORDER BY {sort_column} {order_sql} LIMIT ? OFFSET ?",
+                (limit, offset),
+            ).fetchall()
+        return [json.loads(r["data"]) for r in rows], total
 
     def existing_ids(self) -> set[int]:
         with self.connect() as conn:

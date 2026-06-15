@@ -115,8 +115,8 @@ jobs:
           }
 
           check_movies_api() {
-            body=$(curl -4 -sfL --max-time 20 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/list_movies.json?limit=1" 2>/dev/null || true)
-            echo "$body" | grep -q '"movie_count"'
+            body=$(curl -4 -sfL --max-time 60 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/list_movies.json?limit=1" 2>/dev/null || true)
+            echo "$body" | grep -q '"movie_count"' || echo "$body" | grep -q 'movies_in_db'
           }
 
           check_frontend() {

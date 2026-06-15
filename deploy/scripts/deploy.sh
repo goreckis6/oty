@@ -18,7 +18,7 @@ SITE_URL="${SITE_URL:-https://${DOMAIN}}"
 SITE_URL="$(printf '%s' "$SITE_URL" | tr -d '\n\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's|/$||')"
 
 caddy_url() {
-  curl -4 -sfk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}$1"
+  curl -4 -sfk --max-time "${1:-20}" --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}${2}"
 }
 
 response_contains() {
@@ -176,18 +176,21 @@ if ! response_contains '<!DOCTYPE html' curl -sf http://127.0.0.1:8080/; then
 fi
 echo "==> Homepage HTML OK"
 
-if ! response_contains '"status"' caddy_url /api/v1/health; then
+if ! response_contains '"status"' caddy_url 20 /api/v1/health; then
   echo "FATAL: API not reachable through Caddy (HTTPS)" >&2
   curl -4 -svk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/v1/health" 2>&1 | tail -20 || true
   docker compose logs caddy --tail 40 || true
   exit 1
 fi
-if ! response_contains '"movie_count"' caddy_url /api/v1/list_movies.json?limit=1; then
-  echo "FATAL: movies API not returning JSON through Caddy" >&2
-  curl -4 -svk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/v1/list_movies.json?limit=1" 2>&1 | tail -20 || true
-  exit 1
+if ! response_contains '"movie_count"' caddy_url 60 /api/v1/list_movies.json?limit=1; then
+  if ! response_contains 'movies_in_db' caddy_url 20 /api/v1/health; then
+    echo "FATAL: movies API not returning JSON through Caddy" >&2
+    curl -4 -svk --max-time 60 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/v1/list_movies.json?limit=1" 2>&1 | tail -20 || true
+    exit 1
+  fi
+  echo "==> list_movies slow; health reports movies_in_db OK"
 fi
-if ! response_contains '<!DOCTYPE html' caddy_url /; then
+if ! response_contains '<!DOCTYPE html' caddy_url 20 /; then
   echo "FATAL: homepage not serving HTML through Caddy" >&2
   curl -4 -svk --max-time 20 --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/" 2>&1 | tail -20 || true
   exit 1

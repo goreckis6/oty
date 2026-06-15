@@ -135,6 +135,23 @@ class MovieStore:
         sort_by = params.get("sort_by") or "date_added"
         order = params.get("order_by") or "desc"
 
+        use_fast = (
+            not query
+            and genre == "All"
+            and quality == "All"
+            and min_rating <= 0
+        )
+        if use_fast:
+            paged = self.db.list_movies_page(page=page, limit=limit, sort_by=sort_by, order=order)
+            if paged is not None:
+                page_items, total = paged
+                return {
+                    "movie_count": total,
+                    "limit": limit,
+                    "page_number": page,
+                    "movies": _summaries(page_items, self.new_ids),
+                }
+
         filtered = [
             m
             for m in self.movies
