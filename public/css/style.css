@@ -20,7 +20,7 @@
   --green-dark: #4a9630;
   --yellow: #f5c518;
   --radius: 3px;
-  --font: "Open Sans", Arial, sans-serif;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --container: 1170px;
   --header-sticky-offset: 1rem;
 }

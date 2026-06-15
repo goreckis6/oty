@@ -1,3 +1,4 @@
+import json
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -113,21 +114,44 @@ def use_store() -> bool:
     return DATA_SOURCE in ("sqlite", "scrape") and store is not None
 
 
-def _spa_index() -> FileResponse:
+def _read_index_html() -> str:
     index = PUBLIC_DIR / "index.html"
     if not index.is_file():
         raise HTTPException(status_code=503, detail="Frontend not found")
-    return FileResponse(index, media_type="text/html")
+    return index.read_text(encoding="utf-8")
+
+
+def _spa_html(bootstrap: str = "") -> HTMLResponse:
+    html = _read_index_html()
+    if bootstrap:
+        html = html.replace(
+            '  <script src="/js/config.js"></script>',
+            f"  {bootstrap}\n  <script src=\"/js/config.js\"></script>",
+        )
+    return HTMLResponse(content=html, headers={"Cache-Control": "no-cache"})
+
+
+def _spa_index() -> HTMLResponse:
+    return _spa_html()
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def spa_home() -> FileResponse:
-    return _spa_index()
+async def spa_home() -> HTMLResponse:
+    bootstrap = ""
+    if use_store() and store is not None:
+        data = store.list_movies(
+            {"limit": "20", "sort_by": "date_added", "order_by": "desc"}
+        )
+        bootstrap = (
+            "<script>window.__HOME_MOVIES__="
+            f"{json.dumps(data, ensure_ascii=False)}</script>"
+        )
+    return _spa_html(bootstrap)
 
 
 @app.get("/browse", response_class=HTMLResponse, include_in_schema=False)
 @app.get("/twojastara", response_class=HTMLResponse, include_in_schema=False)
-async def spa_shell() -> FileResponse:
+async def spa_shell() -> HTMLResponse:
     return _spa_index()
 
 

@@ -135,18 +135,21 @@
     filtersBar.classList.toggle("is-hidden", !show);
   }
 
-  function movieCard(m, featured = false) {
+  function movieCard(m, featured = false, eager = false) {
     const img = m.medium_cover_image || m.small_cover_image || m.large_cover_image || "";
     const genres = (m.genres || []).slice(0, 2);
     const rating = m.rating ? m.rating.toFixed(1) : "0.0";
     const genreHtml = genres
       .map((g) => `<span class="movie-box__genre">${escapeHtml(g)}</span>`)
       .join("");
+    const imgAttrs = eager
+      ? 'loading="eager" fetchpriority="high" decoding="async"'
+      : 'loading="lazy" decoding="async"';
 
     return `
       <a class="movie-box" href="${movieHref(m)}">
         <div class="movie-box__img">
-          <img src="${escapeHtml(img)}" alt="${escapeHtml(m.title)}" loading="lazy" />
+          <img src="${escapeHtml(img)}" alt="${escapeHtml(m.title)}" ${imgAttrs} />
           <div class="movie-box__rating">${rating} <span>/ 10</span></div>
           ${m.is_new ? '<div class="badge-new badge-new--card">NEW</div>' : ""}
           ${m.year ? `<div class="movie-box__year">${m.year}</div>` : ""}
@@ -161,7 +164,9 @@
       return `<p class="empty-msg">No movies found.</p>`;
     }
     const rowClass = featured ? "movies-row movies-row--featured" : "movies-row";
-    return `<div class="${rowClass}">${movies.map((m) => movieCard(m, featured)).join("")}</div>`;
+    return `<div class="${rowClass}">${movies
+      .map((m, i) => movieCard(m, featured, featured && i < 4))
+      .join("")}</div>`;
   }
 
   function renderPagination(movieCount, limit, page) {
@@ -217,7 +222,12 @@
     setFiltersVisible(true);
 
     try {
-      const all = await YtsApi.listMovies({ limit: 20, sort_by: "date_added", order_by: "desc" });
+      let all = window.__HOME_MOVIES__;
+      if (all) {
+        delete window.__HOME_MOVIES__;
+      } else {
+        all = await YtsApi.listMovies({ limit: 20, sort_by: "date_added", order_by: "desc" });
+      }
 
       const movies = all.movies || [];
       const popular = [...movies].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 4);
@@ -511,6 +521,19 @@
     }
   }
 
+  async function loadAdmin() {
+    if (window.YtsAdmin) return window.YtsAdmin;
+    await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "/js/admin.js";
+      script.defer = true;
+      script.onload = resolve;
+      script.onerror = () => reject(new Error("Failed to load admin panel"));
+      document.body.appendChild(script);
+    });
+    return window.YtsAdmin;
+  }
+
   async function router() {
     void initSiteMeta();
     const route = parseRoute();
@@ -518,10 +541,11 @@
     if (route.view === "home") return renderHome();
     if (route.view === "browse") return renderBrowse(route.page);
     if (route.view === "movie") return renderMovie(route.slug);
-    if (route.view === "admin" && window.YtsAdmin) {
+    if (route.view === "admin") {
       setFiltersVisible(false);
       if (window.YtsSeo) window.YtsSeo.setAdmin();
-      return window.YtsAdmin.render(app);
+      const admin = await loadAdmin();
+      return admin.render(app);
     }
     return renderHome();
   }

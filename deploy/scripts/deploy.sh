@@ -122,6 +122,17 @@ ${DOMAIN} {
 		reverse_proxy 127.0.0.1:8080
 	}
 
+	handle /browse /twojastara / {
+		reverse_proxy 127.0.0.1:8080
+	}
+
+	@static path /css/* /js/* /uploads/*
+	handle @static {
+		root * /srv
+		header Cache-Control "public, max-age=604800, immutable"
+		file_server
+	}
+
 	@seo path /robots.txt /sitemap.xml /sitemap*
 	handle @seo {
 		reverse_proxy 127.0.0.1:8080
