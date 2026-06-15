@@ -648,7 +648,13 @@
       if (s.last_result) {
         const r = s.last_result;
         if (r.error) lines.push(`Błąd: ${r.error}`);
-        else lines.push(`Ostatni wynik: +${r.saved || 0} (w bazie: ${r.total_in_db || "?"})`);
+        else {
+          let msg = `Ostatni wynik: +${r.saved || 0}`;
+          if (r.skipped) msg += `, pominięto ${r.skipped}`;
+          if (r.pages_scanned) msg += ` (${r.pages_scanned} str.)`;
+          msg += ` (w bazie: ${r.total_in_db || "?"})`;
+          lines.push(msg);
+        }
       }
       return lines.join(" · ");
     }

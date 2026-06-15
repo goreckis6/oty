@@ -102,7 +102,7 @@ class AutoScrapeService:
         settings = self.get_settings()
         scrape_count = count if count is not None else settings["count"]
         async with _scrape_lock:
-            result = await scrape_movies(scrape_count)
+            result = await scrape_movies(scrape_count, background=True)
         self.db.set_meta("auto_scrape_last_run", _now().isoformat())
         self.db.set_meta(
             "auto_scrape_last_result",
@@ -110,6 +110,7 @@ class AutoScrapeService:
                 "saved": result.get("saved"),
                 "skipped": result.get("skipped"),
                 "skipped_duplicates": result.get("skipped_duplicates"),
+                "pages_scanned": result.get("pages_scanned"),
                 "total_in_db": result.get("total_in_db"),
                 "error": None,
             }, ensure_ascii=False),
