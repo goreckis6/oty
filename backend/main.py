@@ -191,7 +191,7 @@ async def health() -> dict[str, Any]:
 
 @app.get(f"{API_PREFIX}/myip")
 async def my_ip(request: Request) -> dict[str, str]:
-    """Public helper: shows the client IP as seen by the server (for ADMIN_ALLOWED_IPS setup)."""
+    """Public helper: client IP as used for ADMIN_ALLOWED_IPS (after proxy headers)."""
     return {"ip": client_ip(request)}
 
 

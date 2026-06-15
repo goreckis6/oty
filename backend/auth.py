@@ -61,9 +61,31 @@ def _normalize_ip(ip: str) -> str:
     return ip
 
 
+def _is_private_or_loopback(ip: str) -> bool:
+    ip = _normalize_ip(ip)
+    if not ip:
+        return False
+    if ip in ("127.0.0.1", "::1", "localhost"):
+        return True
+    if ip.startswith("10."):
+        return True
+    if ip.startswith("192.168."):
+        return True
+    if ip.startswith("172."):
+        parts = ip.split(".")
+        if len(parts) == 4:
+            try:
+                second = int(parts[1])
+                if 16 <= second <= 31:
+                    return True
+            except ValueError:
+                pass
+    return False
+
+
 def client_ip(request: Request) -> str:
     peer = _normalize_ip(request.client.host if request.client else "")
-    if peer in ("127.0.0.1", "::1"):
+    if _is_private_or_loopback(peer):
         forwarded = request.headers.get("x-forwarded-for")
         if forwarded:
             return _normalize_ip(forwarded.split(",")[0])
