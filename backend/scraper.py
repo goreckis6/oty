@@ -63,121 +63,203 @@ async def fetch_upcoming(client: httpx.AsyncClient, fallback: list[dict]) -> tup
     return fallback[:4], "Upcoming: użyto najnowszych z bieżącego scrapingu"
 
 
+async def _scan_listing_candidates(
+    client: httpx.AsyncClient,
+    *,
+    start_page: int,
+    page_limit: int,
+    need_count: int,
+    known_ids: set[int],
+    known_titles: set[str],
+    background: bool,
+) -> dict[str, Any]:
+    """Phase 1: list-only scan — find movies missing from DB without detail API calls."""
+    candidates: list[dict[str, Any]] = []
+    skipped = 0
+    skipped_duplicates = 0
+    pages_scanned = 0
+    page = start_page
+    catalog_end = False
+    hit_page_limit = False
+    consecutive_full_skip_pages = 0
+    early_stop = False
+
+    while len(candidates) < need_count and page <= MAX_PAGES:
+        pages_scanned += 1
+        if pages_scanned > page_limit:
+            hit_page_limit = True
+            break
+
+        listing = await fetch_json(
+            client,
+            "list_movies.json",
+            limit=str(PAGE_SIZE),
+            page=str(page),
+            sort_by="date_added",
+            order_by="desc",
+        )
+        assert listing is not None
+        movies = listing.get("movies") or []
+        if not movies:
+            catalog_end = True
+            break
+
+        page_had_new = False
+        for m in movies:
+            mid = int(m["id"])
+            if mid in known_ids:
+                skipped += 1
+                continue
+
+            title_key = normalize_title(m.get("title"))
+            if title_key and title_key in known_titles:
+                skipped_duplicates += 1
+                continue
+
+            page_had_new = True
+            candidates.append(m)
+            if len(candidates) >= need_count:
+                break
+
+        if background and not page_had_new:
+            consecutive_full_skip_pages += 1
+            if (
+                start_page == 1
+                and consecutive_full_skip_pages >= FULL_SKIP_STOP_PAGES
+                and not candidates
+            ):
+                early_stop = True
+                break
+        else:
+            consecutive_full_skip_pages = 0
+
+        if len(candidates) >= need_count:
+            break
+
+        page += 1
+        if background or page_had_new:
+            await asyncio.sleep(0.05 if not background else 0.1)
+
+    return {
+        "candidates": candidates,
+        "skipped": skipped,
+        "skipped_duplicates": skipped_duplicates,
+        "pages_scanned": pages_scanned,
+        "next_page": page,
+        "catalog_end": catalog_end,
+        "hit_page_limit": hit_page_limit,
+        "early_stop": early_stop,
+    }
+
+
+def _log_scan_summary(
+    logs: list[str],
+    *,
+    background: bool,
+    start_page: int,
+    scan: dict[str, Any],
+) -> None:
+    candidates = scan["candidates"]
+    pages = scan["pages_scanned"]
+    skipped = scan["skipped"]
+    skipped_dup = scan["skipped_duplicates"]
+
+    if background:
+        logs.append(
+            f"Auto: skan list ({pages} str. od {start_page}): "
+            f"{len(candidates)} nowych, {skipped} w bazie, {skipped_dup} dupl. tytułu."
+        )
+        return
+
+    logs.append(
+        f"Szybkie skanowanie list YTS (str. {start_page}, {pages} str.): "
+        f"w bazie {skipped}, duplikatów tytułu {skipped_dup}."
+    )
+    if candidates:
+        logs.append(f"Do pobrania: {len(candidates)} filmów:")
+        for m in candidates[:12]:
+            logs.append(f"  → {m.get('title', '?')} (id={m.get('id')})")
+        if len(candidates) > 12:
+            logs.append(f"  … i {len(candidates) - 12} więcej")
+        logs.append("Pobieranie szczegółów z YTS…")
+    else:
+        logs.append("W tym zakresie brak nowych filmów — nic do pobrania.")
+
+
+async def _fetch_candidate_details(
+    client: httpx.AsyncClient,
+    candidates: list[dict[str, Any]],
+    *,
+    known_ids: set[int],
+    known_titles: set[str],
+    background: bool,
+    logs: list[str],
+) -> list[dict[str, Any]]:
+    """Phase 2: full movie_details only for candidates from phase 1."""
+    detailed: list[dict[str, Any]] = []
+    for m in candidates:
+        mid = int(m["id"])
+        title = m.get("title", "?")
+        if not background:
+            logs.append(f"Pobieram: {title} (id={mid})")
+        detail = await fetch_json(
+            client,
+            "movie_details.json",
+            movie_id=str(mid),
+            with_images="true",
+            with_cast="true",
+        )
+        assert detail is not None
+        movie = merge_listing_movie(m, detail["movie"])
+        movie = await enrich_movie_async(client, movie)
+        detailed.append(movie)
+        known_ids.add(mid)
+        movie_title = normalize_title(movie.get("title") or title)
+        if movie_title:
+            known_titles.add(movie_title)
+        await asyncio.sleep(0.1 if background else 0.25)
+    return detailed
+
+
 async def scrape_movies(count: int = 10, *, background: bool = False) -> dict[str, Any]:
     count = max(1, int(count))
     logs: list[str] = []
     db = Database()
     known_ids = db.existing_ids()
     known_titles = db.existing_titles()
-    detailed: list[dict] = []
-    skipped = 0
-    skipped_duplicates = 0
-    pages_scanned = 0
-    consecutive_full_skip_pages = 0
     start_page = _get_resume_page(db)
-    page = start_page
     page_limit = PAGES_PER_RUN if background else PAGES_PER_RUN_MANUAL
-    catalog_end = False
 
-    if start_page > 1:
+    if start_page > 1 and not background:
         logs.append(f"Kontynuacja od strony {start_page} (katalog YTS, sort. date_added).")
 
     async with httpx.AsyncClient(follow_redirects=True) as client:
-        while len(detailed) < count and page <= MAX_PAGES:
-            pages_scanned += 1
-            if pages_scanned > page_limit:
-                if background:
-                    logs.append(
-                        f"Auto: przeskanowano {page_limit} stron od str. {start_page}, "
-                        f"pominięto {skipped} — kontynuacja od str. {page}."
-                    )
-                else:
-                    logs.append(
-                        f"Limit skanowania: {page_limit} stron w tym uruchomieniu "
-                        f"(kontynuacja od str. {page} przy następnym kliknięciu)."
-                    )
-                break
-            listing = await fetch_json(
-                client,
-                "list_movies.json",
-                limit=str(PAGE_SIZE),
-                page=str(page),
-                sort_by="date_added",
-                order_by="desc",
-            )
-            assert listing is not None
-            movies = listing.get("movies") or []
-            if not movies:
-                catalog_end = True
-                if not background:
-                    logs.append(f"Koniec listy YTS (strona {page}).")
-                break
+        scan = await _scan_listing_candidates(
+            client,
+            start_page=start_page,
+            page_limit=page_limit,
+            need_count=count,
+            known_ids=known_ids,
+            known_titles=known_titles,
+            background=background,
+        )
+        _log_scan_summary(logs, background=background, start_page=start_page, scan=scan)
 
-            page_had_new = False
-            for m in movies:
-                mid = int(m["id"])
-                title = m.get("title", "?")
-                if mid in known_ids:
-                    skipped += 1
-                    continue
+        detailed = await _fetch_candidate_details(
+            client,
+            scan["candidates"],
+            known_ids=known_ids,
+            known_titles=known_titles,
+            background=background,
+            logs=logs,
+        )
 
-                title_key = normalize_title(title)
-                if title_key and title_key in known_titles:
-                    skipped_duplicates += 1
-                    if not background:
-                        logs.append(f"Pominięto duplikat tytułu: {title} (id={mid})")
-                    continue
-
-                page_had_new = True
-                if not background:
-                    logs.append(f"Dodaję: {title} (id={mid})")
-                detail = await fetch_json(
-                    client,
-                    "movie_details.json",
-                    movie_id=str(mid),
-                    with_images="true",
-                    with_cast="true",
-                )
-                assert detail is not None
-                movie = merge_listing_movie(m, detail["movie"])
-                movie = await enrich_movie_async(client, movie)
-                detailed.append(movie)
-                known_ids.add(mid)
-                movie_title = normalize_title(movie.get("title") or title)
-                if movie_title:
-                    known_titles.add(movie_title)
-                if len(detailed) >= count:
-                    break
-                await asyncio.sleep(0.1 if background else 0.3)
-
-            if background and not page_had_new:
-                consecutive_full_skip_pages += 1
-                if (
-                    start_page == 1
-                    and consecutive_full_skip_pages >= FULL_SKIP_STOP_PAGES
-                    and not detailed
-                ):
-                    next_page = page + 1
-                    _set_resume_page(db, next_page)
-                    logs.append(
-                        f"Auto: najnowsze filmy już w bazie — następne skanowanie od strony {next_page}."
-                    )
-                    break
-            else:
-                consecutive_full_skip_pages = 0
-
-            if len(detailed) >= count:
-                break
-            page += 1
-            await asyncio.sleep(0.1 if background else 0.2)
-
-        if skipped and not background:
-            logs.append(f"Pominięto {skipped} filmów już w bazie (po ID).")
-        elif skipped and background and not any("pominięto" in line for line in logs):
-            logs.append(f"Auto: pominięto {skipped} filmów już w bazie (w tle).")
-
-        if skipped_duplicates and not background:
-            logs.append(f"Pominięto {skipped_duplicates} filmów z powtarzającym się tytułem.")
+        if scan["skipped"] and background and not any("w bazie" in line for line in logs):
+            logs.append(f"Auto: pominięto {scan['skipped']} filmów już w bazie (w tle).")
+        elif scan["skipped"] and not background and not detailed:
+            logs.append(f"Pominięto {scan['skipped']} filmów już w bazie (po ID).")
+        if scan["skipped_duplicates"] and not background and not detailed:
+            logs.append(f"Pominięto {scan['skipped_duplicates']} filmów z powtarzającym się tytułem.")
 
         if not detailed:
             if not background:
@@ -187,17 +269,37 @@ async def scrape_movies(count: int = 10, *, background: bool = False) -> dict[st
         elif background and detailed:
             logs.append(f"Auto: dodano {len(detailed)} nowych filmów.")
 
+        if scan["hit_page_limit"]:
+            if background:
+                logs.append(
+                    f"Auto: przeskanowano {page_limit} stron od str. {start_page} — "
+                    f"kontynuacja od str. {scan['next_page']}."
+                )
+            else:
+                logs.append(
+                    f"Limit skanowania: {page_limit} stron w tym uruchomieniu "
+                    f"(kontynuacja od str. {scan['next_page']} przy następnym kliknięciu)."
+                )
+        elif scan["early_stop"]:
+            next_page = scan["next_page"] + 1
+            _set_resume_page(db, next_page)
+            logs.append(
+                f"Auto: najnowsze filmy już w bazie — następne skanowanie od strony {next_page}."
+            )
+        elif scan["catalog_end"] and not background:
+            logs.append(f"Koniec listy YTS (strona {scan['next_page']}).")
+
         upcoming, upcoming_note = await fetch_upcoming(client, detailed)
         if upcoming_note and not background:
             logs.append(upcoming_note)
 
-    if catalog_end:
+    if scan["catalog_end"]:
         _set_resume_page(db, 1)
         logs.append("Koniec katalogu YTS — następne skanowanie od strony 1.")
-    else:
-        _set_resume_page(db, page)
+    elif not scan["early_stop"]:
+        _set_resume_page(db, scan["next_page"])
         if not any("następne skanowanie" in line.lower() for line in logs):
-            logs.append(f"Następne skanowanie: strona {page}.")
+            logs.append(f"Następne skanowanie: strona {scan['next_page']}.")
 
     saved = db.upsert_movies(detailed)
     batch_ids = [int(m["id"]) for m in detailed]
@@ -220,9 +322,10 @@ async def scrape_movies(count: int = 10, *, background: bool = False) -> dict[st
 
     return {
         "saved": saved,
-        "skipped": skipped,
-        "skipped_duplicates": skipped_duplicates,
-        "pages_scanned": pages_scanned,
+        "skipped": scan["skipped"],
+        "skipped_duplicates": scan["skipped_duplicates"],
+        "candidates_found": len(scan["candidates"]),
+        "pages_scanned": scan["pages_scanned"],
         "resume_page": _get_resume_page(db),
         "start_page": start_page,
         "seo_urls": seo_urls,

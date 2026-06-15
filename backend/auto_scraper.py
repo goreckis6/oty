@@ -112,6 +112,7 @@ class AutoScrapeService:
                 "saved": result.get("saved"),
                 "skipped": result.get("skipped"),
                 "skipped_duplicates": result.get("skipped_duplicates"),
+                "candidates_found": result.get("candidates_found"),
                 "pages_scanned": result.get("pages_scanned"),
                 "start_page": result.get("start_page"),
                 "resume_page": result.get("resume_page"),

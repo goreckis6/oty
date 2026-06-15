@@ -854,7 +854,7 @@
       const log = document.getElementById("adminLog");
       const count = parseInt(document.getElementById("scrapeCount").value, 10) || 10;
       btn.disabled = true;
-      log.textContent = `Scraping ${count} movies…\n`;
+      log.textContent = `Skanowanie list YTS (szukam ${count} nowych)…\n`;
       try {
         const result = await api("/admin/scrape", {
           method: "POST",
@@ -862,6 +862,9 @@
         });
         log.textContent += (result.logs || []).join("\n") + "\n";
         log.textContent += `\n✓ Dodano ${result.saved} nowych filmów (w bazie: ${result.total_in_db})`;
+        if (result.candidates_found != null && result.candidates_found !== result.saved) {
+          log.textContent += `\nZnaleziono do pobrania: ${result.candidates_found}`;
+        }
         if (result.skipped) {
           log.textContent += `, pominięto ${result.skipped} już istniejących`;
         }
