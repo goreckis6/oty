@@ -1,6 +1,8 @@
 (function () {
   const TOKEN_KEY = "yts_admin_token";
   let adminRefreshTimer = null;
+  let scrapePollTimer = null;
+  let scrapePollInFlight = false;
 
   function getToken() {
     return localStorage.getItem(TOKEN_KEY);
@@ -23,6 +25,18 @@
       clearInterval(adminRefreshTimer);
       adminRefreshTimer = null;
     }
+  }
+
+  function clearScrapePollTimer() {
+    if (scrapePollTimer) {
+      clearTimeout(scrapePollTimer);
+      scrapePollTimer = null;
+    }
+  }
+
+  function clearAllAdminTimers() {
+    clearAdminRefreshTimer();
+    clearScrapePollTimer();
   }
 
   async function api(path, options = {}) {
@@ -354,7 +368,7 @@
       </div>`;
 
     document.getElementById("adminLogout").addEventListener("click", async () => {
-      clearAdminRefreshTimer();
+      clearAllAdminTimers();
       try {
         await api("/admin/logout", { method: "POST" });
       } catch {
@@ -366,6 +380,41 @@
 
     const ADMIN_TAB_KEY = "yts_admin_tab";
     const validTabs = new Set(["movies", "scraping", "branding", "files"]);
+    const SCRAPE_POLL_MS = 3000;
+    const SCRAPE_POLL_ACTIVE_MS = 2000;
+    let scrapePollFast = false;
+
+    async function refreshScrapePanel() {
+      if (scrapePollInFlight) return;
+      scrapePollInFlight = true;
+      try {
+        await Promise.all([loadScrapeQueue(), loadAutoScrape()]);
+      } finally {
+        scrapePollInFlight = false;
+      }
+    }
+
+    function scheduleScrapePoll(delayMs) {
+      clearScrapePollTimer();
+      scrapePollTimer = window.setTimeout(async () => {
+        if ((sessionStorage.getItem(ADMIN_TAB_KEY) || "movies") !== "scraping") {
+          clearScrapePollTimer();
+          return;
+        }
+        await refreshScrapePanel();
+        scheduleScrapePoll(scrapePollFast ? SCRAPE_POLL_ACTIVE_MS : SCRAPE_POLL_MS);
+      }, delayMs);
+    }
+
+    function startScrapePollTimer(intervalMs = SCRAPE_POLL_MS) {
+      scrapePollFast = intervalMs <= SCRAPE_POLL_ACTIVE_MS;
+      void refreshScrapePanel();
+      scheduleScrapePoll(intervalMs);
+    }
+
+    function stopScrapePollTimer() {
+      clearScrapePollTimer();
+    }
 
     function switchTab(name) {
       if (!validTabs.has(name)) name = "movies";
@@ -383,8 +432,9 @@
       if (name === "files") loadFiles();
       if (name === "branding") loadBranding();
       if (name === "scraping") {
-        loadAutoScrape();
-        loadScrapeQueue();
+        startScrapePollTimer(SCRAPE_POLL_MS);
+      } else {
+        stopScrapePollTimer();
       }
     }
 
@@ -745,6 +795,7 @@
       const statusEl = document.getElementById("autoScrapeStatus");
       try {
         const s = await api("/admin/auto-scrape");
+        scrapePollFast = scrapePollFast || !!s.running;
         document.getElementById("autoScrapeEnabled").checked = !!s.enabled;
         document.getElementById("autoScrapeInterval").value = s.interval_minutes || 60;
         document.getElementById("autoScrapeCount").value = s.count || 10;
@@ -930,6 +981,10 @@
         set("scrapeStatPages", pages != null ? String(pages) : "—");
         set("scrapeStatResume", s.resume_page != null ? String(s.resume_page) : "—");
         set("scrapeStatDb", s.movies_in_db != null ? String(s.movies_in_db) : "—");
+        if (s.movies_in_db != null) {
+          const statCount = document.getElementById("statCount");
+          if (statCount) statCount.textContent = String(s.movies_in_db);
+        }
 
         const lastEl = document.getElementById("scrapeLastScanMeta");
         if (lastEl) {
@@ -982,6 +1037,7 @@
       const count = parseInt(document.getElementById("scrapeCount").value, 10) || 10;
       btn.disabled = true;
       document.getElementById("scrapeBtn").disabled = true;
+      startScrapePollTimer(SCRAPE_POLL_ACTIVE_MS);
       log.textContent = `Skanowanie list YTS (szukam do ${count} nowych)…\n`;
       try {
         const result = await api("/admin/scrape/scan", {
@@ -999,6 +1055,9 @@
       } finally {
         btn.disabled = false;
         document.getElementById("scrapeBtn").disabled = false;
+        if ((sessionStorage.getItem(ADMIN_TAB_KEY) || "movies") === "scraping") {
+          startScrapePollTimer(SCRAPE_POLL_MS);
+        }
       }
     });
 
@@ -1009,6 +1068,7 @@
       const count = parseInt(document.getElementById("scrapeCount").value, 10) || 10;
       btn.disabled = true;
       document.getElementById("scrapeScanBtn").disabled = true;
+      startScrapePollTimer(SCRAPE_POLL_ACTIVE_MS);
       log.textContent = `Pobieranie z kolejki (max ${count})…\n`;
       try {
         const result = await api("/admin/scrape", {
@@ -1031,20 +1091,19 @@
       } finally {
         btn.disabled = false;
         document.getElementById("scrapeScanBtn").disabled = false;
+        if ((sessionStorage.getItem(ADMIN_TAB_KEY) || "movies") === "scraping") {
+          startScrapePollTimer(SCRAPE_POLL_MS);
+        }
       }
     });
 
     initAdminData();
     if ((sessionStorage.getItem(ADMIN_TAB_KEY) || "movies") === "scraping") {
-      window.setTimeout(() => {
-        loadAutoScrape();
-        loadScrapeQueue();
-      }, 100);
+      startScrapePollTimer(SCRAPE_POLL_MS);
     }
     clearAdminRefreshTimer();
     adminRefreshTimer = setInterval(() => {
       loadStats();
-      if ((sessionStorage.getItem(ADMIN_TAB_KEY) || "movies") === "scraping") loadAutoScrape();
     }, 30000);
   }
 
@@ -1059,5 +1118,5 @@
     renderLogin(app, () => renderDashboard(app));
   }
 
-  window.YtsAdmin = { render, cleanup: clearAdminRefreshTimer };
+  window.YtsAdmin = { render, cleanup: clearAllAdminTimers };
 })();
