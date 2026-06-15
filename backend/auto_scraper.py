@@ -61,6 +61,7 @@ class AutoScrapeService:
             "running": _scrape_lock.locked(),
             "scheduler_alive": _task is not None and not _task.done(),
             "min_interval_minutes": MIN_INTERVAL_MINUTES,
+            "scrape_resume_page": int(self.db.get_meta("scrape_resume_page", "1") or 1),
         }
 
     def _last_result(self) -> dict[str, Any] | None:
@@ -111,6 +112,8 @@ class AutoScrapeService:
                 "skipped": result.get("skipped"),
                 "skipped_duplicates": result.get("skipped_duplicates"),
                 "pages_scanned": result.get("pages_scanned"),
+                "start_page": result.get("start_page"),
+                "resume_page": result.get("resume_page"),
                 "total_in_db": result.get("total_in_db"),
                 "error": None,
             }, ensure_ascii=False),

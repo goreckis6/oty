@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-DB_PATH = Path(os.environ.get("DB_PATH", str(Path(__file__).resolve().parent / "data" / "movies.db")))
+COUNT_CACHE_KEY = "movies_count_cache"
 
 # Legacy seed IDs from old test_movies.json — removed on first startup after upgrade.
 LEGACY_SEED_MOVIE_IDS = frozenset({
@@ -33,6 +33,8 @@ class Database:
         self._init_schema()
         self._remove_legacy_seed_movies()
         self.prune_upcoming()
+        if not self.get_meta(COUNT_CACHE_KEY, "").isdigit():
+            self.refresh_movies_count()
 
     @contextmanager
     def connect(self):
@@ -98,9 +100,41 @@ class Database:
         return removed
 
     def count_movies(self) -> int:
+        cached = self.get_meta(COUNT_CACHE_KEY, "")
+        if cached.isdigit():
+            return int(cached)
+        return self.refresh_movies_count()
+
+    def refresh_movies_count(self) -> int:
         with self.connect() as conn:
-            row = conn.execute("SELECT COUNT(*) AS c FROM movies").fetchone()
-            return int(row["c"])
+            total = int(conn.execute("SELECT COUNT(*) AS c FROM movies").fetchone()["c"])
+        self.set_meta(COUNT_CACHE_KEY, str(total))
+        return total
+
+    def _adjust_count_cache(self, delta: int) -> None:
+        cached = self.get_meta(COUNT_CACHE_KEY, "")
+        if cached.isdigit():
+            self.set_meta(COUNT_CACHE_KEY, str(max(0, int(cached) + delta)))
+        else:
+            self.refresh_movies_count()
+
+    def duplicate_title_keys_for(self, titles: list[str]) -> set[str]:
+        keys = sorted({normalize_title(t) for t in titles if normalize_title(t)})
+        if not keys:
+            return set()
+        placeholders = ",".join("?" for _ in keys)
+        with self.connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT lower(trim(title)) AS k
+                FROM movies
+                WHERE lower(trim(title)) IN ({placeholders})
+                GROUP BY k
+                HAVING COUNT(*) > 1
+                """,
+                keys,
+            ).fetchall()
+        return {r["k"] for r in rows if r["k"]}
 
     def list_movies_page(
         self,
@@ -124,9 +158,9 @@ class Database:
         limit = max(1, min(limit, 50))
         offset = (page - 1) * limit
         order_sql = "ASC" if order == "asc" else "DESC"
+        total = self.count_movies()
 
         with self.connect() as conn:
-            total = int(conn.execute("SELECT COUNT(*) AS c FROM movies").fetchone()["c"])
             rows = conn.execute(
                 f"SELECT data FROM movies ORDER BY {sort_column} {order_sql} LIMIT ? OFFSET ?",
                 (limit, offset),
@@ -244,6 +278,7 @@ class Database:
     def upsert_movie(self, movie: dict[str, Any]) -> None:
         mid = int(movie["id"])
         slug = movie.get("slug") or f"movie-{mid}"
+        existed = self.get_movie(movie_id=mid) is not None
         with self.connect() as conn:
             conn.execute(
                 """
@@ -267,6 +302,8 @@ class Database:
                     _now(),
                 ),
             )
+        if not existed:
+            self._adjust_count_cache(1)
 
     def upsert_movies(self, movies: list[dict[str, Any]]) -> int:
         for m in movies:
@@ -333,8 +370,8 @@ class Database:
         page = max(1, page)
         limit = max(1, limit)
         offset = (page - 1) * limit
+        total = self.count_movies()
         with self.connect() as conn:
-            total = int(conn.execute("SELECT COUNT(*) AS c FROM movies").fetchone()["c"])
             rows = conn.execute(
                 """
                 SELECT id, slug, title, year, rating, updated_at
@@ -358,6 +395,7 @@ class Database:
             deleted = cur.rowcount > 0
         if not deleted:
             return False
+        self._adjust_count_cache(-1)
 
         current_batch = list(self.get_last_batch_ids())
         if movie_id in current_batch:
@@ -380,3 +418,4 @@ class Database:
     def delete_all_movies(self) -> None:
         with self.connect() as conn:
             conn.execute("DELETE FROM movies")
+        self.set_meta(COUNT_CACHE_KEY, "0")

@@ -157,6 +157,7 @@
               <label>
                 Na stronę
                 <select id="adminMoviesLimit">
+                  <option value="50">50</option>
                   <option value="100">100</option>
                   <option value="200">200</option>
                   <option value="300">300</option>
@@ -638,6 +639,9 @@
     function formatAutoStatus(s) {
       const lines = [];
       lines.push(s.enabled ? "Status: włączone" : "Status: wyłączone");
+      if (s.scrape_resume_page) {
+        lines.push(`Kolejna strona YTS: ${s.scrape_resume_page}`);
+      }
       if (s.enabled && s.scheduler_alive === false) {
         lines.push("Scheduler: nie działa (zrestartuj API)");
       }
@@ -654,6 +658,8 @@
           let msg = `Ostatni wynik: +${r.saved || 0}`;
           if (r.skipped) msg += `, pominięto ${r.skipped}`;
           if (r.pages_scanned) msg += ` (${r.pages_scanned} str.)`;
+          if (r.start_page) msg += `, od str. ${r.start_page}`;
+          if (r.resume_page) msg += ` → nast. ${r.resume_page}`;
           msg += ` (w bazie: ${r.total_in_db || "?"})`;
           lines.push(msg);
         }
@@ -858,6 +864,9 @@
         }
         if (result.seo_urls && result.seo_urls.length) {
           log.textContent += `\nSEO: ${result.seo_urls.length} stron dodanych do sitemap.`;
+        }
+        if (result.resume_page) {
+          log.textContent += `\nNastępne skanowanie od strony YTS: ${result.resume_page}`;
         }
         loadBootstrap();
       } catch (err) {

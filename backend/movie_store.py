@@ -1,19 +1,16 @@
 import os
-import time
 from typing import Any
 
 from database import Database, normalize_title
 from movie_enrichment import enrich_movie
 
-ADMIN_PAGE_SIZES = (100, 200, 300, 500)
-_dup_keys_cache: tuple[float, set[str]] | None = None
-DUP_CACHE_SECONDS = 600
+ADMIN_PAGE_SIZES = (50, 100, 200, 300, 500)
 
 
 def _normalize_admin_limit(limit: int) -> int:
     if limit in ADMIN_PAGE_SIZES:
         return limit
-    return 100
+    return 50
 
 
 SUMMARY_KEYS = (
@@ -93,16 +90,7 @@ class MovieStore:
 
     @classmethod
     def invalidate_dup_cache(cls) -> None:
-        cls._dup_keys_cache = None
-
-    def _duplicate_title_keys(self) -> set[str]:
-        global _dup_keys_cache
-        now = time.monotonic()
-        if MovieStore._dup_keys_cache and now - MovieStore._dup_keys_cache[0] < DUP_CACHE_SECONDS:
-            return MovieStore._dup_keys_cache[1]
-        keys = self.db.duplicate_title_keys()
-        MovieStore._dup_keys_cache = (now, keys)
-        return keys
+        pass
 
     @property
     def new_ids(self) -> set[int]:
@@ -120,8 +108,8 @@ class MovieStore:
     def list_all_admin(self, page: int = 1, limit: int = 100) -> dict[str, Any]:
         limit = _normalize_admin_limit(limit)
         new_ids = self.new_ids
-        duplicate_titles = self._duplicate_title_keys()
         rows, total = self.db.list_rows_paginated(page=page, limit=limit)
+        duplicate_titles = self.db.duplicate_title_keys_for([r.get("title") or "" for r in rows])
         items = []
         for row in rows:
             title_key = normalize_title(row.get("title"))

@@ -349,6 +349,7 @@ async def admin_stats(_: str = Depends(require_admin)) -> dict[str, Any]:
         "last_scrape_count": db.get_meta("last_scrape_count"),
         "new_count": new_count,
         "data_source": DATA_SOURCE,
+        "scrape_resume_page": db.get_meta("scrape_resume_page", "1"),
     }
 
 
@@ -366,11 +367,12 @@ async def admin_bootstrap(
     movies = store.list_all_admin(page=page, limit=limit)
     return {
         "status": "ok",
-        "movies_count": db.count_movies(),
+        "movies_count": movies["movie_count"],
         "last_scrape": db.get_meta("last_scrape"),
         "last_scrape_count": db.get_meta("last_scrape_count"),
         "new_count": new_count,
         "data_source": DATA_SOURCE,
+        "scrape_resume_page": db.get_meta("scrape_resume_page", "1"),
         **movies,
     }
 
