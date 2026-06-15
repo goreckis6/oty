@@ -6,12 +6,14 @@ import os
 import time
 from typing import Any
 
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Request
 
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin")
 JWT_SECRET = os.environ.get("JWT_SECRET", "change-me-in-production")
 TOKEN_TTL_HOURS = int(os.environ.get("TOKEN_TTL_HOURS", str(30 * 24)))
+TOKEN_COOKIE = "yts_admin_session"
+ADMIN_ALLOWED_IPS = os.environ.get("ADMIN_ALLOWED_IPS", "").strip()
 
 
 def _sign(message: str) -> str:
@@ -41,17 +43,52 @@ def verify_token(token: str) -> dict[str, Any] | None:
         return None
 
 
-def authenticate(username: str, password: str) -> bool:
-    return hmac.compare_digest(username, ADMIN_USER) and hmac.compare_digest(
-        password, ADMIN_PASSWORD
-    )
+def _password_configured() -> bool:
+    return bool(ADMIN_PASSWORD) and ADMIN_PASSWORD != "admin" and len(ADMIN_PASSWORD) >= 8
 
 
-def require_admin(authorization: str | None = Header(default=None)) -> str:
-    if not authorization or not authorization.lower().startswith("bearer "):
+def authenticate(password: str) -> bool:
+    site_url = os.environ.get("SITE_URL", "")
+    if site_url.startswith("https://") and not _password_configured():
+        return False
+    return hmac.compare_digest(password, ADMIN_PASSWORD)
+
+
+def client_ip(request: Request) -> str:
+    peer = request.client.host if request.client else ""
+    if peer in ("127.0.0.1", "::1"):
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        real_ip = request.headers.get("x-real-ip")
+        if real_ip:
+            return real_ip.strip()
+    return peer
+
+
+def assert_admin_client(request: Request) -> None:
+    if not ADMIN_ALLOWED_IPS:
+        return
+    allowed = {ip.strip() for ip in ADMIN_ALLOWED_IPS.split(",") if ip.strip()}
+    if client_ip(request) not in allowed:
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+def extract_token(request: Request, authorization: str | None) -> str | None:
+    if authorization and authorization.lower().startswith("bearer "):
+        return authorization.split(" ", 1)[1].strip()
+    return request.cookies.get(TOKEN_COOKIE)
+
+
+def require_admin(
+    request: Request,
+    authorization: str | None = Header(default=None),
+) -> str:
+    assert_admin_client(request)
+    token = extract_token(request, authorization)
+    if not token:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    token = authorization.split(" ", 1)[1].strip()
     payload = verify_token(token)
-    if not payload:
+    if not payload or payload.get("sub") != ADMIN_USER:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
-    return str(payload.get("sub", ""))
+    return ADMIN_USER

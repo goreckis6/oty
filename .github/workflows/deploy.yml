@@ -25,6 +25,7 @@ jobs:
       ADMIN_USER: ${{ secrets.ADMIN_USER || 'admin' }}
       ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD || 'admin' }}
       JWT_SECRET: ${{ secrets.JWT_SECRET || '' }}
+      ADMIN_ALLOWED_IPS: ${{ secrets.ADMIN_ALLOWED_IPS || '' }}
       SITE_NAME: ${{ secrets.SITE_NAME || 'YTS' }}
       SITE_TAGLINE: ${{ secrets.SITE_TAGLINE || '' }}
     steps:
@@ -98,6 +99,7 @@ jobs:
              APP_DIR='${DEPLOY_PATH}' DOMAIN='${DOMAIN}' ACME_EMAIL='${ACME_EMAIL}' \
              DATA_SOURCE='${DATA_SOURCE}' TMDB_API_KEY='${TMDB_API_KEY}' TORRENT_SOURCE='${TORRENT_SOURCE}' \
              ADMIN_USER='${ADMIN_USER}' ADMIN_PASSWORD='${ADMIN_PASSWORD}' JWT_SECRET='${JWT_SECRET}' \
+             ADMIN_ALLOWED_IPS='${ADMIN_ALLOWED_IPS}' \
              SITE_NAME='${SITE_NAME}' SITE_TAGLINE='${SITE_TAGLINE}' \
              bash '${DEPLOY_PATH}/deploy/scripts/deploy.sh'"
 

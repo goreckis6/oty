@@ -10,7 +10,15 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from auth import authenticate, create_token, require_admin
+from auth import (
+    ADMIN_USER,
+    TOKEN_COOKIE,
+    TOKEN_TTL_HOURS,
+    assert_admin_client,
+    authenticate,
+    create_token,
+    require_admin,
+)
 from auto_scraper import AutoScrapeService, run_scrape_locked, start_auto_scraper, stop_auto_scraper
 from database import Database
 from movie_store import MovieStore
@@ -67,8 +75,22 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def admin_access_guard(request: Request, call_next):
+    path = request.url.path
+    is_admin_api = path.startswith(f"{API_PREFIX}/admin")
+    is_admin_page = path == "/twojastara"
+    if is_admin_api or is_admin_page:
+        try:
+            assert_admin_client(request)
+        except HTTPException as exc:
+            if is_admin_api:
+                return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+            return PlainTextResponse("Not Found", status_code=404)
+    return await call_next(request)
+
+
 class LoginRequest(BaseModel):
-    username: str
     password: str
 
 
@@ -173,10 +195,29 @@ async def site_branding() -> dict[str, Any]:
 
 
 @app.post(f"{API_PREFIX}/admin/login")
-async def admin_login(body: LoginRequest) -> dict[str, str]:
-    if not authenticate(body.username, body.password):
+async def admin_login(body: LoginRequest) -> JSONResponse:
+    if not authenticate(body.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return {"token": create_token(body.username), "status": "ok"}
+    token = create_token(ADMIN_USER)
+    site_url = os.environ.get("SITE_URL", "")
+    resp = JSONResponse({"token": token, "status": "ok"})
+    resp.set_cookie(
+        key=TOKEN_COOKIE,
+        value=token,
+        max_age=TOKEN_TTL_HOURS * 3600,
+        httponly=True,
+        secure=site_url.startswith("https"),
+        samesite="lax",
+        path="/",
+    )
+    return resp
+
+
+@app.post(f"{API_PREFIX}/admin/logout")
+async def admin_logout() -> JSONResponse:
+    resp = JSONResponse({"status": "ok"})
+    resp.delete_cookie(key=TOKEN_COOKIE, path="/")
+    return resp
 
 
 @app.get(f"{API_PREFIX}/admin/me")

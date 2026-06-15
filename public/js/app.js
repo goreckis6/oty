@@ -323,7 +323,7 @@
       const torrentCards = (m.torrents || [])
         .map((t) => {
           const magnet = YtsApi.buildMagnet(t, m.title_long || m.title);
-          const torrentUrl = t.url || "#";
+          const torrentUrl = t.url || "";
           return `
             <div class="dl-box">
               <div class="dl-box__quality">${escapeHtml(t.quality)}</div>
@@ -333,8 +333,8 @@
                 <span class="peers">${t.peers ?? 0} peers</span>
               </div>
               <div class="dl-box__actions">
-                <a class="btn-dl" href="${escapeHtml(torrentUrl)}" target="_blank" rel="noopener">Download</a>
-                <a class="btn-dl btn-magnet" href="${escapeHtml(magnet)}">Magnet</a>
+                <button type="button" class="btn-dl" data-download-url="${escapeHtml(torrentUrl)}" ${torrentUrl ? "" : "disabled"}>Download</button>
+                <button type="button" class="btn-dl btn-magnet" data-magnet-url="${escapeHtml(magnet)}">Magnet</button>
               </div>
             </div>`;
         })
@@ -545,9 +545,16 @@
     return window.YtsAdmin;
   }
 
+  let lastView = null;
+
   async function router() {
     void initSiteMeta();
     const route = parseRoute();
+
+    if (lastView === "admin" && route.view !== "admin" && window.YtsAdmin?.cleanup) {
+      window.YtsAdmin.cleanup();
+    }
+    lastView = route.view;
 
     if (route.view === "home") return renderHome();
     if (route.view === "browse") return renderBrowse(route.page);
@@ -571,6 +578,20 @@
   applyFilters.addEventListener("click", () => {
     readFiltersFromUI();
     navigate(browseUrl());
+  });
+
+  document.addEventListener("click", (e) => {
+    const dlBtn = e.target.closest(".btn-dl[data-download-url]");
+    if (dlBtn) {
+      const url = dlBtn.getAttribute("data-download-url");
+      if (url) window.open(url, "_blank", "noopener");
+      return;
+    }
+    const magnetBtn = e.target.closest(".btn-magnet[data-magnet-url]");
+    if (magnetBtn) {
+      const url = magnetBtn.getAttribute("data-magnet-url");
+      if (url) window.location.href = url;
+    }
   });
 
   document.addEventListener("click", (e) => {

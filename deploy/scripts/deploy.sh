@@ -13,6 +13,7 @@ ADMIN_USER="${ADMIN_USER:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
 JWT_SECRET="${JWT_SECRET:-change-me-in-production}"
 TOKEN_TTL_HOURS="${TOKEN_TTL_HOURS:-720}"
+ADMIN_ALLOWED_IPS="${ADMIN_ALLOWED_IPS:-}"
 SITE_NAME="${SITE_NAME:-YTS}"
 SITE_TAGLINE="${SITE_TAGLINE:-HD movies at the smallest file size}"
 SITE_URL="${SITE_URL:-https://${DOMAIN}}"
@@ -116,15 +117,24 @@ ${DOMAIN} {
 	encode gzip
 
 	handle /api/v1/* {
-		reverse_proxy 127.0.0.1:8080
+		reverse_proxy 127.0.0.1:8080 {
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Real-IP {remote_host}
+		}
 	}
 
 	handle /movies/* {
-		reverse_proxy 127.0.0.1:8080
+		reverse_proxy 127.0.0.1:8080 {
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Real-IP {remote_host}
+		}
 	}
 
 	handle /browse /twojastara / {
-		reverse_proxy 127.0.0.1:8080
+		reverse_proxy 127.0.0.1:8080 {
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Real-IP {remote_host}
+		}
 	}
 
 	@static path /css/* /js/* /uploads/*
@@ -136,7 +146,10 @@ ${DOMAIN} {
 
 	@seo path /robots.txt /sitemap.xml /sitemap*
 	handle @seo {
-		reverse_proxy 127.0.0.1:8080
+		reverse_proxy 127.0.0.1:8080 {
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Real-IP {remote_host}
+		}
 	}
 
 	handle {
@@ -165,7 +178,7 @@ if [ -f "$HASH_FILE" ] && [ "$(cat "$HASH_FILE")" = "$CURRENT_HASH" ]; then
 fi
 
 echo "==> Starting API + Caddy..."
-export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE ADMIN_USER ADMIN_PASSWORD JWT_SECRET TOKEN_TTL_HOURS SITE_URL SITE_NAME SITE_TAGLINE
+export DATA_SOURCE TMDB_API_KEY TORRENT_SOURCE ADMIN_USER ADMIN_PASSWORD JWT_SECRET TOKEN_TTL_HOURS ADMIN_ALLOWED_IPS SITE_URL SITE_NAME SITE_TAGLINE
 if [ "$NEED_BUILD" -eq 1 ]; then
   echo "    API code changed — building image"
   docker compose up -d --build --remove-orphans

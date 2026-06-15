@@ -1,27 +1,53 @@
 (function () {
   const TOKEN_KEY = "yts_admin_token";
+  let adminRefreshTimer = null;
 
   function getToken() {
     return localStorage.getItem(TOKEN_KEY);
   }
 
   function setToken(token) {
-    localStorage.setItem(TOKEN_KEY, token);
+    if (token) localStorage.setItem(TOKEN_KEY, token);
   }
 
   function clearToken() {
     localStorage.removeItem(TOKEN_KEY);
   }
 
+  function isAuthError(err) {
+    return err && (err.status === 401 || err.status === 403);
+  }
+
+  function clearAdminRefreshTimer() {
+    if (adminRefreshTimer) {
+      clearInterval(adminRefreshTimer);
+      adminRefreshTimer = null;
+    }
+  }
+
   async function api(path, options = {}) {
-    const headers = { ...(options.headers || {}) };
-    const isForm = options.body instanceof FormData;
+    const { auth = true, ...fetchOptions } = options;
+    const headers = { ...(fetchOptions.headers || {}) };
+    const isForm = fetchOptions.body instanceof FormData;
     if (!isForm) headers["Content-Type"] = "application/json";
     const token = getToken();
-    if (token) headers.Authorization = `Bearer ${token}`;
-    const res = await fetch(`/api/v1${path}`, { ...options, headers });
+    if (auth && token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(`/api/v1${path}`, {
+      ...fetchOptions,
+      headers,
+      credentials: "same-origin",
+    });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.detail || `Error ${res.status}`);
+    if (!res.ok) {
+      const detail = data.detail;
+      const msg =
+        (typeof detail === "string" && detail) ||
+        (Array.isArray(detail) && detail[0]?.msg) ||
+        `Error ${res.status}`;
+      const err = new Error(msg);
+      err.status = res.status;
+      throw err;
+    }
     return data;
   }
 
@@ -50,7 +76,6 @@
         <div class="admin-card">
           <h1>Admin Panel</h1>
           <form id="adminLoginForm" class="admin-form">
-            <label>Username<input type="text" id="adminUser" autocomplete="username" required /></label>
             <label>Password<input type="password" id="adminPass" autocomplete="current-password" required /></label>
             <button type="submit" class="btn-browse">Log in</button>
             <p class="admin-error" id="adminError" hidden></p>
@@ -65,8 +90,8 @@
       try {
         const data = await api("/admin/login", {
           method: "POST",
+          auth: false,
           body: JSON.stringify({
-            username: document.getElementById("adminUser").value,
             password: document.getElementById("adminPass").value,
           }),
         });
@@ -82,7 +107,6 @@
   function renderDashboard(app) {
     let moviesPage = 1;
     let moviesLimit = 100;
-    let autoRefreshTimer = null;
     const selectedIds = new Set();
 
     function updateBulkBar() {
@@ -289,8 +313,13 @@
         </div>
       </div>`;
 
-    document.getElementById("adminLogout").addEventListener("click", () => {
-      if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+    document.getElementById("adminLogout").addEventListener("click", async () => {
+      clearAdminRefreshTimer();
+      try {
+        await api("/admin/logout", { method: "POST" });
+      } catch {
+        /* cookie may already be gone */
+      }
       clearToken();
       window.YtsAdmin.render(app);
     });
@@ -666,9 +695,11 @@
         document.getElementById("statLast").textContent = s.last_scrape || "never";
         document.getElementById("statBatch").textContent = s.last_scrape_count || "—";
         document.getElementById("statNew").textContent = s.new_count ?? "—";
-      } catch {
-        clearToken();
-        window.YtsAdmin.render(app);
+      } catch (err) {
+        if (isAuthError(err)) {
+          clearToken();
+          window.YtsAdmin.render(app);
+        }
       }
     }
 
@@ -811,26 +842,23 @@
     loadMovies();
     loadFiles();
     loadAutoScrape();
-    autoRefreshTimer = setInterval(() => {
+    clearAdminRefreshTimer();
+    adminRefreshTimer = setInterval(() => {
       loadAutoScrape();
       loadStats();
     }, 30000);
   }
 
   async function render(app) {
-    const token = getToken();
-    if (!token) {
-      renderLogin(app, () => render(app));
-      return;
-    }
     try {
       await api("/admin/me");
       renderDashboard(app);
-    } catch {
-      clearToken();
-      renderLogin(app, () => render(app));
+      return;
+    } catch (err) {
+      if (isAuthError(err)) clearToken();
     }
+    renderLogin(app, () => renderDashboard(app));
   }
 
-  window.YtsAdmin = { render };
+  window.YtsAdmin = { render, cleanup: clearAdminRefreshTimer };
 })();
