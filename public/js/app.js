@@ -136,26 +136,6 @@
       .replace(/"/g, "&quot;");
   }
 
-  function encodeGoParam(url) {
-    return btoa(url).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-  }
-
-  function goDownloadHref(url) {
-    if (!url) return "#";
-    return `/api/v1/go?u=${encodeURIComponent(encodeGoParam(url))}`;
-  }
-
-  function torrentDownloadHref(torrent) {
-    const hash = (torrent.hash || "").trim().toLowerCase();
-    if (hash && /^[a-f0-9]{40}$/.test(hash)) {
-      let href = `/api/v1/torrent/${hash}`;
-      const url = torrent.url || "";
-      if (url) href += `?src=${encodeURIComponent(encodeGoParam(url))}`;
-      return href;
-    }
-    return goDownloadHref(torrent.url || "");
-  }
-
   function movieHref(m) {
     if (m.slug) return `/movies/${m.slug}`;
     const t = (m.title || "movie").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -344,8 +324,6 @@
         .map((t) => {
           const magnet = YtsApi.buildMagnet(t, m.title_long || m.title);
           const torrentUrl = t.url || "";
-          const downloadHref = torrentDownloadHref(t);
-          const downloadName = `${(m.slug || m.title || "movie").replace(/[^a-z0-9._-]+/gi, "-")}-${t.quality || "torrent"}.torrent`;
           return `
             <div class="dl-box">
               <div class="dl-box__quality">${escapeHtml(t.quality)}</div>
@@ -355,7 +333,7 @@
                 <span class="peers">${t.peers ?? 0} peers</span>
               </div>
               <div class="dl-box__actions">
-                <a class="btn-dl" href="${escapeHtml(downloadHref)}" download="${escapeHtml(downloadName)}" rel="noopener noreferrer" ${torrentUrl || t.hash ? "" : 'aria-disabled="true" tabindex="-1"'}>Download</a>
+                <a class="btn-dl" href="${escapeHtml(torrentUrl)}" target="_blank" rel="noopener noreferrer" ${torrentUrl ? "" : 'aria-disabled="true" tabindex="-1"'}>Download</a>
                 <a class="btn-dl btn-magnet" href="${escapeHtml(magnet)}">Magnet</a>
               </div>
             </div>`;
