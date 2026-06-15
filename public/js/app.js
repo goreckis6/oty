@@ -136,6 +136,12 @@
       .replace(/"/g, "&quot;");
   }
 
+  function goDownloadHref(url) {
+    if (!url) return "#";
+    const encoded = btoa(url).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    return `/api/v1/go?u=${encodeURIComponent(encoded)}`;
+  }
+
   function movieHref(m) {
     if (m.slug) return `/movies/${m.slug}`;
     const t = (m.title || "movie").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -324,6 +330,7 @@
         .map((t) => {
           const magnet = YtsApi.buildMagnet(t, m.title_long || m.title);
           const torrentUrl = t.url || "";
+          const downloadHref = goDownloadHref(torrentUrl);
           return `
             <div class="dl-box">
               <div class="dl-box__quality">${escapeHtml(t.quality)}</div>
@@ -333,8 +340,8 @@
                 <span class="peers">${t.peers ?? 0} peers</span>
               </div>
               <div class="dl-box__actions">
-                <button type="button" class="btn-dl" data-download-url="${escapeHtml(torrentUrl)}" ${torrentUrl ? "" : "disabled"}>Download</button>
-                <button type="button" class="btn-dl btn-magnet" data-magnet-url="${escapeHtml(magnet)}">Magnet</button>
+                <a class="btn-dl" href="${escapeHtml(downloadHref)}" target="_blank" rel="noopener noreferrer" ${torrentUrl ? "" : 'aria-disabled="true" tabindex="-1"'}>Download</a>
+                <a class="btn-dl btn-magnet" href="${escapeHtml(magnet)}">Magnet</a>
               </div>
             </div>`;
         })
@@ -578,20 +585,6 @@
   applyFilters.addEventListener("click", () => {
     readFiltersFromUI();
     navigate(browseUrl());
-  });
-
-  document.addEventListener("click", (e) => {
-    const dlBtn = e.target.closest(".btn-dl[data-download-url]");
-    if (dlBtn) {
-      const url = dlBtn.getAttribute("data-download-url");
-      if (url) window.open(url, "_blank", "noopener");
-      return;
-    }
-    const magnetBtn = e.target.closest(".btn-magnet[data-magnet-url]");
-    if (magnetBtn) {
-      const url = magnetBtn.getAttribute("data-magnet-url");
-      if (url) window.location.href = url;
-    }
   });
 
   document.addEventListener("click", (e) => {

@@ -1,12 +1,21 @@
+import base64
 import json
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    Response,
+)
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -199,6 +208,41 @@ async def my_ip(request: Request) -> dict[str, str]:
         "x_forwarded_for": request.headers.get("x-forwarded-for") or "",
         "x_real_ip": request.headers.get("x-real-ip") or "",
     }
+
+
+def _decode_go_param(value: str) -> str:
+    padded = value + "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode(padded.encode()).decode("utf-8", errors="strict")
+
+
+def _allowed_download_target(url: str) -> bool:
+    if url.startswith("magnet:?"):
+        return "xt=urn:btih:" in url.lower()
+    parsed = urlparse(url)
+    if parsed.scheme not in ("https", "http"):
+        return False
+    if not parsed.netloc:
+        return False
+    host = parsed.hostname or ""
+    if host in ("localhost", "127.0.0.1", "::1"):
+        return False
+    if host.startswith("10.") or host.startswith("192.168.") or host.startswith("172."):
+        return False
+    return True
+
+
+@app.get(f"{API_PREFIX}/go", include_in_schema=False)
+async def go_download(request: Request) -> RedirectResponse:
+    raw = (request.query_params.get("u") or request.query_params.get("m") or "").strip()
+    if not raw:
+        raise HTTPException(status_code=404, detail="Not found")
+    try:
+        target = _decode_go_param(raw)
+    except (ValueError, UnicodeDecodeError):
+        raise HTTPException(status_code=404, detail="Not found") from None
+    if not _allowed_download_target(target):
+        raise HTTPException(status_code=404, detail="Not found")
+    return RedirectResponse(url=target, status_code=302)
 
 
 @app.get(f"{API_PREFIX}/site/branding")

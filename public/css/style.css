@@ -1056,8 +1056,9 @@ a:hover {
   line-height: 1.2;
 }
 
-.btn-dl:disabled {
+.btn-dl[aria-disabled="true"] {
   opacity: 0.45;
+  pointer-events: none;
   cursor: not-allowed;
 }
 
