@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from database import Database
-from scraper import scrape_movies
+from scraper import SCRAPE_LAST_SCAN_KEY, scrape_movies
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,15 @@ class AutoScrapeService:
     def __init__(self, db: Database) -> None:
         self.db = db
 
+    def _last_scan(self) -> dict[str, Any] | None:
+        raw = self.db.get_meta(SCRAPE_LAST_SCAN_KEY, "")
+        if not raw:
+            return None
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+
     def get_settings(self) -> dict[str, Any]:
         enabled = self.db.get_meta("auto_scrape_enabled", "0") == "1"
         interval = int(self.db.get_meta("auto_scrape_interval_min", str(DEFAULT_INTERVAL_MINUTES)) or DEFAULT_INTERVAL_MINUTES)
@@ -63,6 +72,7 @@ class AutoScrapeService:
             "min_interval_minutes": MIN_INTERVAL_MINUTES,
             "scrape_resume_page": int(self.db.get_meta("scrape_resume_page", "1") or 1),
             "movies_in_db": self.db.count_movies(),
+            "scrape_last_scan": self._last_scan(),
         }
 
     def _last_result(self) -> dict[str, Any] | None:

@@ -1,5 +1,7 @@
 import asyncio
+import json
 import os
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -18,6 +20,7 @@ PAGES_PER_RUN = int(os.environ.get("SCRAPE_MAX_PAGES", "50"))
 PAGES_PER_RUN_MANUAL = int(os.environ.get("SCRAPE_MAX_PAGES_MANUAL", "500"))
 FULL_SKIP_STOP_PAGES = int(os.environ.get("SCRAPE_FULL_SKIP_STOP", "3"))
 SCRAPE_RESUME_PAGE_KEY = "scrape_resume_page"
+SCRAPE_LAST_SCAN_KEY = "scrape_last_scan"
 
 
 def _get_resume_page(db: Database) -> int:
@@ -29,6 +32,33 @@ def _get_resume_page(db: Database) -> int:
 
 def _set_resume_page(db: Database, page: int) -> None:
     db.set_meta(SCRAPE_RESUME_PAGE_KEY, str(max(1, min(page, MAX_PAGES))))
+
+
+def _save_last_scan(
+    db: Database,
+    *,
+    background: bool,
+    start_page: int,
+    scan: dict[str, Any],
+    saved: int,
+) -> None:
+    db.set_meta(
+        SCRAPE_LAST_SCAN_KEY,
+        json.dumps(
+            {
+                "at": datetime.now(timezone.utc).isoformat(),
+                "mode": "auto" if background else "manual",
+                "start_page": start_page,
+                "pages_scanned": scan["pages_scanned"],
+                "skipped": scan["skipped"],
+                "skipped_duplicates": scan["skipped_duplicates"],
+                "candidates_found": len(scan["candidates"]),
+                "saved": saved,
+                "resume_page": _get_resume_page(db),
+            },
+            ensure_ascii=False,
+        ),
+    )
 
 
 async def fetch_json(
@@ -319,6 +349,8 @@ async def scrape_movies(count: int = 10, *, background: bool = False) -> dict[st
             logs.append(f"  → {url}")
     elif saved == 0:
         logs.append("SEO: brak nowych stron (sitemap bez zmian).")
+
+    _save_last_scan(db, background=background, start_page=start_page, scan=scan, saved=saved)
 
     return {
         "saved": saved,

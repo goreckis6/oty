@@ -195,7 +195,7 @@
 
           <section class="admin-tab admin-section" data-tab="scraping" id="adminTabScraping" role="tabpanel" hidden>
             <h2>Scrape from YTS</h2>
-            <p class="admin-hint">Pobiera kolejne nowe filmy z yts.bz i dopisuje do bazy SQLite (bez usuwania poprzednich).</p>
+            <p class="admin-hint">Ten sam szybki skan list YTS co auto — wspólna kolejna strona i postęp w katalogu.</p>
             <form id="scrapeForm" class="admin-scrape">
               <label>
                 Liczba filmów
@@ -206,7 +206,7 @@
             <pre class="admin-log" id="adminLog">Ready.</pre>
 
             <h2 class="admin-tab__subtitle">Auto scraping</h2>
-            <p class="admin-hint">Automatyczny scraping w tle. Minimalny interwał: 5 minut.</p>
+            <p class="admin-hint">Ten sam skaner co ręczny — wspólna kolejna strona YTS; auto robi krótsze cykle (50 str. / interwał).</p>
             <form id="autoScrapeForm" class="admin-scrape admin-scrape--auto">
               <label class="admin-check">
                 <input type="checkbox" id="autoScrapeEnabled" />
@@ -636,6 +636,17 @@
       document.getElementById("adminFileEditor").hidden = true;
     });
 
+    function formatLastScan(scan) {
+      if (!scan) return "";
+      const mode = scan.mode === "auto" ? "auto" : "ręczny";
+      let line = `Ostatni skan (${mode}): +${scan.saved ?? 0}`;
+      if (scan.candidates_found) line += `, znaleziono ${scan.candidates_found}`;
+      if (scan.pages_scanned) line += `, ${scan.pages_scanned} str.`;
+      if (scan.start_page) line += ` od ${scan.start_page}`;
+      if (scan.resume_page) line += ` → nast. ${scan.resume_page}`;
+      return line;
+    }
+
     function formatAutoStatus(s) {
       const lines = [];
       lines.push(s.enabled ? "Status: włączone" : "Status: wyłączone");
@@ -670,6 +681,8 @@
       } else if (s.movies_in_db != null) {
         lines.push(`W bazie: ${s.movies_in_db}`);
       }
+      const scanLine = formatLastScan(s.scrape_last_scan);
+      if (scanLine) lines.push(scanLine);
       return lines.join(" · ");
     }
 
