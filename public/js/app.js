@@ -303,11 +303,7 @@
     showLoading();
 
     try {
-      const [details, suggestions] = await Promise.all([
-        YtsApi.movieDetails(slugOrId),
-        YtsApi.movieSuggestions(slugOrId).catch(() => ({ movies: [] })),
-      ]);
-
+      const details = await YtsApi.movieDetails(slugOrId);
       const m = details.movie;
 
       if (m.slug && location.pathname !== `/movies/${m.slug}`) {
@@ -454,15 +450,25 @@
               </div>
             </div>
 
-            ${suggestions.movies && suggestions.movies.length ? `
-            <section class="section-block movie-similar">
-              <div class="section-head"><h2>Similar YIFY Movies</h2></div>
-              ${renderGrid(suggestions.movies)}
-            </section>` : ""}
+            <div id="movieSimilar" class="movie-similar-host"></div>
           </div>
         </article>`;
 
       if (window.YtsSeo) window.YtsSeo.setMovie(m);
+
+      const similarHost = document.getElementById("movieSimilar");
+      if (similarHost) {
+        YtsApi.movieSuggestions(slugOrId)
+          .then((suggestions) => {
+            if (!suggestions.movies || !suggestions.movies.length) return;
+            similarHost.innerHTML = `
+            <section class="section-block movie-similar">
+              <div class="section-head"><h2>Similar YIFY Movies</h2></div>
+              ${renderGrid(suggestions.movies)}
+            </section>`;
+          })
+          .catch(() => {});
+      }
     } catch (err) {
       if (err.status === 404 || /not found/i.test(err.message || "")) {
         showNotFound(err.message);

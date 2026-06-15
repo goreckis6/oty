@@ -133,6 +133,72 @@ class Database:
             ).fetchall()
         return [json.loads(r["data"]) for r in rows], total
 
+    def get_movie_suggestions(
+        self,
+        exclude_id: int,
+        genres: list[str] | None = None,
+        limit: int = 4,
+    ) -> list[dict[str, Any]]:
+        genres = [g for g in (genres or []) if g]
+        limit = max(1, min(limit, 20))
+        genre_set = set(genres)
+
+        with self.connect() as conn:
+            if genres:
+                clauses = " OR ".join("data LIKE ?" for _ in genres)
+                params: list[Any] = [exclude_id]
+                params.extend(f'%"{g}"%' for g in genres)
+                params.append(limit * 8)
+                rows = conn.execute(
+                    f"""
+                    SELECT data FROM movies
+                    WHERE id != ? AND ({clauses})
+                    ORDER BY rating DESC
+                    LIMIT ?
+                    """,
+                    params,
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT data FROM movies
+                    WHERE id != ?
+                    ORDER BY rating DESC
+                    LIMIT ?
+                    """,
+                    (exclude_id, limit),
+                ).fetchall()
+
+        results: list[dict[str, Any]] = []
+        for row in rows:
+            movie = json.loads(row["data"])
+            if genre_set:
+                if not genre_set.intersection(movie.get("genres") or []):
+                    continue
+            results.append(movie)
+            if len(results) >= limit:
+                return results
+
+        if len(results) < limit:
+            with self.connect() as conn:
+                skip = {exclude_id, *(int(m.get("id") or 0) for m in results)}
+                placeholders = ",".join("?" for _ in skip)
+                extra = conn.execute(
+                    f"""
+                    SELECT data FROM movies
+                    WHERE id NOT IN ({placeholders})
+                    ORDER BY rating DESC
+                    LIMIT ?
+                    """,
+                    (*skip, limit - len(results)),
+                ).fetchall()
+            for row in extra:
+                results.append(json.loads(row["data"]))
+                if len(results) >= limit:
+                    break
+
+        return results[:limit]
+
     def existing_ids(self) -> set[int]:
         with self.connect() as conn:
             rows = conn.execute("SELECT id FROM movies").fetchall()

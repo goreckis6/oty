@@ -185,7 +185,11 @@ class MovieStore:
             existing_ids = self.db.existing_ids()
             upcoming = [m for m in upcoming if self.db._upcoming_in_db(m, existing_ids)]
         if not upcoming:
-            upcoming = _summaries(self.movies[:4], self.new_ids)
+            paged = self.db.list_movies_page(page=1, limit=4, sort_by="date_added", order="desc")
+            if paged:
+                upcoming = _summaries(paged[0], self.new_ids)
+            else:
+                upcoming = _summaries([], self.new_ids)
         else:
             upcoming = _summaries(upcoming, self.new_ids)
         return {"movies": upcoming[:8]}
@@ -195,15 +199,14 @@ class MovieStore:
     ) -> dict[str, Any]:
         target = self.db.get_movie(movie_id=movie_id, slug=slug)
         if not target:
-            return {"movies": _summaries(self.movies[:4], self.new_ids)}
+            paged = self.db.list_movies_page(page=1, limit=4, sort_by="rating", order="desc")
+            fallback = _summaries(paged[0], self.new_ids) if paged else []
+            return {"movies": fallback}
 
-        mid = target.get("id")
-        genres = set(target.get("genres") or [])
-        similar = [
-            m
-            for m in self.movies
-            if m.get("id") != mid and genres.intersection(m.get("genres") or [])
-        ]
-        if not similar:
-            similar = [m for m in self.movies if m.get("id") != mid]
-        return {"movies": _summaries(similar[:4], self.new_ids)}
+        mid = int(target.get("id") or 0)
+        similar = self.db.get_movie_suggestions(
+            exclude_id=mid,
+            genres=target.get("genres") or [],
+            limit=4,
+        )
+        return {"movies": _summaries(similar, self.new_ids)}
