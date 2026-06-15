@@ -116,6 +116,7 @@ class AutoScrapeService:
         scrape_count = count if count is not None else settings["count"]
         async with _scrape_lock:
             result = await scrape_movies(scrape_count, background=True)
+        detail_errors = sum(1 for line in result.get("logs", []) if str(line).startswith("Pominięto"))
         self.db.set_meta("auto_scrape_last_run", _now().isoformat())
         self.db.set_meta(
             "auto_scrape_last_result",
@@ -128,6 +129,7 @@ class AutoScrapeService:
                 "start_page": result.get("start_page"),
                 "resume_page": result.get("resume_page"),
                 "total_in_db": result.get("total_in_db"),
+                "detail_errors": detail_errors,
                 "error": None,
             }, ensure_ascii=False),
         )

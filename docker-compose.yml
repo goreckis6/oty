@@ -18,6 +18,7 @@ services:
       TMDB_API_KEY: ${TMDB_API_KEY:-}
       TORRENT_SOURCE: ${TORRENT_SOURCE:-apibay}
       YTS_SCRAPE_URL: ${YTS_SCRAPE_URL:-https://yts.bz/api/v2}
+      YTS_SCRAPE_MIRROR_URLS: ${YTS_SCRAPE_MIRROR_URLS:-https://yts.bz/api/v2,https://yts.gg/api/v2}
       ADMIN_USER: ${ADMIN_USER:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}

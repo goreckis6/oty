@@ -92,7 +92,7 @@ jobs:
              fi"
 
       - name: Remote deploy
-        timeout-minutes: 10
+        timeout-minutes: 30
         run: |
           ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o ServerAliveInterval=30 "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "chmod +x ${DEPLOY_PATH}/deploy/scripts/*.sh && \

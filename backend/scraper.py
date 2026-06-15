@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 from datetime import datetime, timezone
 from typing import Any
@@ -11,7 +12,25 @@ from movie_enrichment import enrich_movie_async, merge_listing_movie
 from movie_store import MovieStore
 from seo import register_movies_for_seo
 
-YTS_BASE = os.environ.get("YTS_SCRAPE_URL", "https://yts.bz/api/v2").rstrip("/")
+logger = logging.getLogger(__name__)
+
+
+def _yts_mirror_urls() -> list[str]:
+    primary = os.environ.get("YTS_SCRAPE_URL", "https://yts.bz/api/v2").strip().rstrip("/")
+    extra_raw = os.environ.get(
+        "YTS_SCRAPE_MIRROR_URLS",
+        "https://yts.bz/api/v2,https://yts.gg/api/v2",
+    )
+    urls: list[str] = []
+    for u in [primary, *extra_raw.split(",")]:
+        u = u.strip().rstrip("/")
+        if u and u not in urls:
+            urls.append(u)
+    return urls or ["https://yts.bz/api/v2"]
+
+
+YTS_MIRROR_URLS = _yts_mirror_urls()
+YTS_BASE = YTS_MIRROR_URLS[0]
 SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")
 PAGE_SIZE = 50
 MAX_LISTING_MOVIES = 80_000
@@ -22,6 +41,9 @@ FULL_SKIP_STOP_PAGES = int(os.environ.get("SCRAPE_FULL_SKIP_STOP", "3"))
 PARALLEL_LIST_PAGES = int(os.environ.get("SCRAPE_PARALLEL_PAGES", "8"))
 LISTING_TIMEOUT = float(os.environ.get("SCRAPE_LISTING_TIMEOUT", "12"))
 DETAIL_TIMEOUT = float(os.environ.get("SCRAPE_DETAIL_TIMEOUT", "60"))
+DETAIL_RETRIES = max(1, int(os.environ.get("SCRAPE_DETAIL_RETRIES", "3")))
+RETRY_BACKOFF = float(os.environ.get("SCRAPE_RETRY_BACKOFF", "2"))
+RETRYABLE_STATUS = {429, 502, 503, 504}
 FAST_SKIP_AFTER = int(os.environ.get("SCRAPE_FAST_SKIP_AFTER", "15"))
 FAST_SKIP_JUMP = int(os.environ.get("SCRAPE_FAST_SKIP_JUMP", "50"))
 SCRAPE_RESUME_PAGE_KEY = "scrape_resume_page"
@@ -201,16 +223,33 @@ async def fetch_json(
     *,
     allow_404: bool = False,
     timeout: float = 30.0,
+    base_url: str | None = None,
     **params: str,
 ) -> dict | None:
-    res = await client.get(f"{YTS_BASE}/{path}", params=params, timeout=timeout)
-    if allow_404 and res.status_code == 404:
-        return None
-    res.raise_for_status()
-    data = res.json()
-    if data.get("status") != "ok":
-        raise RuntimeError(data.get("status_message", "YTS error"))
-    return data["data"]
+    bases = [base_url] if base_url else YTS_MIRROR_URLS
+    last_exc: Exception | None = None
+    for attempt in range(DETAIL_RETRIES):
+        for base in bases:
+            try:
+                res = await client.get(f"{base}/{path}", params=params, timeout=timeout)
+                if allow_404 and res.status_code == 404:
+                    return None
+                res.raise_for_status()
+                data = res.json()
+                if data.get("status") != "ok":
+                    raise RuntimeError(data.get("status_message", "YTS error"))
+                return data["data"]
+            except httpx.HTTPStatusError as exc:
+                last_exc = exc
+                if exc.response.status_code not in RETRYABLE_STATUS:
+                    raise
+            except (httpx.TimeoutException, httpx.TransportError) as exc:
+                last_exc = exc
+        if attempt < DETAIL_RETRIES - 1:
+            await asyncio.sleep(RETRY_BACKOFF * (attempt + 1))
+    if last_exc:
+        raise last_exc
+    raise RuntimeError("YTS request failed")
 
 
 async def fetch_upcoming(client: httpx.AsyncClient, fallback: list[dict]) -> tuple[list[dict], str | None]:
@@ -534,22 +573,28 @@ async def _fetch_candidate_details(
         title = m.get("title", "?")
         if not background:
             logs.append(f"Pobieram: {title} (id={mid})")
-        detail = await fetch_json(
-            client,
-            "movie_details.json",
-            timeout=DETAIL_TIMEOUT,
-            movie_id=str(mid),
-            with_images="true",
-            with_cast="true",
-        )
-        assert detail is not None
-        movie = merge_listing_movie(m, detail["movie"])
-        movie = await enrich_movie_async(client, movie)
-        detailed.append(movie)
-        known_ids.add(mid)
-        movie_title = normalize_title(movie.get("title") or title)
-        if movie_title:
-            known_titles.add(movie_title)
+        try:
+            detail = await fetch_json(
+                client,
+                "movie_details.json",
+                timeout=DETAIL_TIMEOUT,
+                movie_id=str(mid),
+                with_images="true",
+                with_cast="true",
+            )
+            assert detail is not None
+            movie = merge_listing_movie(m, detail["movie"])
+            movie = await enrich_movie_async(client, movie)
+            detailed.append(movie)
+            known_ids.add(mid)
+            movie_title = normalize_title(movie.get("title") or title)
+            if movie_title:
+                known_titles.add(movie_title)
+        except Exception as exc:
+            msg = f"Pominięto {title} (id={mid}): {exc}"
+            logs.append(msg)
+            if background:
+                logger.warning(msg)
         await asyncio.sleep(0.1 if background else 0.25)
     return detailed
 

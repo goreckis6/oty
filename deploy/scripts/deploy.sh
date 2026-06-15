@@ -149,8 +149,8 @@ ${DOMAIN} {
 	handle /api/v1/* {
 		reverse_proxy 127.0.0.1:8080 {
 			transport http {
-				read_timeout 10m
-				write_timeout 10m
+				read_timeout 30m
+				write_timeout 30m
 			}
 			header_up X-Forwarded-For {remote_host}
 			header_up X-Real-IP {remote_host}

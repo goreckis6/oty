@@ -730,6 +730,7 @@
           if ((r.saved ?? 0) === 0 && r.pages_scanned) {
             msg += " — w tym zakresie stron brak nowych, auto idzie dalej";
           }
+          if (r.detail_errors) msg += `, pominięto ${r.detail_errors} (błąd YTS)`;
           lines.push(msg);
         }
       } else if (s.movies_in_db != null) {
@@ -819,20 +820,14 @@
       updateBulkBar();
     }
 
-    async function loadBootstrap() {
-      const tbody = document.getElementById("adminMoviesBody");
-      try {
-        const data = await api(`/admin/bootstrap?${moviesQuery()}`);
-        applyStats(data);
-        renderMoviesTable(data);
-      } catch (err) {
-        if (isAuthError(err)) {
-          clearToken();
-          window.YtsAdmin.render(app);
-          return;
-        }
-        tbody.innerHTML = `<tr><td colspan="8" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
-      }
+    async function refreshAdminData() {
+      void loadMovies();
+      void loadStats();
+    }
+
+    function initAdminData() {
+      void loadMovies();
+      window.setTimeout(() => void loadStats(), 0);
     }
 
     async function loadStats() {
@@ -853,6 +848,11 @@
         const data = await api(`/admin/movies?${moviesQuery()}`);
         renderMoviesTable(data);
       } catch (err) {
+        if (isAuthError(err)) {
+          clearToken();
+          window.YtsAdmin.render(app);
+          return;
+        }
         tbody.innerHTML = `<tr><td colspan="8" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
       }
     }
@@ -890,7 +890,7 @@
           body: JSON.stringify({ ids }),
         });
         ids.forEach((id) => selectedIds.delete(id));
-        loadBootstrap();
+        refreshAdminData();
         alert(`Usunięto ${result.deleted} filmów.`);
       } catch (err) {
         alert(err.message);
@@ -909,7 +909,7 @@
       try {
         await api(`/admin/movies/${id}`, { method: "DELETE" });
         selectedIds.delete(parseInt(id, 10));
-        loadBootstrap();
+        refreshAdminData();
       } catch (err) {
         alert(err.message);
         btn.disabled = false;
@@ -1023,7 +1023,7 @@
         if (result.seo_urls && result.seo_urls.length) {
           log.textContent += `\nSEO: ${result.seo_urls.length} stron dodanych do sitemap.`;
         }
-        loadBootstrap();
+        refreshAdminData();
         loadScrapeQueue();
         loadAutoScrape();
       } catch (err) {
@@ -1034,7 +1034,13 @@
       }
     });
 
-    loadBootstrap();
+    initAdminData();
+    if ((sessionStorage.getItem(ADMIN_TAB_KEY) || "movies") === "scraping") {
+      window.setTimeout(() => {
+        loadAutoScrape();
+        loadScrapeQueue();
+      }, 100);
+    }
     clearAdminRefreshTimer();
     adminRefreshTimer = setInterval(() => {
       loadStats();
