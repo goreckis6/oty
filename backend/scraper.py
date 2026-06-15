@@ -621,11 +621,11 @@ async def _save_scraped_movies(
 
     seo_urls = register_movies_for_seo(db, detailed)
     if seo_urls:
-        logs.append(f"SEO: {len(seo_urls)} nowych stron gotowych (meta + sitemap automatycznie).")
+        logs.append(f"SEO: {len(seo_urls)} nowych stron gotowych (meta, bez dodawania do sitemap).")
         for url in seo_urls:
             logs.append(f"  → {url}")
     elif saved == 0:
-        logs.append("SEO: brak nowych stron (sitemap bez zmian).")
+        logs.append("SEO: brak nowych stron.")
     if upcoming_note:
         logs.append(upcoming_note)
     return saved, seo_urls
@@ -828,11 +828,11 @@ async def scrape_movies(count: int = 10, *, background: bool = False) -> dict[st
 
     seo_urls = register_movies_for_seo(db, detailed)
     if seo_urls:
-        logs.append(f"SEO: {len(seo_urls)} nowych stron gotowych (meta + sitemap automatycznie).")
+        logs.append(f"SEO: {len(seo_urls)} nowych stron gotowych (meta, bez dodawania do sitemap).")
         for url in seo_urls:
             logs.append(f"  → {url}")
     elif saved == 0:
-        logs.append("SEO: brak nowych stron (sitemap bez zmian).")
+        logs.append("SEO: brak nowych stron.")
 
     _save_last_scan(db, background=background, start_page=start_page, scan=scan, saved=saved)
 

@@ -677,9 +677,7 @@ async def robots_txt() -> str:
 
 @app.get("/sitemap.xml")
 async def sitemap_xml() -> Response:
-    assert db is not None
-    entries = db.list_sitemap_entries() if use_store() else []
-    xml = build_sitemap(entries)
+    xml = build_sitemap()
     return Response(
         content=xml,
         media_type="application/xml",
@@ -689,9 +687,7 @@ async def sitemap_xml() -> Response:
 
 @app.get("/sitemap{index}.xml")
 async def sitemap_part(index: int) -> Response:
-    assert db is not None
-    entries = db.list_sitemap_entries() if use_store() else []
-    xml = build_sitemap_part(entries, index)
+    xml = build_sitemap_part(None, index)
     if xml is None:
         raise HTTPException(status_code=404, detail="Sitemap not found")
     return Response(

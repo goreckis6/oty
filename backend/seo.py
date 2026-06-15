@@ -303,19 +303,10 @@ def render_movie_page(movie: dict[str, Any]) -> str:
 
 
 def collect_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> list[tuple[str, str, str]]:
-    """Return (loc, lastmod, priority) tuples for all indexable pages."""
+    """Return (loc, lastmod, priority) — homepage only; movie pages are not listed."""
+    _ = entries
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    urls: list[tuple[str, str, str]] = [
-        (f"{SITE_URL}/", today, "1.0"),
-        (f"{SITE_URL}/browse", today, "0.9"),
-    ]
-    for entry in entries or []:
-        slug = entry.get("slug")
-        if not slug:
-            continue
-        lastmod = format_lastmod(entry.get("updated_at"))
-        urls.append((movie_canonical(slug), lastmod, "0.8"))
-    return urls
+    return [(f"{SITE_URL}/", today, "1.0")]
 
 
 def chunk_sitemap_urls(urls: list[tuple[str, str, str]], size: int = SITEMAP_MAX_URLS) -> list[list[tuple[str, str, str]]]:
@@ -367,11 +358,11 @@ def build_sitemap_part(entries: list[dict[str, Any]] | None, index: int) -> str 
 
 
 def register_movies_for_seo(db: Any, movies: list[dict[str, Any]]) -> list[str]:
-    """Mark freshly stored movies as sitemap-ready. SEO pages are generated on demand."""
+    """Track freshly stored movies for on-demand SEO pages (not added to sitemap)."""
     urls = movie_seo_urls(movies)
     if urls:
         db.set_meta("seo_last_update", datetime.now(timezone.utc).isoformat())
-        db.set_meta("seo_url_count", str(len(db.list_sitemap_entries())))
+        db.set_meta("seo_url_count", "1")
     return urls
 
 
