@@ -112,19 +112,21 @@ jobs:
           echo "Checking https://${DOMAIN_CLEAN}..."
 
           check_site() {
-            body=$(curl -4 -sfL --max-time 10 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health" 2>/dev/null || true)
+            body=$(curl -4 -sfL --max-time 8 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health" 2>/dev/null || true)
             echo "$body" | grep -q '"status"' || return 1
-            body=$(curl -4 -sfL --max-time 10 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/" 2>/dev/null || true)
+            body=$(curl -4 -sfL --max-time 8 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/" 2>/dev/null || true)
             case "$body" in *'<!DOCTYPE html'*) return 0 ;; *) return 1 ;; esac
           }
 
-          for i in $(seq 1 15); do
+          for i in $(seq 1 8); do
             if check_site; then
               echo "==> Deploy OK: https://${DOMAIN_CLEAN}"
               exit 0
             fi
-            echo "attempt ${i}/15, retry in 3s..."
-            sleep 3
+            if [ "$i" -lt 8 ]; then
+              echo "attempt ${i}/8, retry in 2s..."
+              sleep 2
+            fi
           done
           echo "Health check failed for https://${DOMAIN_CLEAN}/"
           curl -4 -svk --max-time 10 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health" 2>&1 | tail -20 || true

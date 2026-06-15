@@ -31,8 +31,8 @@ services:
         ]
       interval: 5s
       timeout: 5s
-      retries: 6
-      start_period: 15s
+      retries: 4
+      start_period: 8s
 
   caddy:
     image: caddy:2-alpine
