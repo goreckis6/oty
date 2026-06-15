@@ -30,10 +30,17 @@ from auth import (
     create_token,
     require_admin,
 )
-from auto_scraper import AutoScrapeService, run_scrape_locked, start_auto_scraper, stop_auto_scraper
+from auto_scraper import (
+    AutoScrapeService,
+    run_download_locked,
+    run_scan_locked,
+    run_scrape_locked,
+    start_auto_scraper,
+    stop_auto_scraper,
+)
 from database import Database
 from movie_store import MovieStore
-from scraper import scrape_movies
+from scraper import pending_status
 from seo import build_robots, build_sitemap, build_sitemap_part, register_movies_for_seo, render_movie_page
 from site_files import delete_site_file, list_site_files, read_site_file, upload_site_file, write_site_file
 from site_branding import get_branding, remove_logo, save_branding, save_logo
@@ -422,13 +429,31 @@ async def admin_bulk_delete_movies(
     }
 
 
+@app.get(f"{API_PREFIX}/admin/scrape/queue")
+async def admin_scrape_queue(_: str = Depends(require_admin)) -> dict[str, Any]:
+    assert db is not None
+    return {"status": "ok", **pending_status(db)}
+
+
+@app.post(f"{API_PREFIX}/admin/scrape/scan")
+async def admin_scrape_scan(
+    body: ScrapeRequest,
+    _: str = Depends(require_admin),
+) -> dict[str, Any]:
+    try:
+        result = await run_scan_locked(body.count)
+        return {"status": "ok", **result}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @app.post(f"{API_PREFIX}/admin/scrape")
 async def admin_scrape(
     body: ScrapeRequest,
     _: str = Depends(require_admin),
 ) -> dict[str, Any]:
     try:
-        result = await run_scrape_locked(body.count)
+        result = await run_download_locked(body.count)
         MovieStore.invalidate_dup_cache()
         return {"status": "ok", **result}
     except Exception as exc:

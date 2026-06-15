@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from database import Database
-from scraper import SCRAPE_LAST_SCAN_KEY, scrape_movies
+from scraper import SCRAPE_LAST_SCAN_KEY, download_pending_movies, pending_status, scrape_movies, scan_listings_only
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +73,7 @@ class AutoScrapeService:
             "scrape_resume_page": int(self.db.get_meta("scrape_resume_page", "1") or 1),
             "movies_in_db": self.db.count_movies(),
             "scrape_last_scan": self._last_scan(),
+            "scrape_queue": pending_status(self.db),
         }
 
     def _last_result(self) -> dict[str, Any] | None:
@@ -218,3 +219,13 @@ async def stop_auto_scraper() -> None:
 async def run_scrape_locked(count: int) -> dict[str, Any]:
     async with _scrape_lock:
         return await scrape_movies(count)
+
+
+async def run_scan_locked(count: int) -> dict[str, Any]:
+    async with _scrape_lock:
+        return await scan_listings_only(count)
+
+
+async def run_download_locked(count: int) -> dict[str, Any]:
+    async with _scrape_lock:
+        return await download_pending_movies(count)

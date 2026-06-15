@@ -195,14 +195,16 @@
 
           <section class="admin-tab admin-section" data-tab="scraping" id="adminTabScraping" role="tabpanel" hidden>
             <h2>Scrape from YTS</h2>
-            <p class="admin-hint">Ten sam szybki skan list YTS co auto — wspólna kolejna strona i postęp w katalogu.</p>
+            <p class="admin-hint">1) <strong>Skanuj</strong> — szybko sprawdza listy YTS. 2) <strong>Pobierz</strong> — ściąga szczegóły z kolejki. Wspólna kolejna strona z auto.</p>
             <form id="scrapeForm" class="admin-scrape">
               <label>
                 Liczba filmów
                 <input type="number" id="scrapeCount" min="1" max="50" value="10" />
               </label>
-              <button type="submit" class="btn-browse" id="scrapeBtn">Start scraping</button>
+              <button type="button" class="btn-admin-outline" id="scrapeScanBtn">Skanuj</button>
+              <button type="submit" class="btn-browse" id="scrapeBtn">Pobierz</button>
             </form>
+            <p class="admin-hint" id="scrapePendingMeta">Kolejka: —</p>
             <pre class="admin-log" id="adminLog">Ready.</pre>
 
             <h2 class="admin-tab__subtitle">Auto scraping</h2>
@@ -343,7 +345,10 @@
       sessionStorage.setItem(ADMIN_TAB_KEY, name);
       if (name === "files") loadFiles();
       if (name === "branding") loadBranding();
-      if (name === "scraping") loadAutoScrape();
+      if (name === "scraping") {
+        loadAutoScrape();
+        loadScrapeQueue();
+      }
     }
 
     document.getElementById("adminTabs").addEventListener("click", (e) => {
@@ -653,6 +658,9 @@
       if (s.scrape_resume_page) {
         lines.push(`Kolejna strona YTS: ${s.scrape_resume_page}`);
       }
+      if (s.scrape_queue?.pending_count) {
+        lines.push(`Kolejka ręczna: ${s.scrape_queue.pending_count}`);
+      }
       if (s.enabled && s.scheduler_alive === false) {
         lines.push("Scheduler: nie działa (zrestartuj API)");
       }
@@ -861,13 +869,54 @@
       }
     });
 
+    async function loadScrapeQueue() {
+      const el = document.getElementById("scrapePendingMeta");
+      if (!el) return;
+      try {
+        const q = await api("/admin/scrape/queue");
+        const n = q.pending_count || 0;
+        el.textContent = n
+          ? `Kolejka: ${n} filmów do pobrania`
+          : "Kolejka: pusta (najpierw Skanuj)";
+      } catch {
+        el.textContent = "Kolejka: —";
+      }
+    }
+
+    document.getElementById("scrapeScanBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("scrapeScanBtn");
+      const log = document.getElementById("adminLog");
+      const count = parseInt(document.getElementById("scrapeCount").value, 10) || 10;
+      btn.disabled = true;
+      document.getElementById("scrapeBtn").disabled = true;
+      log.textContent = `Skanowanie list YTS (szukam do ${count} nowych)…\n`;
+      try {
+        const result = await api("/admin/scrape/scan", {
+          method: "POST",
+          body: JSON.stringify({ count }),
+        });
+        log.textContent += (result.logs || []).join("\n") + "\n";
+        if (result.resume_page) {
+          log.textContent += `\nNastępne skanowanie od strony YTS: ${result.resume_page}`;
+        }
+        loadScrapeQueue();
+        loadAutoScrape();
+      } catch (err) {
+        log.textContent += `\nError: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+        document.getElementById("scrapeBtn").disabled = false;
+      }
+    });
+
     document.getElementById("scrapeForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const btn = document.getElementById("scrapeBtn");
       const log = document.getElementById("adminLog");
       const count = parseInt(document.getElementById("scrapeCount").value, 10) || 10;
       btn.disabled = true;
-      log.textContent = `Skanowanie list YTS (szukam ${count} nowych)…\n`;
+      document.getElementById("scrapeScanBtn").disabled = true;
+      log.textContent = `Pobieranie z kolejki (max ${count})…\n`;
       try {
         const result = await api("/admin/scrape", {
           method: "POST",
@@ -875,26 +924,20 @@
         });
         log.textContent += (result.logs || []).join("\n") + "\n";
         log.textContent += `\n✓ Dodano ${result.saved} nowych filmów (w bazie: ${result.total_in_db})`;
-        if (result.candidates_found != null && result.candidates_found !== result.saved) {
-          log.textContent += `\nZnaleziono do pobrania: ${result.candidates_found}`;
-        }
-        if (result.skipped) {
-          log.textContent += `, pominięto ${result.skipped} już istniejących`;
-        }
-        if (result.skipped_duplicates) {
-          log.textContent += `, ${result.skipped_duplicates} duplikatów tytułu`;
+        if (result.pending_count != null) {
+          log.textContent += `\nW kolejce zostało: ${result.pending_count}`;
         }
         if (result.seo_urls && result.seo_urls.length) {
           log.textContent += `\nSEO: ${result.seo_urls.length} stron dodanych do sitemap.`;
         }
-        if (result.resume_page) {
-          log.textContent += `\nNastępne skanowanie od strony YTS: ${result.resume_page}`;
-        }
         loadBootstrap();
+        loadScrapeQueue();
+        loadAutoScrape();
       } catch (err) {
         log.textContent += `\nError: ${err.message}`;
       } finally {
         btn.disabled = false;
+        document.getElementById("scrapeScanBtn").disabled = false;
       }
     });
 
