@@ -105,9 +105,22 @@
   }
 
   function renderDashboard(app) {
+    const ADMIN_MOVIES_SORT_KEY = "yts_admin_movies_sort";
     let moviesPage = 1;
     let moviesLimit = 50;
+    let moviesSortBy = "updated_at";
+    let moviesOrder = "desc";
+    const savedSort = sessionStorage.getItem(ADMIN_MOVIES_SORT_KEY);
+    if (savedSort && savedSort.includes(":")) {
+      const [sb, ord] = savedSort.split(":");
+      if (sb) moviesSortBy = sb;
+      if (ord === "asc" || ord === "desc") moviesOrder = ord;
+    }
     const selectedIds = new Set();
+
+    function moviesQuery() {
+      return `page=${moviesPage}&limit=${moviesLimit}&sort_by=${encodeURIComponent(moviesSortBy)}&order=${encodeURIComponent(moviesOrder)}`;
+    }
 
     function updateBulkBar() {
       const bar = document.getElementById("adminBulkBar");
@@ -164,6 +177,20 @@
                   <option value="500">500</option>
                 </select>
               </label>
+              <label>
+                Sortuj
+                <select id="adminMoviesSort">
+                  <option value="updated_at:desc">Najnowsze scrapowane</option>
+                  <option value="updated_at:asc">Najstarsze scrapowane</option>
+                  <option value="title:asc">Tytuł A→Z</option>
+                  <option value="title:desc">Tytuł Z→A</option>
+                  <option value="year:desc">Rok ↓</option>
+                  <option value="year:asc">Rok ↑</option>
+                  <option value="rating:desc">Rating ↓</option>
+                  <option value="rating:asc">Rating ↑</option>
+                  <option value="id:desc">ID ↓</option>
+                </select>
+              </label>
               <span class="admin-list-meta" id="adminMoviesMeta">—</span>
               <div class="admin-pagination" id="adminMoviesPagination"></div>
             </div>
@@ -182,12 +209,13 @@
                     <th>Tytuł</th>
                     <th>Rok</th>
                     <th>Rating</th>
+                    <th>Dodano</th>
                     <th>Slug</th>
                     <th>Akcje</th>
                   </tr>
                 </thead>
                 <tbody id="adminMoviesBody">
-                  <tr><td colspan="7" class="admin-movies-empty">Ładowanie…</td></tr>
+                  <tr><td colspan="8" class="admin-movies-empty">Ładowanie…</td></tr>
                 </tbody>
               </table>
             </div>
@@ -370,8 +398,17 @@
     switchTab(validTabs.has(initialTab) ? initialTab : "movies");
 
     document.getElementById("adminMoviesLimit").value = String(moviesLimit);
+    document.getElementById("adminMoviesSort").value = `${moviesSortBy}:${moviesOrder}`;
     document.getElementById("adminMoviesLimit").addEventListener("change", (e) => {
-      moviesLimit = parseInt(e.target.value, 10) || 100;
+      moviesLimit = parseInt(e.target.value, 10) || 50;
+      moviesPage = 1;
+      loadMovies();
+    });
+    document.getElementById("adminMoviesSort").addEventListener("change", (e) => {
+      const [sb, ord] = (e.target.value || "updated_at:desc").split(":");
+      moviesSortBy = sb || "updated_at";
+      moviesOrder = ord === "asc" ? "asc" : "desc";
+      sessionStorage.setItem(ADMIN_MOVIES_SORT_KEY, `${moviesSortBy}:${moviesOrder}`);
       moviesPage = 1;
       loadMovies();
     });
@@ -752,7 +789,7 @@
         `Strona ${data.page}/${data.total_pages} · ${data.movie_count} filmów`;
       renderMoviesPagination(data);
       if (!movies.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="admin-movies-empty">Brak filmów w bazie.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="admin-movies-empty">Brak filmów w bazie.</td></tr>`;
         updateBulkBar();
         return;
       }
@@ -770,6 +807,7 @@
             <td class="admin-movies__title">${escapeHtml(m.title || "—")}${m.is_duplicate_title ? ' <span class="admin-movies__dup-hint">(duplikat tytułu)</span>' : ""}</td>
             <td>${m.year || "—"}</td>
             <td>${m.rating != null ? Number(m.rating).toFixed(1) : "—"}</td>
+            <td class="admin-movies__date">${m.updated_at ? formatAdminTime(m.updated_at) : "—"}</td>
             <td class="admin-movies__slug">${escapeHtml(m.slug || "—")}</td>
             <td class="admin-movies__actions">
               <a class="admin-movies__link" href="${escapeHtml(m.url)}" target="_blank" rel="noopener">Podgląd</a>
@@ -784,7 +822,7 @@
     async function loadBootstrap() {
       const tbody = document.getElementById("adminMoviesBody");
       try {
-        const data = await api(`/admin/bootstrap?page=${moviesPage}&limit=${moviesLimit}`);
+        const data = await api(`/admin/bootstrap?${moviesQuery()}`);
         applyStats(data);
         renderMoviesTable(data);
       } catch (err) {
@@ -793,7 +831,7 @@
           window.YtsAdmin.render(app);
           return;
         }
-        tbody.innerHTML = `<tr><td colspan="7" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
       }
     }
 
@@ -812,10 +850,10 @@
     async function loadMovies() {
       const tbody = document.getElementById("adminMoviesBody");
       try {
-        const data = await api(`/admin/movies?page=${moviesPage}&limit=${moviesLimit}`);
+        const data = await api(`/admin/movies?${moviesQuery()}`);
         renderMoviesTable(data);
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="7" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="admin-movies-empty">Błąd: ${escapeHtml(err.message)}</td></tr>`;
       }
     }
 

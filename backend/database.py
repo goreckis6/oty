@@ -367,16 +367,32 @@ class Database:
             ).fetchall()
         return [dict(r) for r in rows]
 
-    def list_rows_paginated(self, page: int = 1, limit: int = 100) -> tuple[list[dict[str, Any]], int]:
+    def list_rows_paginated(
+        self,
+        page: int = 1,
+        limit: int = 100,
+        *,
+        sort_by: str = "updated_at",
+        order: str = "desc",
+    ) -> tuple[list[dict[str, Any]], int]:
         page = max(1, page)
         limit = max(1, limit)
         offset = (page - 1) * limit
+        sort_columns = {
+            "updated_at": "updated_at",
+            "title": "title COLLATE NOCASE",
+            "year": "year",
+            "rating": "rating",
+            "id": "id",
+        }
+        sort_column = sort_columns.get(sort_by, "updated_at")
+        order_sql = "ASC" if order == "asc" else "DESC"
         total = self.count_movies()
         with self.connect() as conn:
             rows = conn.execute(
-                """
+                f"""
                 SELECT id, slug, title, year, rating, updated_at
-                FROM movies ORDER BY updated_at DESC
+                FROM movies ORDER BY {sort_column} {order_sql}, id DESC
                 LIMIT ? OFFSET ?
                 """,
                 (limit, offset),

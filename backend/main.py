@@ -370,8 +370,10 @@ async def admin_bootstrap(
     store = require_store()
     page = max(1, int(request.query_params.get("page") or 1))
     limit = int(request.query_params.get("limit") or 50)
+    sort_by = request.query_params.get("sort_by") or "updated_at"
+    order = request.query_params.get("order") or "desc"
     new_count = len(db.get_last_batch_ids())
-    movies = store.list_all_admin(page=page, limit=limit)
+    movies = store.list_all_admin(page=page, limit=limit, sort_by=sort_by, order=order)
     return {
         "status": "ok",
         "movies_count": movies["movie_count"],
@@ -392,7 +394,9 @@ async def admin_movies(
     store = require_store()
     page = max(1, int(request.query_params.get("page") or 1))
     limit = int(request.query_params.get("limit") or 50)
-    data = store.list_all_admin(page=page, limit=limit)
+    sort_by = request.query_params.get("sort_by") or "updated_at"
+    order = request.query_params.get("order") or "desc"
+    data = store.list_all_admin(page=page, limit=limit, sort_by=sort_by, order=order)
     return {"status": "ok", "new_count": len(store.new_ids), **data}
 
 

@@ -105,10 +105,23 @@ class MovieStore:
     def movies(self) -> list[dict[str, Any]]:
         return self.db.all_movies()
 
-    def list_all_admin(self, page: int = 1, limit: int = 100) -> dict[str, Any]:
+    def list_all_admin(
+        self,
+        page: int = 1,
+        limit: int = 100,
+        *,
+        sort_by: str = "updated_at",
+        order: str = "desc",
+    ) -> dict[str, Any]:
         limit = _normalize_admin_limit(limit)
+        if sort_by not in ("updated_at", "title", "year", "rating", "id"):
+            sort_by = "updated_at"
+        if order not in ("asc", "desc"):
+            order = "desc"
         new_ids = self.new_ids
-        rows, total = self.db.list_rows_paginated(page=page, limit=limit)
+        rows, total = self.db.list_rows_paginated(
+            page=page, limit=limit, sort_by=sort_by, order=order
+        )
         duplicate_titles = self.db.duplicate_title_keys_for([r.get("title") or "" for r in rows])
         items = []
         for row in rows:
@@ -127,6 +140,8 @@ class MovieStore:
             "limit": limit,
             "total_pages": total_pages,
             "page_sizes": list(ADMIN_PAGE_SIZES),
+            "sort_by": sort_by,
+            "order": order,
         }
 
     def list_movies(self, params: dict[str, Any]) -> dict[str, Any]:
