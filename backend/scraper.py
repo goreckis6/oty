@@ -19,6 +19,10 @@ MAX_PAGES = (MAX_LISTING_MOVIES + PAGE_SIZE - 1) // PAGE_SIZE
 PAGES_PER_RUN = int(os.environ.get("SCRAPE_MAX_PAGES", "50"))
 PAGES_PER_RUN_MANUAL = int(os.environ.get("SCRAPE_MAX_PAGES_MANUAL", "500"))
 FULL_SKIP_STOP_PAGES = int(os.environ.get("SCRAPE_FULL_SKIP_STOP", "3"))
+PARALLEL_LIST_PAGES = int(os.environ.get("SCRAPE_PARALLEL_PAGES", "8"))
+LISTING_TIMEOUT = float(os.environ.get("SCRAPE_LISTING_TIMEOUT", "12"))
+FAST_SKIP_AFTER = int(os.environ.get("SCRAPE_FAST_SKIP_AFTER", "15"))
+FAST_SKIP_JUMP = int(os.environ.get("SCRAPE_FAST_SKIP_JUMP", "50"))
 SCRAPE_RESUME_PAGE_KEY = "scrape_resume_page"
 SCRAPE_LAST_SCAN_KEY = "scrape_last_scan"
 SCRAPE_PENDING_KEY = "scrape_pending_candidates"
@@ -116,9 +120,14 @@ def _apply_scan_resume(db: Database, scan: dict[str, Any], logs: list[str], *, b
 
 
 async def fetch_json(
-    client: httpx.AsyncClient, path: str, *, allow_404: bool = False, **params: str
+    client: httpx.AsyncClient,
+    path: str,
+    *,
+    allow_404: bool = False,
+    timeout: float = 30.0,
+    **params: str,
 ) -> dict | None:
-    res = await client.get(f"{YTS_BASE}/{path}", params=params, timeout=30.0)
+    res = await client.get(f"{YTS_BASE}/{path}", params=params, timeout=timeout)
     if allow_404 and res.status_code == 404:
         return None
     res.raise_for_status()
@@ -147,6 +156,48 @@ async def fetch_upcoming(client: httpx.AsyncClient, fallback: list[dict]) -> tup
     return fallback[:4], "Upcoming: użyto najnowszych z bieżącego scrapingu"
 
 
+def _listing_candidates_from_page(
+    movies: list[dict[str, Any]],
+    *,
+    known_ids: set[int],
+    known_titles: set[str],
+    need_count: int,
+    candidates: list[dict[str, Any]],
+) -> tuple[int, int, bool]:
+    skipped = 0
+    skipped_duplicates = 0
+    page_had_new = False
+    for m in movies:
+        mid = int(m["id"])
+        if mid in known_ids:
+            skipped += 1
+            continue
+        title_key = normalize_title(m.get("title"))
+        if title_key and title_key in known_titles:
+            skipped_duplicates += 1
+            continue
+        page_had_new = True
+        candidates.append(m)
+        if len(candidates) >= need_count:
+            break
+    return skipped, skipped_duplicates, page_had_new
+
+
+async def _fetch_listing_page(client: httpx.AsyncClient, page: int) -> tuple[int, list[dict[str, Any]] | None]:
+    data = await fetch_json(
+        client,
+        "list_movies.json",
+        timeout=LISTING_TIMEOUT,
+        limit=str(PAGE_SIZE),
+        page=str(page),
+        sort_by="date_added",
+        order_by="desc",
+    )
+    if data is None:
+        return page, None
+    return page, data.get("movies") or []
+
+
 async def _scan_listing_candidates(
     client: httpx.AsyncClient,
     *,
@@ -158,6 +209,34 @@ async def _scan_listing_candidates(
     background: bool,
 ) -> dict[str, Any]:
     """Phase 1: list-only scan — find movies missing from DB without detail API calls."""
+    if background:
+        return await _scan_listing_sequential(
+            client,
+            start_page=start_page,
+            page_limit=page_limit,
+            need_count=need_count,
+            known_ids=known_ids,
+            known_titles=known_titles,
+        )
+    return await _scan_listing_parallel(
+        client,
+        start_page=start_page,
+        page_limit=page_limit,
+        need_count=need_count,
+        known_ids=known_ids,
+        known_titles=known_titles,
+    )
+
+
+async def _scan_listing_sequential(
+    client: httpx.AsyncClient,
+    *,
+    start_page: int,
+    page_limit: int,
+    need_count: int,
+    known_ids: set[int],
+    known_titles: set[str],
+) -> dict[str, Any]:
     candidates: list[dict[str, Any]] = []
     skipped = 0
     skipped_duplicates = 0
@@ -174,38 +253,25 @@ async def _scan_listing_candidates(
             hit_page_limit = True
             break
 
-        listing = await fetch_json(
-            client,
-            "list_movies.json",
-            limit=str(PAGE_SIZE),
-            page=str(page),
-            sort_by="date_added",
-            order_by="desc",
-        )
-        assert listing is not None
-        movies = listing.get("movies") or []
+        _, movies = await _fetch_listing_page(client, page)
+        if movies is None:
+            catalog_end = True
+            break
         if not movies:
             catalog_end = True
             break
 
-        page_had_new = False
-        for m in movies:
-            mid = int(m["id"])
-            if mid in known_ids:
-                skipped += 1
-                continue
+        page_skipped, page_dup, page_had_new = _listing_candidates_from_page(
+            movies,
+            known_ids=known_ids,
+            known_titles=known_titles,
+            need_count=need_count,
+            candidates=candidates,
+        )
+        skipped += page_skipped
+        skipped_duplicates += page_dup
 
-            title_key = normalize_title(m.get("title"))
-            if title_key and title_key in known_titles:
-                skipped_duplicates += 1
-                continue
-
-            page_had_new = True
-            candidates.append(m)
-            if len(candidates) >= need_count:
-                break
-
-        if background and not page_had_new:
+        if not page_had_new:
             consecutive_full_skip_pages += 1
             if (
                 start_page == 1
@@ -221,8 +287,7 @@ async def _scan_listing_candidates(
             break
 
         page += 1
-        if background or page_had_new:
-            await asyncio.sleep(0.05 if not background else 0.1)
+        await asyncio.sleep(0.1)
 
     return {
         "candidates": candidates,
@@ -233,6 +298,109 @@ async def _scan_listing_candidates(
         "catalog_end": catalog_end,
         "hit_page_limit": hit_page_limit,
         "early_stop": early_stop,
+        "notes": [],
+    }
+
+
+async def _scan_listing_parallel(
+    client: httpx.AsyncClient,
+    *,
+    start_page: int,
+    page_limit: int,
+    need_count: int,
+    known_ids: set[int],
+    known_titles: set[str],
+) -> dict[str, Any]:
+    """Manual scan: fetch several listing pages in parallel + skip ahead over duplicate blocks."""
+    candidates: list[dict[str, Any]] = []
+    skipped = 0
+    skipped_duplicates = 0
+    pages_scanned = 0
+    page = start_page
+    catalog_end = False
+    hit_page_limit = False
+    consecutive_full_skip_pages = 0
+    notes: list[str] = []
+
+    while len(candidates) < need_count and page <= MAX_PAGES:
+        if pages_scanned >= page_limit:
+            hit_page_limit = True
+            break
+
+        batch_size = min(PARALLEL_LIST_PAGES, page_limit - pages_scanned, MAX_PAGES - page + 1)
+        if batch_size <= 0:
+            break
+
+        batch_pages = list(range(page, page + batch_size))
+        results = await asyncio.gather(
+            *[_fetch_listing_page(client, p) for p in batch_pages],
+            return_exceptions=True,
+        )
+
+        batch_had_new = False
+        last_processed = page - 1
+        for page_num, result in zip(batch_pages, results):
+            pages_scanned += 1
+            last_processed = page_num
+            if pages_scanned > page_limit:
+                hit_page_limit = True
+                break
+            if isinstance(result, Exception):
+                notes.append(f"Strona {page_num}: błąd listy ({result})")
+                continue
+            _, movies = result
+            if movies is None:
+                catalog_end = True
+                break
+            if not movies:
+                catalog_end = True
+                break
+
+            page_skipped, page_dup, page_had_new = _listing_candidates_from_page(
+                movies,
+                known_ids=known_ids,
+                known_titles=known_titles,
+                need_count=need_count,
+                candidates=candidates,
+            )
+            skipped += page_skipped
+            skipped_duplicates += page_dup
+            if page_had_new:
+                batch_had_new = True
+
+            if len(candidates) >= need_count:
+                break
+
+        if catalog_end or hit_page_limit or len(candidates) >= need_count:
+            page = last_processed + 1
+            break
+
+        if not batch_had_new:
+            consecutive_full_skip_pages += len(batch_pages)
+            if consecutive_full_skip_pages >= FAST_SKIP_AFTER:
+                jump_from = last_processed + 1
+                page = jump_from + FAST_SKIP_JUMP
+                notes.append(
+                    f"Przeskok str. {jump_from} → {page} "
+                    f"({FAST_SKIP_JUMP} str. samych duplikatów — szybszy skan)."
+                )
+                consecutive_full_skip_pages = 0
+            else:
+                page = last_processed + 1
+        else:
+            consecutive_full_skip_pages = 0
+            page = last_processed + 1
+
+    return {
+        "candidates": candidates,
+        "skipped": skipped,
+        "skipped_duplicates": skipped_duplicates,
+        "pages_scanned": pages_scanned,
+        "next_page": page,
+        "catalog_end": catalog_end,
+        "hit_page_limit": hit_page_limit,
+        "early_stop": False,
+        "notes": notes,
     }
 
 
@@ -353,7 +521,10 @@ async def scan_listings_only(count: int = 10) -> dict[str, Any]:
     if start_page > 1:
         logs.append(f"Kontynuacja od strony {start_page} (katalog YTS, sort. date_added).")
 
-    async with httpx.AsyncClient(follow_redirects=True) as client:
+    async with httpx.AsyncClient(
+        follow_redirects=True,
+        limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+    ) as client:
         scan = await _scan_listing_candidates(
             client,
             start_page=start_page,
@@ -365,6 +536,8 @@ async def scan_listings_only(count: int = 10) -> dict[str, Any]:
         )
 
     _log_scan_summary(logs, background=False, start_page=start_page, scan=scan, scan_only=True)
+    for note in scan.get("notes") or []:
+        logs.append(note)
     if scan["skipped"] and not scan["candidates"]:
         logs.append(f"Pominięto {scan['skipped']} filmów już w bazie (po ID).")
     if scan["skipped_duplicates"] and not scan["candidates"]:
@@ -470,7 +643,10 @@ async def scrape_movies(count: int = 10, *, background: bool = False) -> dict[st
     if start_page > 1 and not background:
         logs.append(f"Kontynuacja od strony {start_page} (katalog YTS, sort. date_added).")
 
-    async with httpx.AsyncClient(follow_redirects=True) as client:
+    async with httpx.AsyncClient(
+        follow_redirects=True,
+        limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+    ) as client:
         scan = await _scan_listing_candidates(
             client,
             start_page=start_page,

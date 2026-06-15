@@ -195,7 +195,7 @@
 
           <section class="admin-tab admin-section" data-tab="scraping" id="adminTabScraping" role="tabpanel" hidden>
             <h2>Scrape from YTS</h2>
-            <p class="admin-hint">1) <strong>Skanuj</strong> — szybko sprawdza listy YTS. 2) <strong>Pobierz</strong> — ściąga szczegóły z kolejki. Wspólna kolejna strona z auto.</p>
+            <p class="admin-hint">Skanuj: równolegle po 8 stronach, z przeskokiem przez bloki duplikatów. Potem Pobierz.</p>
             <form id="scrapeForm" class="admin-scrape">
               <label>
                 Liczba filmów
