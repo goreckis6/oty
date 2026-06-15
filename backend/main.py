@@ -119,7 +119,7 @@ class LoginRequest(BaseModel):
 
 
 class ScrapeRequest(BaseModel):
-    count: int = Field(default=10, ge=1, le=50)
+    count: int = Field(default=10, ge=1, le=200)
 
 
 class AutoScrapeRequest(BaseModel):

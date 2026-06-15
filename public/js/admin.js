@@ -209,7 +209,7 @@
             <form id="scrapeForm" class="admin-scrape">
               <label>
                 Liczba filmów
-                <input type="number" id="scrapeCount" min="1" max="50" value="10" />
+                <input type="number" id="scrapeCount" min="1" max="200" value="10" />
               </label>
               <button type="button" class="btn-admin-outline" id="scrapeScanBtn">Skanuj</button>
               <button type="submit" class="btn-browse" id="scrapeBtn">Pobierz</button>
