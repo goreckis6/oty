@@ -40,17 +40,14 @@ twoja-domena  A  →  IP VPS
 
 Firewall: TCP **80**, **443**, **22**.
 
-## Migracja na nowy serwer
+## Autostart po restarcie VPS
 
-Zobacz **[MIGRATE-SERVER.md](MIGRATE-SERVER.md)** — bootstrap, kopia `movies.db`, zmiana `DEPLOY_HOST`, DNS, wyłączenie starego VPS.
+Każdy deploy instaluje `ytdown.service` (systemd) + `restart: always` w Dockerze.
 
-Skrypty:
-
-| Skrypt | Gdzie uruchomić |
-|--------|-----------------|
-| `deploy/scripts/bootstrap-server.sh` | nowy VPS |
-| `deploy/scripts/migrate-data.sh` | laptop (SSH do obu serwerów) |
-| `deploy/scripts/shutdown-old-server.sh` | stary VPS (po przełączeniu DNS) |
+```bash
+systemctl is-enabled docker ytdown   # oba: enabled
+docker ps                            # site-api + site-caddy: Up
+```
 
 ## Ręczny deploy na VPS
 
