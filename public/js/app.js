@@ -215,13 +215,9 @@
 
   async function renderHome() {
     setFiltersVisible(true);
-    showLoading();
 
     try {
-      const [all, upcoming] = await Promise.all([
-        YtsApi.listMovies({ limit: 20, sort_by: "date_added", order_by: "desc" }),
-        YtsApi.listUpcoming().catch(() => ({ movies: [] })),
-      ]);
+      const all = await YtsApi.listMovies({ limit: 20, sort_by: "date_added", order_by: "desc" });
 
       const movies = all.movies || [];
       const popular = [...movies].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 4);
@@ -256,14 +252,23 @@
           ${renderGrid(latest)}
         </section>
 
-        ${upcoming.movies && upcoming.movies.length ? `
+        <div id="upcomingSection"></div>`;
+
+      if (window.YtsSeo) window.YtsSeo.setHome();
+
+      YtsApi.listUpcoming()
+        .then((upcoming) => {
+          const host = document.getElementById("upcomingSection");
+          if (!host || !upcoming.movies || !upcoming.movies.length) return;
+          host.innerHTML = `
         <section class="section-block">
           <div class="section-head">
             <h2>Upcoming YIFY Movies</h2>
           </div>
           <div class="movies-row movies-row--upcoming">${upcoming.movies.map((m) => movieCard(m)).join("")}</div>
-        </section>` : ""}`;
-      if (window.YtsSeo) window.YtsSeo.setHome();
+        </section>`;
+        })
+        .catch(() => {});
     } catch (err) {
       showError(err.message);
     }
@@ -523,7 +528,7 @@
   }
 
   async function router() {
-    await initSiteMeta();
+    void initSiteMeta();
     const route = parseRoute();
 
     if (route.view === "home") return renderHome();

@@ -204,6 +204,25 @@ class Database:
             rows = conn.execute("SELECT id FROM movies").fetchall()
         return {int(r["id"]) for r in rows}
 
+    def movie_in_catalog(self, movie: dict[str, Any]) -> bool:
+        movie_id = int(movie.get("id") or 0)
+        slug = (movie.get("slug") or "").strip()
+        with self.connect() as conn:
+            if movie_id:
+                row = conn.execute(
+                    "SELECT 1 FROM movies WHERE id = ? LIMIT 1",
+                    (movie_id,),
+                ).fetchone()
+                if row:
+                    return True
+            if slug:
+                row = conn.execute(
+                    "SELECT 1 FROM movies WHERE lower(slug) = lower(?) LIMIT 1",
+                    (slug,),
+                ).fetchone()
+                return row is not None
+        return False
+
     def existing_titles(self) -> set[str]:
         with self.connect() as conn:
             rows = conn.execute("SELECT title FROM movies WHERE title IS NOT NULL").fetchall()

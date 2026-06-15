@@ -182,8 +182,7 @@ class MovieStore:
     def list_upcoming(self) -> dict[str, Any]:
         upcoming = self.db.get_upcoming()
         if upcoming:
-            existing_ids = self.db.existing_ids()
-            upcoming = [m for m in upcoming if self.db._upcoming_in_db(m, existing_ids)]
+            upcoming = [m for m in upcoming if self.db.movie_in_catalog(m)]
         if not upcoming:
             paged = self.db.list_movies_page(page=1, limit=4, sort_by="date_added", order="desc")
             if paged:
