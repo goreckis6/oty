@@ -84,11 +84,46 @@
     if (window.YtsBranding && b) window.YtsBranding.apply(b);
   }
 
+  function applyAdminLogo(b, textId, imgId) {
+    const name = b.siteName || "YTS";
+    const logoText = document.getElementById(textId);
+    const logoImg = document.getElementById(imgId);
+    if (b.logoType === "image" && b.logoUrl && logoImg) {
+      logoImg.src = b.logoUrl;
+      logoImg.alt = name;
+      logoImg.hidden = false;
+      if (logoText) logoText.hidden = true;
+    } else {
+      if (logoText) {
+        logoText.textContent = name;
+        logoText.hidden = false;
+      }
+      if (logoImg) logoImg.hidden = true;
+    }
+  }
+
+  function applyAdminBranding(b) {
+    if (!b) return;
+    applyAdminLogo(b, "adminHeadLogoText", "adminHeadLogoImg");
+    applyAdminLogo(b, "adminLoginLogoText", "adminLoginLogoImg");
+    syncSiteBranding(b);
+  }
+
+  async function fetchSiteBranding() {
+    return api("/site/branding", { auth: false });
+  }
+
   function renderLogin(app, onSuccess) {
     app.innerHTML = `
       <div class="admin-wrap">
         <div class="admin-card">
-          <h1>Admin Panel</h1>
+          <div class="admin-card__brand">
+            <a href="/" class="brand">
+              <span class="brand__logo" id="adminLoginLogoText">YTS</span>
+              <img class="brand__logo-img" id="adminLoginLogoImg" alt="" hidden />
+            </a>
+            <h1 class="admin-card__title">Admin Panel</h1>
+          </div>
           <form id="adminLoginForm" class="admin-form">
             <label>Password<input type="password" id="adminPass" autocomplete="current-password" required /></label>
             <button type="submit" class="btn-browse">Log in</button>
@@ -116,6 +151,8 @@
         errEl.hidden = false;
       }
     });
+
+    void fetchSiteBranding().then(applyAdminBranding).catch(() => {});
   }
 
   function renderDashboard(app) {
@@ -158,7 +195,13 @@
       <div class="admin-wrap">
         <div class="admin-panel">
           <div class="admin-panel__head">
-            <h1>Movie Database</h1>
+            <div class="admin-panel__brand">
+              <a href="/" class="brand">
+                <span class="brand__logo" id="adminHeadLogoText">YTS</span>
+                <img class="brand__logo-img" id="adminHeadLogoImg" alt="" hidden />
+              </a>
+              <span class="admin-panel__subtitle">Admin</span>
+            </div>
             <button type="button" class="btn-admin-outline" id="adminLogout">Logout</button>
           </div>
 
@@ -464,30 +507,14 @@
     });
 
     function updateBrandingPreview(b) {
-      const name = b.siteName || "YTS";
       const tag = b.siteTagline || "HD movies at the smallest file size";
-      const logoText = document.getElementById("adminPreviewLogoText");
-      const logoImg = document.getElementById("adminPreviewLogoImg");
       const tagEl = document.getElementById("adminPreviewTagline");
       const removeBtn = document.getElementById("adminLogoRemove");
 
+      applyAdminBranding(b);
+      applyAdminLogo(b, "adminPreviewLogoText", "adminPreviewLogoImg");
       if (tagEl) tagEl.textContent = tag;
-      if (b.logoType === "image" && b.logoUrl) {
-        if (logoImg) {
-          logoImg.src = b.logoUrl;
-          logoImg.alt = name;
-          logoImg.hidden = false;
-        }
-        if (logoText) logoText.hidden = true;
-        if (removeBtn) removeBtn.hidden = false;
-      } else {
-        if (logoText) {
-          logoText.textContent = name;
-          logoText.hidden = false;
-        }
-        if (logoImg) logoImg.hidden = true;
-        if (removeBtn) removeBtn.hidden = true;
-      }
+      if (removeBtn) removeBtn.hidden = !(b.logoType === "image" && b.logoUrl);
     }
 
     async function loadBranding() {
@@ -496,7 +523,6 @@
         document.getElementById("adminSiteName").value = b.siteName || "";
         document.getElementById("adminSiteTagline").value = b.siteTagline || "";
         updateBrandingPreview(b);
-        syncSiteBranding(b);
       } catch (err) {
         console.error(err);
       }
@@ -513,7 +539,6 @@
           }),
         });
         updateBrandingPreview(b);
-        syncSiteBranding(b);
         alert("Zapisano.");
       } catch (err) {
         alert(err.message);
@@ -533,7 +558,6 @@
         const b = await api("/admin/branding/logo", { method: "POST", body: form });
         fileInput.value = "";
         updateBrandingPreview(b);
-        syncSiteBranding(b);
         alert("Logo wgrane.");
       } catch (err) {
         alert(err.message);
@@ -545,7 +569,6 @@
       try {
         const b = await api("/admin/branding/logo", { method: "DELETE" });
         updateBrandingPreview(b);
-        syncSiteBranding(b);
       } catch (err) {
         alert(err.message);
       }
@@ -1098,6 +1121,7 @@
     });
 
     initAdminData();
+    void fetchSiteBranding().then(applyAdminBranding).catch(() => {});
     if ((sessionStorage.getItem(ADMIN_TAB_KEY) || "movies") === "scraping") {
       startScrapePollTimer(SCRAPE_POLL_MS);
     }

@@ -569,12 +569,7 @@
     if (route.view === "admin") {
       setFiltersVisible(false);
       if (window.YtsSeo) window.YtsSeo.setAdmin();
-      applyBranding({
-        siteName: cfg().siteName || "YTS",
-        siteTagline: cfg().siteTagline || "HD movies at the smallest file size",
-        logoUrl: cfg().logoUrl || "",
-        logoType: cfg().logoType || "text",
-      });
+      void fetchBranding().then(applyBranding);
       const admin = await loadAdmin();
       return admin.render(app);
     }
