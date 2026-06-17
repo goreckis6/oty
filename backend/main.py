@@ -41,7 +41,15 @@ from auto_scraper import (
 from database import COUNT_CACHE_KEY, Database
 from movie_store import MovieStore
 from scraper import scrape_state
-from seo import build_robots, build_sitemap, build_sitemap_part, register_movies_for_seo, render_movie_page
+from seo import (
+    build_robots,
+    build_sitemap,
+    build_sitemap_part,
+    build_yandex_sitemap,
+    build_yandex_sitemap_part,
+    register_movies_for_seo,
+    render_movie_page,
+)
 from site_files import delete_site_file, list_site_files, read_site_file, upload_site_file, write_site_file
 from site_branding import get_branding, remove_logo, save_branding, save_logo
 from sources import (
@@ -688,6 +696,33 @@ async def sitemap_xml() -> Response:
 @app.get("/sitemap{index}.xml")
 async def sitemap_part(index: int) -> Response:
     xml = build_sitemap_part(None, index)
+    if xml is None:
+        raise HTTPException(status_code=404, detail="Sitemap not found")
+    return Response(
+        content=xml,
+        media_type="application/xml",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
+@app.get("/sitemap-yandex.xml")
+async def sitemap_yandex_xml() -> Response:
+    """Full movie catalog for Yandex — add this URL in Yandex Webmaster, not in robots.txt."""
+    assert db is not None
+    entries = db.list_sitemap_entries() if use_store() else []
+    xml = build_yandex_sitemap(entries)
+    return Response(
+        content=xml,
+        media_type="application/xml",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
+@app.get("/sitemap-yandex{index}.xml")
+async def sitemap_yandex_part(index: int) -> Response:
+    assert db is not None
+    entries = db.list_sitemap_entries() if use_store() else []
+    xml = build_yandex_sitemap_part(entries, index)
     if xml is None:
         raise HTTPException(status_code=404, detail="Sitemap not found")
     return Response(

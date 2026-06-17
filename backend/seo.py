@@ -303,10 +303,23 @@ def render_movie_page(movie: dict[str, Any]) -> str:
 
 
 def collect_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> list[tuple[str, str, str]]:
-    """Return (loc, lastmod, priority) — homepage only; movie pages are not listed."""
+    """Return (loc, lastmod, priority) — homepage only for Google/Bing."""
     _ = entries
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     return [(f"{SITE_URL}/", today, "1.0")]
+
+
+def collect_yandex_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> list[tuple[str, str, str]]:
+    """Homepage + all movie pages — submit /sitemap-yandex.xml in Yandex Webmaster only."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    urls: list[tuple[str, str, str]] = [(f"{SITE_URL}/", today, "1.0")]
+    for entry in entries or []:
+        slug = entry.get("slug")
+        if not slug:
+            continue
+        lastmod = format_lastmod(entry.get("updated_at"))
+        urls.append((movie_canonical(slug), lastmod, "0.8"))
+    return urls
 
 
 def chunk_sitemap_urls(urls: list[tuple[str, str, str]], size: int = SITEMAP_MAX_URLS) -> list[list[tuple[str, str, str]]]:
@@ -336,6 +349,16 @@ def build_sitemap_index(chunk_count: int) -> str:
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(root, encoding="unicode")
 
 
+def build_yandex_sitemap_index(chunk_count: int) -> str:
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    root = Element("sitemapindex", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
+    for index in range(1, chunk_count + 1):
+        node = SubElement(root, "sitemap")
+        SubElement(node, "loc").text = f"{SITE_URL}/sitemap-yandex{index}.xml"
+        SubElement(node, "lastmod").text = today
+    return '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(root, encoding="unicode")
+
+
 def sitemap_chunks(entries: list[dict[str, Any]] | None = None) -> list[list[tuple[str, str, str]]]:
     return chunk_sitemap_urls(collect_sitemap_urls(entries))
 
@@ -357,6 +380,26 @@ def build_sitemap_part(entries: list[dict[str, Any]] | None, index: int) -> str 
     return build_sitemap_urlset(chunks[index - 1])
 
 
+def yandex_sitemap_chunks(entries: list[dict[str, Any]] | None = None) -> list[list[tuple[str, str, str]]]:
+    return chunk_sitemap_urls(collect_yandex_sitemap_urls(entries))
+
+
+def build_yandex_sitemap(entries: list[dict[str, Any]] | None = None) -> str:
+    chunks = yandex_sitemap_chunks(entries)
+    if len(chunks) <= 1 and len(chunks[0]) <= SITEMAP_MAX_URLS:
+        return build_sitemap_urlset(chunks[0])
+    return build_yandex_sitemap_index(len(chunks))
+
+
+def build_yandex_sitemap_part(entries: list[dict[str, Any]] | None, index: int) -> str | None:
+    chunks = yandex_sitemap_chunks(entries)
+    if index < 1 or index > len(chunks):
+        return None
+    if len(chunks) == 1 and len(chunks[0]) <= SITEMAP_MAX_URLS:
+        return None
+    return build_sitemap_urlset(chunks[index - 1])
+
+
 def register_movies_for_seo(db: Any, movies: list[dict[str, Any]]) -> list[str]:
     """Track freshly stored movies for on-demand SEO pages (not added to sitemap)."""
     urls = movie_seo_urls(movies)
@@ -367,10 +410,15 @@ def register_movies_for_seo(db: Any, movies: list[dict[str, Any]]) -> list[str]:
 
 
 def build_robots() -> str:
-    return f"""User-agent: *
+    host = SITE_URL.replace("https://", "").replace("http://", "").split("/")[0]
+    return f"""User-agent: Yandex
+Allow: /
+
+User-agent: *
 Allow: /
 Disallow: /twojastara
 Disallow: /api/v1/admin/
 
 Sitemap: {SITE_URL}/sitemap.xml
+Host: {host}
 """
