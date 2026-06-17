@@ -685,7 +685,9 @@ async def robots_txt() -> str:
 
 @app.get("/sitemap.xml")
 async def sitemap_xml() -> Response:
-    xml = build_sitemap()
+    assert db is not None
+    entries = db.list_sitemap_entries() if use_store() else []
+    xml = build_sitemap(entries)
     return Response(
         content=xml,
         media_type="application/xml",
@@ -695,7 +697,7 @@ async def sitemap_xml() -> Response:
 
 @app.get("/sitemap-yandex.xml")
 async def sitemap_yandex_xml() -> Response:
-    """Full movie catalog for Yandex — add this URL in Yandex Webmaster, not in robots.txt."""
+    """Alias of /sitemap.xml — same URLs for Yandex Webmaster."""
     assert db is not None
     entries = db.list_sitemap_entries() if use_store() else []
     xml = build_yandex_sitemap(entries)
@@ -722,7 +724,9 @@ async def sitemap_yandex_part(index: int) -> Response:
 
 @app.get("/sitemap{index}.xml")
 async def sitemap_part(index: int) -> Response:
-    xml = build_sitemap_part(None, index)
+    assert db is not None
+    entries = db.list_sitemap_entries() if use_store() else []
+    xml = build_sitemap_part(entries, index)
     if xml is None:
         raise HTTPException(status_code=404, detail="Sitemap not found")
     return Response(

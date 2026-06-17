@@ -303,14 +303,7 @@ def render_movie_page(movie: dict[str, Any]) -> str:
 
 
 def collect_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> list[tuple[str, str, str]]:
-    """Return (loc, lastmod, priority) — homepage only for Google/Bing."""
-    _ = entries
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    return [(f"{SITE_URL}/", today, "1.0")]
-
-
-def collect_yandex_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> list[tuple[str, str, str]]:
-    """Homepage + all movie pages — submit /sitemap-yandex.xml in Yandex Webmaster only."""
+    """Homepage + all movie pages for Google, Bing, and Yandex."""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     urls: list[tuple[str, str, str]] = [(f"{SITE_URL}/", today, "1.0")]
     for entry in entries or []:
@@ -349,16 +342,6 @@ def build_sitemap_index(chunk_count: int) -> str:
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(root, encoding="unicode")
 
 
-def build_yandex_sitemap_index(chunk_count: int) -> str:
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    root = Element("sitemapindex", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
-    for index in range(1, chunk_count + 1):
-        node = SubElement(root, "sitemap")
-        SubElement(node, "loc").text = f"{SITE_URL}/sitemap-yandex{index}.xml"
-        SubElement(node, "lastmod").text = today
-    return '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(root, encoding="unicode")
-
-
 def sitemap_chunks(entries: list[dict[str, Any]] | None = None) -> list[list[tuple[str, str, str]]]:
     return chunk_sitemap_urls(collect_sitemap_urls(entries))
 
@@ -380,32 +363,20 @@ def build_sitemap_part(entries: list[dict[str, Any]] | None, index: int) -> str 
     return build_sitemap_urlset(chunks[index - 1])
 
 
-def yandex_sitemap_chunks(entries: list[dict[str, Any]] | None = None) -> list[list[tuple[str, str, str]]]:
-    return chunk_sitemap_urls(collect_yandex_sitemap_urls(entries))
-
-
 def build_yandex_sitemap(entries: list[dict[str, Any]] | None = None) -> str:
-    chunks = yandex_sitemap_chunks(entries)
-    if len(chunks) <= 1 and len(chunks[0]) <= SITEMAP_MAX_URLS:
-        return build_sitemap_urlset(chunks[0])
-    return build_yandex_sitemap_index(len(chunks))
+    return build_sitemap(entries)
 
 
 def build_yandex_sitemap_part(entries: list[dict[str, Any]] | None, index: int) -> str | None:
-    chunks = yandex_sitemap_chunks(entries)
-    if index < 1 or index > len(chunks):
-        return None
-    if len(chunks) == 1 and len(chunks[0]) <= SITEMAP_MAX_URLS:
-        return None
-    return build_sitemap_urlset(chunks[index - 1])
+    return build_sitemap_part(entries, index)
 
 
 def register_movies_for_seo(db: Any, movies: list[dict[str, Any]]) -> list[str]:
-    """Track freshly stored movies for on-demand SEO pages (not added to sitemap)."""
+    """Track freshly stored movies; sitemap includes all movie URLs on next request."""
     urls = movie_seo_urls(movies)
     if urls:
         db.set_meta("seo_last_update", datetime.now(timezone.utc).isoformat())
-        db.set_meta("seo_url_count", "1")
+        db.set_meta("seo_url_count", str(len(db.list_sitemap_entries()) + 1))
     return urls
 
 

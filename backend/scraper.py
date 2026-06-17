@@ -621,7 +621,7 @@ async def _save_scraped_movies(
 
     seo_urls = register_movies_for_seo(db, detailed)
     if seo_urls:
-        logs.append(f"SEO: {len(seo_urls)} nowych stron gotowych (meta, bez dodawania do sitemap).")
+        logs.append(f"SEO: {len(seo_urls)} nowych stron gotowych (meta + sitemap).")
         for url in seo_urls:
             logs.append(f"  → {url}")
     elif saved == 0:
@@ -828,7 +828,7 @@ async def scrape_movies(count: int = 10, *, background: bool = False) -> dict[st
 
     seo_urls = register_movies_for_seo(db, detailed)
     if seo_urls:
-        logs.append(f"SEO: {len(seo_urls)} nowych stron gotowych (meta, bez dodawania do sitemap).")
+        logs.append(f"SEO: {len(seo_urls)} nowych stron gotowych (meta + sitemap).")
         for url in seo_urls:
             logs.append(f"  → {url}")
     elif saved == 0:

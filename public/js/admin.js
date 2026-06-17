@@ -1104,7 +1104,7 @@
           log.textContent += `\nW kolejce zostało: ${result.pending_count}`;
         }
         if (result.seo_urls && result.seo_urls.length) {
-          log.textContent += `\nSEO: ${result.seo_urls.length} stron z meta (sitemap tylko strona główna).`;
+          log.textContent += `\nSEO: ${result.seo_urls.length} stron z meta (dodane do sitemap).`;
         }
         refreshAdminData();
         loadScrapeQueue();
