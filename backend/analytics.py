@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from database import Database
 
 ACTIVE_TTL_SECONDS = 90
-RETENTION_DAYS = 14
+RETENTION_DAYS = 35
 
 _BOT_RE = re.compile(
     r"bot|crawl|spider|slurp|mediapartners|headless|python-requests|curl/|wget/|"
@@ -20,6 +20,16 @@ def _now_iso() -> str:
 
 def _today() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def _utc_today() -> datetime:
+    return datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _day_list(days: int) -> list[str]:
+    end = _utc_today().date()
+    start = end - timedelta(days=days - 1)
+    return [(start + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(days)]
 
 
 class AnalyticsTracker:
@@ -160,6 +170,81 @@ class AnalyticsTracker:
             ).fetchone()
         return int(row["c"] if row else 0)
 
+    def _period_summary(self, conn, days: int) -> dict[str, int]:
+        day_keys = _day_list(days)
+        start_day, end_day = day_keys[0], day_keys[-1]
+        start_iso = f"{start_day}T"
+
+        views_row = conn.execute(
+            """
+            SELECT COALESCE(SUM(page_views), 0) AS total
+            FROM analytics_daily
+            WHERE day >= ? AND day <= ?
+            """,
+            (start_day, end_day),
+        ).fetchone()
+
+        unique_row = conn.execute(
+            """
+            SELECT COUNT(DISTINCT visitor_hash) AS total
+            FROM analytics_daily_visitors
+            WHERE day >= ? AND day <= ?
+            """,
+            (start_day, end_day),
+        ).fetchone()
+
+        peak_row = conn.execute(
+            """
+            SELECT COALESCE(MAX(peak_online), 0) AS peak
+            FROM analytics_daily
+            WHERE day >= ? AND day <= ?
+            """,
+            (start_day, end_day),
+        ).fetchone()
+
+        avg_row = conn.execute(
+            """
+            SELECT AVG((julianday(last_seen) - julianday(first_seen)) * 86400) AS avg_sec
+            FROM analytics_sessions
+            WHERE is_bot = 0 AND first_seen >= ?
+            """,
+            (start_iso,),
+        ).fetchone()
+
+        return {
+            "days": days,
+            "page_views": int(views_row["total"] if views_row else 0),
+            "unique_visitors": int(unique_row["total"] if unique_row else 0),
+            "peak_online": int(peak_row["peak"] if peak_row else 0),
+            "avg_duration_seconds": int(avg_row["avg_sec"] or 0) if avg_row else 0,
+        }
+
+    def _daily_series(self, conn, days: int) -> list[dict[str, int | str]]:
+        day_keys = _day_list(days)
+        start_day, end_day = day_keys[0], day_keys[-1]
+        rows = conn.execute(
+            """
+            SELECT day, page_views, unique_visitors, peak_online
+            FROM analytics_daily
+            WHERE day >= ? AND day <= ?
+            ORDER BY day ASC
+            """,
+            (start_day, end_day),
+        ).fetchall()
+        by_day = {r["day"]: r for r in rows}
+        series: list[dict[str, int | str]] = []
+        for day in day_keys:
+            row = by_day.get(day)
+            series.append(
+                {
+                    "day": day,
+                    "page_views": int(row["page_views"]) if row else 0,
+                    "unique_visitors": int(row["unique_visitors"]) if row else 0,
+                    "peak_online": int(row["peak_online"]) if row else 0,
+                }
+            )
+        return series
+
     def get_stats(self) -> dict:
         now = datetime.now(timezone.utc)
         cutoff = (now - timedelta(seconds=ACTIVE_TTL_SECONDS)).isoformat()
@@ -171,7 +256,7 @@ class AnalyticsTracker:
                 (cutoff,),
             ).fetchone()["c"]
 
-            daily = conn.execute(
+            daily_today = conn.execute(
                 "SELECT page_views, unique_visitors, peak_online FROM analytics_daily WHERE day = ?",
                 (day,),
             ).fetchone()
@@ -197,13 +282,22 @@ class AnalyticsTracker:
                 (cutoff,),
             ).fetchall()
 
+            periods = {
+                "3": self._period_summary(conn, 3),
+                "7": self._period_summary(conn, 7),
+                "30": self._period_summary(conn, 30),
+            }
+            daily = self._daily_series(conn, 30)
+
         avg_seconds = int(avg_row["avg_sec"] or 0) if avg_row else 0
 
         return {
             "active_now": active_now,
-            "today_page_views": daily["page_views"] if daily else 0,
-            "today_unique": daily["unique_visitors"] if daily else 0,
-            "peak_today": daily["peak_online"] if daily else 0,
+            "today_page_views": daily_today["page_views"] if daily_today else 0,
+            "today_unique": daily_today["unique_visitors"] if daily_today else 0,
+            "peak_today": daily_today["peak_online"] if daily_today else 0,
             "avg_duration_seconds": avg_seconds,
             "active_pages": [{"path": r["last_path"] or "/", "count": r["c"]} for r in recent],
+            "periods": periods,
+            "daily": daily,
         }

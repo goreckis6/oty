@@ -1315,6 +1315,78 @@ a:hover {
   word-break: break-all;
 }
 
+.admin-analytics-periods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.admin-analytics-periods__btn {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.admin-analytics-periods__btn:hover {
+  color: var(--text);
+  border-color: #666;
+}
+
+.admin-analytics-periods__btn--active {
+  background: rgba(106, 192, 69, 0.15);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.admin-charts {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.admin-chart {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.85rem 0.5rem;
+}
+
+.admin-chart__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.45rem;
+}
+
+.admin-chart__title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.admin-chart__hint {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.admin-chart__svg {
+  display: block;
+  width: 100%;
+  height: 140px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+  border-radius: 6px;
+}
+
 .admin-section h2 {
   font-size: 0.95rem;
   color: var(--green);

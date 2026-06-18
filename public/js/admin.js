@@ -291,7 +291,7 @@
 
           <section class="admin-tab admin-section" data-tab="analytics" id="adminTabAnalytics" role="tabpanel" hidden>
             <h2>Ruch na stronie</h2>
-            <p class="admin-hint">Własna analityka — ping co 30 s z przeglądarki użytkownika. Aktywny = ostatni ping w ciągu 90 s (boty pomijane).</p>
+            <p class="admin-hint">Własna analityka — ping co 30 s z przeglądarki. Aktywny = ostatni ping w ciągu 90 s (boty pomijane).</p>
             <div class="admin-stats admin-stats--analytics" id="adminAnalyticsStats">
               <div class="admin-stat admin-stat--live"><span>Teraz online</span><strong id="anActive">—</strong></div>
               <div class="admin-stat"><span>Odsłony dziś</span><strong id="anViews">—</strong></div>
@@ -299,6 +299,44 @@
               <div class="admin-stat"><span>Szczyt dziś</span><strong id="anPeak">—</strong></div>
               <div class="admin-stat"><span>Śr. czas wizyty</span><strong id="anAvg">—</strong></div>
             </div>
+
+            <h3 class="admin-tab__subtitle">Okresy</h3>
+            <div class="admin-analytics-periods" id="anPeriodTabs" role="tablist" aria-label="Zakres statystyk">
+              <button type="button" class="admin-analytics-periods__btn admin-analytics-periods__btn--active" data-days="3">3 dni</button>
+              <button type="button" class="admin-analytics-periods__btn" data-days="7">7 dni</button>
+              <button type="button" class="admin-analytics-periods__btn" data-days="30">30 dni</button>
+            </div>
+            <div class="admin-stats admin-stats--analytics" id="adminAnalyticsPeriodStats">
+              <div class="admin-stat"><span>Odsłony</span><strong id="anPeriodViews">—</strong></div>
+              <div class="admin-stat"><span>Unikalni</span><strong id="anPeriodUnique">—</strong></div>
+              <div class="admin-stat"><span>Szczyt online</span><strong id="anPeriodPeak">—</strong></div>
+              <div class="admin-stat"><span>Śr. czas wizyty</span><strong id="anPeriodAvg">—</strong></div>
+            </div>
+
+            <div class="admin-charts" id="adminAnalyticsCharts">
+              <div class="admin-chart">
+                <div class="admin-chart__head">
+                  <span class="admin-chart__title">Odsłony</span>
+                  <span class="admin-chart__hint" id="anChartViewsHint"></span>
+                </div>
+                <svg class="admin-chart__svg" id="anChartViews" viewBox="0 0 600 140" preserveAspectRatio="none" aria-hidden="true"></svg>
+              </div>
+              <div class="admin-chart">
+                <div class="admin-chart__head">
+                  <span class="admin-chart__title">Unikalni użytkownicy</span>
+                  <span class="admin-chart__hint" id="anChartUniqueHint"></span>
+                </div>
+                <svg class="admin-chart__svg admin-chart__svg--line" id="anChartUnique" viewBox="0 0 600 140" preserveAspectRatio="none" aria-hidden="true"></svg>
+              </div>
+              <div class="admin-chart">
+                <div class="admin-chart__head">
+                  <span class="admin-chart__title">Szczyt online</span>
+                  <span class="admin-chart__hint" id="anChartPeakHint"></span>
+                </div>
+                <svg class="admin-chart__svg" id="anChartPeak" viewBox="0 0 600 140" preserveAspectRatio="none" aria-hidden="true"></svg>
+              </div>
+            </div>
+
             <h3 class="admin-tab__subtitle">Aktywne strony</h3>
             <table class="admin-analytics" id="adminAnalyticsPages">
               <thead>
@@ -921,7 +959,117 @@
       return s ? `${m} min ${s} s` : `${m} min`;
     }
 
+    const ANALYTICS_PERIOD_KEY = "yts_admin_analytics_period";
+    let analyticsCache = null;
+    let analyticsPeriodDays = parseInt(sessionStorage.getItem(ANALYTICS_PERIOD_KEY) || "3", 10);
+    if (![3, 7, 30].includes(analyticsPeriodDays)) analyticsPeriodDays = 3;
+
+    function formatChartDay(day) {
+      if (!day) return "";
+      const parts = String(day).split("-");
+      if (parts.length !== 3) return day;
+      return `${parts[2]}.${parts[1]}`;
+    }
+
+    function renderBarChart(svgEl, series, key, color) {
+      if (!svgEl || !series.length) return;
+      const values = series.map((d) => Number(d[key]) || 0);
+      const max = Math.max(1, ...values);
+      const w = 600;
+      const h = 140;
+      const padX = 8;
+      const padTop = 12;
+      const padBottom = 22;
+      const chartH = h - padTop - padBottom;
+      const barW = (w - padX * 2) / series.length;
+      const bars = values
+        .map((v, i) => {
+          const bh = Math.max(0, (v / max) * chartH);
+          const x = padX + i * barW + 1;
+          const y = padTop + chartH - bh;
+          const width = Math.max(1, barW - 2);
+          return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${width.toFixed(1)}" height="${bh.toFixed(1)}" fill="${color}" rx="2" opacity="0.9"><title>${formatChartDay(series[i].day)}: ${v}</title></rect>`;
+        })
+        .join("");
+      const labels = series
+        .map((d, i) => {
+          const show = series.length <= 7 || i === 0 || i === series.length - 1 || i % Math.ceil(series.length / 6) === 0;
+          if (!show) return "";
+          const x = padX + i * barW + barW / 2;
+          return `<text x="${x.toFixed(1)}" y="${h - 4}" fill="#888" font-size="10" text-anchor="middle">${formatChartDay(d.day)}</text>`;
+        })
+        .join("");
+      svgEl.innerHTML = `${bars}${labels}`;
+    }
+
+    function renderLineChart(svgEl, series, key, color) {
+      if (!svgEl || !series.length) return;
+      const values = series.map((d) => Number(d[key]) || 0);
+      const max = Math.max(1, ...values);
+      const w = 600;
+      const h = 140;
+      const padX = 8;
+      const padTop = 12;
+      const padBottom = 22;
+      const chartH = h - padTop - padBottom;
+      const step = series.length > 1 ? (w - padX * 2) / (series.length - 1) : 0;
+      const points = values.map((v, i) => {
+        const x = padX + i * step;
+        const y = padTop + chartH - (v / max) * chartH;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      });
+      const dots = values
+        .map((v, i) => {
+          const x = padX + i * step;
+          const y = padTop + chartH - (v / max) * chartH;
+          return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${color}"><title>${formatChartDay(series[i].day)}: ${v}</title></circle>`;
+        })
+        .join("");
+      const labels = series
+        .map((d, i) => {
+          const show = series.length <= 7 || i === 0 || i === series.length - 1 || i % Math.ceil(series.length / 6) === 0;
+          if (!show) return "";
+          const x = padX + i * step;
+          return `<text x="${x.toFixed(1)}" y="${h - 4}" fill="#888" font-size="10" text-anchor="middle">${formatChartDay(d.day)}</text>`;
+        })
+        .join("");
+      svgEl.innerHTML = `<polyline fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="${points.join(" ")}" opacity="0.95"/>${dots}${labels}`;
+    }
+
+    function sliceDailySeries(daily, days) {
+      const list = Array.isArray(daily) ? daily : [];
+      if (list.length <= days) return list;
+      return list.slice(list.length - days);
+    }
+
+    function applyAnalyticsPeriod(days) {
+      if (!analyticsCache) return;
+      const period = (analyticsCache.periods || {})[String(days)] || {};
+      const series = sliceDailySeries(analyticsCache.daily, days);
+      const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+      set("anPeriodViews", period.page_views != null ? String(period.page_views) : "—");
+      set("anPeriodUnique", period.unique_visitors != null ? String(period.unique_visitors) : "—");
+      set("anPeriodPeak", period.peak_online != null ? String(period.peak_online) : "—");
+      set("anPeriodAvg", period.avg_duration_seconds != null ? formatDuration(period.avg_duration_seconds) : "—");
+
+      const hint = `ostatnie ${days} dni (UTC)`;
+      ["anChartViewsHint", "anChartUniqueHint", "anChartPeakHint"].forEach((id) => set(id, hint));
+
+      renderBarChart(document.getElementById("anChartViews"), series, "page_views", "#6ac045");
+      renderLineChart(document.getElementById("anChartUnique"), series, "unique_visitors", "#5eb8ff");
+      renderBarChart(document.getElementById("anChartPeak"), series, "peak_online", "#e8b84a");
+
+      document.querySelectorAll(".admin-analytics-periods__btn").forEach((btn) => {
+        const active = parseInt(btn.dataset.days, 10) === days;
+        btn.classList.toggle("admin-analytics-periods__btn--active", active);
+      });
+    }
+
     function applyAnalytics(a) {
+      analyticsCache = a;
       const active = a.active_now != null ? String(a.active_now) : "—";
       const activeHeader = document.getElementById("statActive");
       if (activeHeader) activeHeader.textContent = active;
@@ -934,6 +1082,8 @@
       set("anUnique", a.today_unique != null ? String(a.today_unique) : "—");
       set("anPeak", a.peak_today != null ? String(a.peak_today) : "—");
       set("anAvg", a.avg_duration_seconds != null ? formatDuration(a.avg_duration_seconds) : "—");
+
+      applyAnalyticsPeriod(analyticsPeriodDays);
 
       const tbody = document.getElementById("adminAnalyticsPagesBody");
       if (!tbody) return;
@@ -949,6 +1099,16 @@
         )
         .join("");
     }
+
+    document.getElementById("anPeriodTabs")?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".admin-analytics-periods__btn");
+      if (!btn) return;
+      const days = parseInt(btn.dataset.days, 10);
+      if (![3, 7, 30].includes(days)) return;
+      analyticsPeriodDays = days;
+      sessionStorage.setItem(ANALYTICS_PERIOD_KEY, String(days));
+      applyAnalyticsPeriod(days);
+    });
 
     async function loadAnalytics() {
       try {
