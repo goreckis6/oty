@@ -3,7 +3,7 @@ FROM python:3.12-slim
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY main.py sources.py database.py movie_store.py scraper.py scrape_yts.py auth.py seo.py movie_enrichment.py auto_scraper.py site_files.py site_branding.py torrent_proxy.py ./
+COPY main.py sources.py database.py movie_store.py scraper.py scrape_yts.py auth.py seo.py movie_enrichment.py auto_scraper.py site_files.py site_branding.py torrent_proxy.py analytics.py ./
 COPY data/ ./data/
 
 ENV PORT=8080
