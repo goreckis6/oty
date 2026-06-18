@@ -725,7 +725,7 @@ async def sitemap_xml() -> Response:
 
 @app.get("/sitemap-yandex.xml")
 async def sitemap_yandex_xml() -> Response:
-    """Alias of /sitemap.xml — same URLs for Yandex Webmaster."""
+    """Full sitemap (homepage + movies) for Yandex Webmaster."""
     assert db is not None
     entries = db.list_sitemap_entries() if use_store() else []
     xml = build_yandex_sitemap(entries)

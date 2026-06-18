@@ -302,8 +302,19 @@ def render_movie_page(movie: dict[str, Any]) -> str:
     return out
 
 
+def collect_home_sitemap_urls() -> list[tuple[str, str, str]]:
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return [(f"{SITE_URL}/", today, "1.0")]
+
+
 def collect_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> list[tuple[str, str, str]]:
-    """Homepage + all movie pages for Google, Bing, and Yandex."""
+    """Homepage only — for Google and Bing."""
+    del entries
+    return collect_home_sitemap_urls()
+
+
+def collect_yandex_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> list[tuple[str, str, str]]:
+    """Homepage + all movie pages — for Yandex."""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     urls: list[tuple[str, str, str]] = [(f"{SITE_URL}/", today, "1.0")]
     for entry in entries or []:
@@ -332,12 +343,12 @@ def build_sitemap_urlset(urls: list[tuple[str, str, str]]) -> str:
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(urlset, encoding="unicode")
 
 
-def build_sitemap_index(chunk_count: int) -> str:
+def build_sitemap_index(chunk_count: int, *, prefix: str = "sitemap") -> str:
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     root = Element("sitemapindex", xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
     for index in range(1, chunk_count + 1):
         node = SubElement(root, "sitemap")
-        SubElement(node, "loc").text = f"{SITE_URL}/sitemap{index}.xml"
+        SubElement(node, "loc").text = f"{SITE_URL}/{prefix}{index}.xml"
         SubElement(node, "lastmod").text = today
     return '<?xml version="1.0" encoding="UTF-8"?>\n' + tostring(root, encoding="unicode")
 
@@ -346,16 +357,31 @@ def sitemap_chunks(entries: list[dict[str, Any]] | None = None) -> list[list[tup
     return chunk_sitemap_urls(collect_sitemap_urls(entries))
 
 
+def yandex_sitemap_chunks(entries: list[dict[str, Any]] | None = None) -> list[list[tuple[str, str, str]]]:
+    return chunk_sitemap_urls(collect_yandex_sitemap_urls(entries))
+
+
 def build_sitemap(entries: list[dict[str, Any]] | None = None) -> str:
-    """Root sitemap: urlset when <=200 URLs, otherwise a sitemap index."""
-    chunks = sitemap_chunks(entries)
-    if len(chunks) <= 1 and len(chunks[0]) <= SITEMAP_MAX_URLS:
-        return build_sitemap_urlset(chunks[0])
-    return build_sitemap_index(len(chunks))
+    """Google/Bing root sitemap — homepage only."""
+    del entries
+    return build_sitemap_urlset(collect_home_sitemap_urls())
 
 
 def build_sitemap_part(entries: list[dict[str, Any]] | None, index: int) -> str | None:
-    chunks = sitemap_chunks(entries)
+    del entries, index
+    return None
+
+
+def build_yandex_sitemap(entries: list[dict[str, Any]] | None = None) -> str:
+    """Yandex root sitemap — homepage + all movies."""
+    chunks = yandex_sitemap_chunks(entries)
+    if len(chunks) <= 1 and len(chunks[0]) <= SITEMAP_MAX_URLS:
+        return build_sitemap_urlset(chunks[0])
+    return build_sitemap_index(len(chunks), prefix="sitemap-yandex")
+
+
+def build_yandex_sitemap_part(entries: list[dict[str, Any]] | None, index: int) -> str | None:
+    chunks = yandex_sitemap_chunks(entries)
     if index < 1 or index > len(chunks):
         return None
     if len(chunks) == 1 and len(chunks[0]) <= SITEMAP_MAX_URLS:
@@ -363,16 +389,8 @@ def build_sitemap_part(entries: list[dict[str, Any]] | None, index: int) -> str 
     return build_sitemap_urlset(chunks[index - 1])
 
 
-def build_yandex_sitemap(entries: list[dict[str, Any]] | None = None) -> str:
-    return build_sitemap(entries)
-
-
-def build_yandex_sitemap_part(entries: list[dict[str, Any]] | None, index: int) -> str | None:
-    return build_sitemap_part(entries, index)
-
-
 def register_movies_for_seo(db: Any, movies: list[dict[str, Any]]) -> list[str]:
-    """Track freshly stored movies; sitemap includes all movie URLs on next request."""
+    """Track freshly stored movies; Yandex sitemap includes all movie URLs on next request."""
     urls = movie_seo_urls(movies)
     if urls:
         db.set_meta("seo_last_update", datetime.now(timezone.utc).isoformat())
