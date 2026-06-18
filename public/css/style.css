@@ -1216,7 +1216,7 @@ a:hover {
 
 .admin-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 12px;
   margin-bottom: 1.5rem;
 }
@@ -1285,6 +1285,33 @@ a:hover {
 .admin-stat strong {
   font-size: 1.1rem;
   color: var(--green);
+  word-break: break-all;
+}
+
+.admin-stat--live strong {
+  color: #7ee07a;
+}
+
+.admin-stats--analytics {
+  margin-top: 0.5rem;
+}
+
+.admin-analytics {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.admin-analytics th,
+.admin-analytics td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.admin-analytics__path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.82rem;
   word-break: break-all;
 }
 

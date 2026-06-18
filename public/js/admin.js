@@ -2,6 +2,7 @@
   const TOKEN_KEY = "yts_admin_token";
   let adminRefreshTimer = null;
   let scrapePollTimer = null;
+  let analyticsPollTimer = null;
   let scrapePollInFlight = false;
 
   function getToken() {
@@ -34,9 +35,17 @@
     }
   }
 
+  function clearAnalyticsPollTimer() {
+    if (analyticsPollTimer) {
+      clearInterval(analyticsPollTimer);
+      analyticsPollTimer = null;
+    }
+  }
+
   function clearAllAdminTimers() {
     clearAdminRefreshTimer();
     clearScrapePollTimer();
+    clearAnalyticsPollTimer();
   }
 
   async function api(path, options = {}) {
@@ -206,6 +215,7 @@
           </div>
 
           <div class="admin-stats" id="adminStats">
+            <div class="admin-stat admin-stat--live"><span>Teraz online</span><strong id="statActive">—</strong></div>
             <div class="admin-stat"><span>Movies</span><strong id="statCount">—</strong></div>
             <div class="admin-stat"><span>Last scrape</span><strong id="statLast">—</strong></div>
             <div class="admin-stat"><span>Last batch</span><strong id="statBatch">—</strong></div>
@@ -214,6 +224,7 @@
 
           <nav class="admin-tabs" id="adminTabs" role="tablist" aria-label="Sekcje panelu">
             <button type="button" class="admin-tabs__btn admin-tabs__btn--active" data-tab="movies" role="tab" aria-selected="true">Filmy</button>
+            <button type="button" class="admin-tabs__btn" data-tab="analytics" role="tab" aria-selected="false">Analityka</button>
             <button type="button" class="admin-tabs__btn" data-tab="scraping" role="tab" aria-selected="false">Scraping</button>
             <button type="button" class="admin-tabs__btn" data-tab="branding" role="tab" aria-selected="false">Wygląd</button>
             <button type="button" class="admin-tabs__btn" data-tab="files" role="tab" aria-selected="false">Pliki witryny</button>
@@ -276,6 +287,27 @@
                 </tbody>
               </table>
             </div>
+          </section>
+
+          <section class="admin-tab admin-section" data-tab="analytics" id="adminTabAnalytics" role="tabpanel" hidden>
+            <h2>Ruch na stronie</h2>
+            <p class="admin-hint">Własna analityka — ping co 30 s z przeglądarki użytkownika. Aktywny = ostatni ping w ciągu 90 s (boty pomijane).</p>
+            <div class="admin-stats admin-stats--analytics" id="adminAnalyticsStats">
+              <div class="admin-stat admin-stat--live"><span>Teraz online</span><strong id="anActive">—</strong></div>
+              <div class="admin-stat"><span>Odsłony dziś</span><strong id="anViews">—</strong></div>
+              <div class="admin-stat"><span>Unikalni dziś</span><strong id="anUnique">—</strong></div>
+              <div class="admin-stat"><span>Szczyt dziś</span><strong id="anPeak">—</strong></div>
+              <div class="admin-stat"><span>Śr. czas wizyty</span><strong id="anAvg">—</strong></div>
+            </div>
+            <h3 class="admin-tab__subtitle">Aktywne strony</h3>
+            <table class="admin-analytics" id="adminAnalyticsPages">
+              <thead>
+                <tr><th>Ścieżka</th><th>Osoby</th></tr>
+              </thead>
+              <tbody id="adminAnalyticsPagesBody">
+                <tr><td colspan="2" class="admin-movies-empty">Ładowanie…</td></tr>
+              </tbody>
+            </table>
           </section>
 
           <section class="admin-tab admin-section" data-tab="scraping" id="adminTabScraping" role="tabpanel" hidden>
@@ -422,9 +454,10 @@
     });
 
     const ADMIN_TAB_KEY = "yts_admin_tab";
-    const validTabs = new Set(["movies", "scraping", "branding", "files"]);
+    const validTabs = new Set(["movies", "analytics", "scraping", "branding", "files"]);
     const SCRAPE_POLL_MS = 3000;
     const SCRAPE_POLL_ACTIVE_MS = 2000;
+    const ANALYTICS_POLL_MS = 10000;
     let scrapePollFast = false;
 
     async function refreshScrapePanel() {
@@ -459,6 +492,22 @@
       clearScrapePollTimer();
     }
 
+    function startAnalyticsPollTimer() {
+      clearAnalyticsPollTimer();
+      void loadAnalytics();
+      analyticsPollTimer = window.setInterval(() => {
+        if ((sessionStorage.getItem(ADMIN_TAB_KEY) || "movies") !== "analytics") {
+          clearAnalyticsPollTimer();
+          return;
+        }
+        void loadAnalytics();
+      }, ANALYTICS_POLL_MS);
+    }
+
+    function stopAnalyticsPollTimer() {
+      clearAnalyticsPollTimer();
+    }
+
     function switchTab(name) {
       if (!validTabs.has(name)) name = "movies";
       document.querySelectorAll(".admin-tabs__btn").forEach((btn) => {
@@ -478,6 +527,11 @@
         startScrapePollTimer(SCRAPE_POLL_MS);
       } else {
         stopScrapePollTimer();
+      }
+      if (name === "analytics") {
+        startAnalyticsPollTimer();
+      } else {
+        stopAnalyticsPollTimer();
       }
     }
 
@@ -851,10 +905,61 @@
     });
 
     async function applyStats(s) {
+      const activeEl = document.getElementById("statActive");
+      if (activeEl) activeEl.textContent = s.active_now != null ? String(s.active_now) : "—";
       document.getElementById("statCount").textContent = s.movies_count;
       document.getElementById("statLast").textContent = s.last_scrape || "never";
       document.getElementById("statBatch").textContent = s.last_scrape_count || "—";
       document.getElementById("statNew").textContent = s.new_count ?? "—";
+    }
+
+    function formatDuration(sec) {
+      const n = Math.max(0, parseInt(sec, 10) || 0);
+      if (n < 60) return `${n} s`;
+      const m = Math.floor(n / 60);
+      const s = n % 60;
+      return s ? `${m} min ${s} s` : `${m} min`;
+    }
+
+    function applyAnalytics(a) {
+      const active = a.active_now != null ? String(a.active_now) : "—";
+      const activeHeader = document.getElementById("statActive");
+      if (activeHeader) activeHeader.textContent = active;
+      const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+      set("anActive", active);
+      set("anViews", a.today_page_views != null ? String(a.today_page_views) : "—");
+      set("anUnique", a.today_unique != null ? String(a.today_unique) : "—");
+      set("anPeak", a.peak_today != null ? String(a.peak_today) : "—");
+      set("anAvg", a.avg_duration_seconds != null ? formatDuration(a.avg_duration_seconds) : "—");
+
+      const tbody = document.getElementById("adminAnalyticsPagesBody");
+      if (!tbody) return;
+      const pages = a.active_pages || [];
+      if (!pages.length) {
+        tbody.innerHTML = `<tr><td colspan="2" class="admin-movies-empty">Nikogo aktywnego na stronie.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = pages
+        .map(
+          (p) =>
+            `<tr><td class="admin-analytics__path">${escapeHtml(p.path || "/")}</td><td>${p.count}</td></tr>`
+        )
+        .join("");
+    }
+
+    async function loadAnalytics() {
+      try {
+        const a = await api("/admin/analytics");
+        applyAnalytics(a);
+      } catch (err) {
+        if (isAuthError(err)) {
+          clearToken();
+          window.YtsAdmin.render(app);
+        }
+      }
     }
 
     function renderMoviesTable(data) {

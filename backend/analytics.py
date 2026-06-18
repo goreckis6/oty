@@ -1,0 +1,209 @@
+import hashlib
+import re
+from datetime import datetime, timedelta, timezone
+
+from database import Database
+
+ACTIVE_TTL_SECONDS = 90
+RETENTION_DAYS = 14
+
+_BOT_RE = re.compile(
+    r"bot|crawl|spider|slurp|mediapartners|headless|python-requests|curl/|wget/|"
+    r"go-http|semrush|ahrefs|petalbot|yandexbot|bingbot|googlebot|facebookexternalhit",
+    re.I,
+)
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _today() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+class AnalyticsTracker:
+    def __init__(self, db: Database) -> None:
+        self.db = db
+        self._init_schema()
+
+    def _init_schema(self) -> None:
+        with self.db.connect() as conn:
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS analytics_sessions (
+                    session_id TEXT PRIMARY KEY,
+                    visitor_hash TEXT NOT NULL,
+                    first_seen TEXT NOT NULL,
+                    last_seen TEXT NOT NULL,
+                    last_path TEXT,
+                    page_views INTEGER NOT NULL DEFAULT 1,
+                    is_bot INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE INDEX IF NOT EXISTS idx_analytics_last_seen ON analytics_sessions(last_seen);
+
+                CREATE TABLE IF NOT EXISTS analytics_daily (
+                    day TEXT PRIMARY KEY,
+                    page_views INTEGER NOT NULL DEFAULT 0,
+                    unique_visitors INTEGER NOT NULL DEFAULT 0,
+                    peak_online INTEGER NOT NULL DEFAULT 0
+                );
+
+                CREATE TABLE IF NOT EXISTS analytics_daily_visitors (
+                    day TEXT NOT NULL,
+                    visitor_hash TEXT NOT NULL,
+                    PRIMARY KEY (day, visitor_hash)
+                );
+                """
+            )
+
+    @staticmethod
+    def is_bot(ua: str | None) -> bool:
+        if not ua:
+            return False
+        return bool(_BOT_RE.search(ua))
+
+    @staticmethod
+    def visitor_hash(ip: str, ua: str | None) -> str:
+        raw = f"{ip}|{ua or ''}"
+        return hashlib.sha256(raw.encode()).hexdigest()[:32]
+
+    def record_ping(self, session_id: str, path: str, ip: str, ua: str | None) -> None:
+        if not session_id or len(session_id) > 64 or self.is_bot(ua):
+            return
+
+        path = (path or "/")[:500]
+        now = _now_iso()
+        day = _today()
+        vhash = self.visitor_hash(ip, ua)
+        cutoff_active = (datetime.now(timezone.utc) - timedelta(seconds=ACTIVE_TTL_SECONDS)).isoformat()
+
+        with self.db.connect() as conn:
+            row = conn.execute(
+                "SELECT last_path, page_views FROM analytics_sessions WHERE session_id = ?",
+                (session_id,),
+            ).fetchone()
+
+            if row:
+                path_changed = row["last_path"] != path
+                page_views = row["page_views"] + (1 if path_changed else 0)
+                conn.execute(
+                    """
+                    UPDATE analytics_sessions
+                    SET last_seen = ?, last_path = ?, page_views = ?, visitor_hash = ?
+                    WHERE session_id = ?
+                    """,
+                    (now, path, page_views, vhash, session_id),
+                )
+            else:
+                path_changed = True
+                conn.execute(
+                    """
+                    INSERT INTO analytics_sessions
+                    (session_id, visitor_hash, first_seen, last_seen, last_path, page_views)
+                    VALUES (?, ?, ?, ?, ?, 1)
+                    """,
+                    (session_id, vhash, now, now, path),
+                )
+
+            if path_changed:
+                conn.execute(
+                    """
+                    INSERT INTO analytics_daily (day, page_views, unique_visitors, peak_online)
+                    VALUES (?, 1, 0, 0)
+                    ON CONFLICT(day) DO UPDATE SET page_views = page_views + 1
+                    """,
+                    (day,),
+                )
+
+            if conn.execute(
+                "INSERT OR IGNORE INTO analytics_daily_visitors (day, visitor_hash) VALUES (?, ?)",
+                (day, vhash),
+            ).rowcount:
+                conn.execute(
+                    """
+                    INSERT INTO analytics_daily (day, page_views, unique_visitors, peak_online)
+                    VALUES (?, 0, 1, 0)
+                    ON CONFLICT(day) DO UPDATE SET unique_visitors = unique_visitors + 1
+                    """,
+                    (day,),
+                )
+
+            active = conn.execute(
+                "SELECT COUNT(*) AS c FROM analytics_sessions WHERE last_seen >= ? AND is_bot = 0",
+                (cutoff_active,),
+            ).fetchone()["c"]
+            conn.execute(
+                """
+                INSERT INTO analytics_daily (day, page_views, unique_visitors, peak_online)
+                VALUES (?, 0, 0, ?)
+                ON CONFLICT(day) DO UPDATE SET peak_online = MAX(peak_online, excluded.peak_online)
+                """,
+                (day, active),
+            )
+
+            self._prune_old(conn)
+
+    def _prune_old(self, conn) -> None:
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)).isoformat()
+        conn.execute("DELETE FROM analytics_sessions WHERE last_seen < ?", (cutoff,))
+        old_day = (datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)).strftime("%Y-%m-%d")
+        conn.execute("DELETE FROM analytics_daily_visitors WHERE day < ?", (old_day,))
+        conn.execute("DELETE FROM analytics_daily WHERE day < ?", (old_day,))
+
+    def active_count(self) -> int:
+        cutoff = (datetime.now(timezone.utc) - timedelta(seconds=ACTIVE_TTL_SECONDS)).isoformat()
+        with self.db.connect() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) AS c FROM analytics_sessions WHERE last_seen >= ? AND is_bot = 0",
+                (cutoff,),
+            ).fetchone()
+        return int(row["c"] if row else 0)
+
+    def get_stats(self) -> dict:
+        now = datetime.now(timezone.utc)
+        cutoff = (now - timedelta(seconds=ACTIVE_TTL_SECONDS)).isoformat()
+        day = _today()
+
+        with self.db.connect() as conn:
+            active_now = conn.execute(
+                "SELECT COUNT(*) AS c FROM analytics_sessions WHERE last_seen >= ? AND is_bot = 0",
+                (cutoff,),
+            ).fetchone()["c"]
+
+            daily = conn.execute(
+                "SELECT page_views, unique_visitors, peak_online FROM analytics_daily WHERE day = ?",
+                (day,),
+            ).fetchone()
+
+            avg_row = conn.execute(
+                """
+                SELECT AVG((julianday(last_seen) - julianday(first_seen)) * 86400) AS avg_sec
+                FROM analytics_sessions
+                WHERE is_bot = 0 AND first_seen >= ?
+                """,
+                (f"{day}T",),
+            ).fetchone()
+
+            recent = conn.execute(
+                """
+                SELECT last_path, COUNT(*) AS c
+                FROM analytics_sessions
+                WHERE last_seen >= ? AND is_bot = 0
+                GROUP BY last_path
+                ORDER BY c DESC
+                LIMIT 10
+                """,
+                (cutoff,),
+            ).fetchall()
+
+        avg_seconds = int(avg_row["avg_sec"] or 0) if avg_row else 0
+
+        return {
+            "active_now": active_now,
+            "today_page_views": daily["page_views"] if daily else 0,
+            "today_unique": daily["unique_visitors"] if daily else 0,
+            "peak_today": daily["peak_online"] if daily else 0,
+            "avg_duration_seconds": avg_seconds,
+            "active_pages": [{"path": r["last_path"] or "/", "count": r["c"]} for r in recent],
+        }

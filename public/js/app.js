@@ -607,4 +607,50 @@
 
   migrateLegacyUrl();
   router();
+
+  (function initVisitAnalytics() {
+    const PING_MS = 30000;
+    const SID_KEY = "yts_sid";
+    let sid = sessionStorage.getItem(SID_KEY);
+    if (!sid) {
+      sid =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `s${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+      sessionStorage.setItem(SID_KEY, sid);
+    }
+
+    function currentPath() {
+      return location.pathname + location.search;
+    }
+
+    function shouldTrack() {
+      const path = location.pathname;
+      return path !== "/twojastara" && !path.startsWith("/api/");
+    }
+
+    async function ping() {
+      if (!shouldTrack()) return;
+      const base = cfg().apiBase || "/api/v1";
+      try {
+        await fetch(`${base}/analytics/ping`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sid, path: currentPath() }),
+          keepalive: true,
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+
+    ping();
+    window.setInterval(ping, PING_MS);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") ping();
+    });
+    window.addEventListener("popstate", () => {
+      window.setTimeout(ping, 0);
+    });
+  })();
 })();

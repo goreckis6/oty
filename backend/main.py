@@ -20,6 +20,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from analytics import AnalyticsTracker
 from auth import (
     ADMIN_USER,
     TOKEN_COOKIE,
@@ -72,12 +73,14 @@ torrents: TorrentSearch | None = None
 torrent_proxy: TorrentProxy | None = None
 store: MovieStore | None = None
 db: Database | None = None
+analytics: AnalyticsTracker | None = None
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    global tmdb, torrents, torrent_proxy, store, db
+    global tmdb, torrents, torrent_proxy, store, db, analytics
     db = Database(defer_maintenance=True)
+    analytics = AnalyticsTracker(db)
     if DATA_SOURCE in ("sqlite", "scrape"):
         store = MovieStore(db)
     elif TMDB_KEY:
@@ -150,6 +153,11 @@ class SiteFileWriteRequest(BaseModel):
 class BrandingRequest(BaseModel):
     site_name: str = Field(default="", max_length=40)
     site_tagline: str = Field(default="", max_length=120)
+
+
+class AnalyticsPingRequest(BaseModel):
+    session_id: str = Field(min_length=8, max_length=64)
+    path: str = Field(default="/", max_length=500)
 
 
 def require_tmdb() -> TmdbClient:
@@ -364,6 +372,9 @@ async def admin_me(username: str = Depends(require_admin)) -> dict[str, str]:
 async def admin_stats(_: str = Depends(require_admin)) -> dict[str, Any]:
     assert db is not None
     new_count = len(db.get_last_batch_ids())
+    active_now = 0
+    if analytics is not None:
+        active_now = await asyncio.to_thread(analytics.active_count)
     return {
         "movies_count": db.count_movies(),
         "last_scrape": db.get_meta("last_scrape"),
@@ -371,7 +382,24 @@ async def admin_stats(_: str = Depends(require_admin)) -> dict[str, Any]:
         "new_count": new_count,
         "data_source": DATA_SOURCE,
         "scrape_resume_page": db.get_meta("scrape_resume_page", "1"),
+        "active_now": active_now,
     }
+
+
+@app.get(f"{API_PREFIX}/admin/analytics")
+async def admin_analytics(_: str = Depends(require_admin)) -> dict[str, Any]:
+    if analytics is None:
+        raise HTTPException(status_code=503, detail="Analytics unavailable")
+    return await asyncio.to_thread(analytics.get_stats)
+
+
+@app.post(f"{API_PREFIX}/analytics/ping")
+async def analytics_ping(request: Request, body: AnalyticsPingRequest) -> dict[str, str]:
+    if analytics is not None:
+        ip = client_ip(request)
+        ua = request.headers.get("user-agent")
+        await asyncio.to_thread(analytics.record_ping, body.session_id, body.path, ip, ua)
+    return {"status": "ok"}
 
 
 @app.get(f"{API_PREFIX}/admin/bootstrap")
