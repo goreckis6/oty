@@ -319,22 +319,34 @@
                   <span class="admin-chart__title">Odsłony</span>
                   <span class="admin-chart__hint" id="anChartViewsHint"></span>
                 </div>
-                <svg class="admin-chart__svg" id="anChartViews" viewBox="0 0 600 140" preserveAspectRatio="none" aria-hidden="true"></svg>
+                <svg class="admin-chart__svg" id="anChartViews" viewBox="0 0 640 180" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Wykres odsłon"></svg>
               </div>
               <div class="admin-chart">
                 <div class="admin-chart__head">
                   <span class="admin-chart__title">Unikalni użytkownicy</span>
                   <span class="admin-chart__hint" id="anChartUniqueHint"></span>
                 </div>
-                <svg class="admin-chart__svg admin-chart__svg--line" id="anChartUnique" viewBox="0 0 600 140" preserveAspectRatio="none" aria-hidden="true"></svg>
+                <svg class="admin-chart__svg admin-chart__svg--line" id="anChartUnique" viewBox="0 0 640 180" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Wykres unikalnych użytkowników"></svg>
               </div>
               <div class="admin-chart">
                 <div class="admin-chart__head">
                   <span class="admin-chart__title">Szczyt online</span>
                   <span class="admin-chart__hint" id="anChartPeakHint"></span>
                 </div>
-                <svg class="admin-chart__svg" id="anChartPeak" viewBox="0 0 600 140" preserveAspectRatio="none" aria-hidden="true"></svg>
+                <svg class="admin-chart__svg" id="anChartPeak" viewBox="0 0 640 180" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Wykres szczytu online"></svg>
               </div>
+            </div>
+
+            <h3 class="admin-tab__subtitle">Tabela dzienna</h3>
+            <div class="admin-analytics-table-wrap">
+              <table class="admin-analytics" id="anDailyTable">
+                <thead>
+                  <tr><th>Dzień</th><th>Odsłony</th><th>Unikalni</th><th>Szczyt online</th></tr>
+                </thead>
+                <tbody id="anDailyTableBody">
+                  <tr><td colspan="4" class="admin-movies-empty">Ładowanie…</td></tr>
+                </tbody>
+              </table>
             </div>
 
             <h3 class="admin-tab__subtitle">Aktywne strony</h3>
@@ -964,76 +976,124 @@
     let analyticsPeriodDays = parseInt(sessionStorage.getItem(ANALYTICS_PERIOD_KEY) || "3", 10);
     if (![3, 7, 30].includes(analyticsPeriodDays)) analyticsPeriodDays = 3;
 
-    function formatChartDay(day) {
+    function formatChartDay(day, full) {
       if (!day) return "";
       const parts = String(day).split("-");
       if (parts.length !== 3) return day;
-      return `${parts[2]}.${parts[1]}`;
+      return full ? `${parts[2]}.${parts[1]}.${parts[0]}` : `${parts[2]}.${parts[1]}`;
+    }
+
+    function chartLayout() {
+      const w = 640;
+      const h = 180;
+      const padL = 44;
+      const padR = 12;
+      const padT = 16;
+      const padB = 32;
+      return { w, h, padL, padR, padT, padB, chartW: w - padL - padR, chartH: h - padT - padB };
+    }
+
+    function renderChartYAxis(max, layout) {
+      const { padL, padR, padT, chartH, w } = layout;
+      const ticks = [0];
+      if (max > 1) ticks.push(Math.ceil(max / 2));
+      if (max > 0) ticks.push(max);
+      const unique = [...new Set(ticks)].sort((a, b) => a - b);
+      return unique
+        .map((t) => {
+          const y = padT + chartH - (t / max) * chartH;
+          return `
+            <line x1="${padL}" y1="${y.toFixed(1)}" x2="${w - padR}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.08)" />
+            <text x="${padL - 6}" y="${(y + 3).toFixed(1)}" fill="#9aa0a6" font-size="10" text-anchor="end">${t}</text>`;
+        })
+        .join("");
     }
 
     function renderBarChart(svgEl, series, key, color) {
       if (!svgEl || !series.length) return;
       const values = series.map((d) => Number(d[key]) || 0);
       const max = Math.max(1, ...values);
-      const w = 600;
-      const h = 140;
-      const padX = 8;
-      const padTop = 12;
-      const padBottom = 22;
-      const chartH = h - padTop - padBottom;
-      const barW = (w - padX * 2) / series.length;
+      const layout = chartLayout();
+      const { w, h, padL, padT, chartW, chartH } = layout;
+      const barW = chartW / series.length;
+      const fontSize = series.length > 14 ? 8 : series.length > 9 ? 9 : 10;
+      const showAllDates = series.length <= 10;
+
       const bars = values
         .map((v, i) => {
-          const bh = Math.max(0, (v / max) * chartH);
-          const x = padX + i * barW + 1;
-          const y = padTop + chartH - bh;
-          const width = Math.max(1, barW - 2);
-          return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${width.toFixed(1)}" height="${bh.toFixed(1)}" fill="${color}" rx="2" opacity="0.9"><title>${formatChartDay(series[i].day)}: ${v}</title></rect>`;
+          const bh = Math.max(v > 0 ? 2 : 0, (v / max) * chartH);
+          const x = padL + i * barW + 1;
+          const y = padT + chartH - bh;
+          const width = Math.max(2, barW - 2);
+          const cx = x + width / 2;
+          const valY = Math.max(padT + 10, y - 4);
+          const dateY = h - 6;
+          const dateLabel = showAllDates || i === 0 || i === series.length - 1 || i % Math.ceil(series.length / 8) === 0
+            ? `<text x="${cx.toFixed(1)}" y="${dateY}" fill="#9aa0a6" font-size="9" text-anchor="middle">${formatChartDay(series[i].day)}</text>`
+            : "";
+          const valueLabel = `<text x="${cx.toFixed(1)}" y="${valY.toFixed(1)}" fill="#e8eaed" font-size="${fontSize}" font-weight="700" text-anchor="middle">${v}</text>`;
+          return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${width.toFixed(1)}" height="${bh.toFixed(1)}" fill="${color}" rx="2" opacity="0.92" />${valueLabel}${dateLabel}`;
         })
         .join("");
-      const labels = series
-        .map((d, i) => {
-          const show = series.length <= 7 || i === 0 || i === series.length - 1 || i % Math.ceil(series.length / 6) === 0;
-          if (!show) return "";
-          const x = padX + i * barW + barW / 2;
-          return `<text x="${x.toFixed(1)}" y="${h - 4}" fill="#888" font-size="10" text-anchor="middle">${formatChartDay(d.day)}</text>`;
-        })
-        .join("");
-      svgEl.innerHTML = `${bars}${labels}`;
+
+      svgEl.innerHTML = `${renderChartYAxis(max, layout)}${bars}`;
     }
 
     function renderLineChart(svgEl, series, key, color) {
       if (!svgEl || !series.length) return;
       const values = series.map((d) => Number(d[key]) || 0);
       const max = Math.max(1, ...values);
-      const w = 600;
-      const h = 140;
-      const padX = 8;
-      const padTop = 12;
-      const padBottom = 22;
-      const chartH = h - padTop - padBottom;
-      const step = series.length > 1 ? (w - padX * 2) / (series.length - 1) : 0;
+      const layout = chartLayout();
+      const { w, h, padL, padT, chartW, chartH } = layout;
+      const step = series.length > 1 ? chartW / (series.length - 1) : 0;
+      const fontSize = series.length > 14 ? 8 : series.length > 9 ? 9 : 10;
+      const showAllDates = series.length <= 10;
+
       const points = values.map((v, i) => {
-        const x = padX + i * step;
-        const y = padTop + chartH - (v / max) * chartH;
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
+        const x = padL + i * step;
+        const y = padT + chartH - (v / max) * chartH;
+        return { x, y, v, day: series[i].day };
       });
-      const dots = values
-        .map((v, i) => {
-          const x = padX + i * step;
-          const y = padTop + chartH - (v / max) * chartH;
-          return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" fill="${color}"><title>${formatChartDay(series[i].day)}: ${v}</title></circle>`;
+
+      const polyline = points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+      const markers = points
+        .map((p, i) => {
+          const dateLabel = showAllDates || i === 0 || i === points.length - 1 || i % Math.ceil(points.length / 8) === 0
+            ? `<text x="${p.x.toFixed(1)}" y="${h - 6}" fill="#9aa0a6" font-size="9" text-anchor="middle">${formatChartDay(p.day)}</text>`
+            : "";
+          const valY = Math.max(padT + 10, p.y - 6);
+          return `
+            <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="${color}" stroke="#1a1d21" stroke-width="1.5" />
+            <text x="${p.x.toFixed(1)}" y="${valY.toFixed(1)}" fill="#e8eaed" font-size="${fontSize}" font-weight="700" text-anchor="middle">${p.v}</text>
+            ${dateLabel}`;
         })
         .join("");
-      const labels = series
-        .map((d, i) => {
-          const show = series.length <= 7 || i === 0 || i === series.length - 1 || i % Math.ceil(series.length / 6) === 0;
-          if (!show) return "";
-          const x = padX + i * step;
-          return `<text x="${x.toFixed(1)}" y="${h - 4}" fill="#888" font-size="10" text-anchor="middle">${formatChartDay(d.day)}</text>`;
+
+      svgEl.innerHTML = `${renderChartYAxis(max, layout)}<polyline fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="${polyline}" opacity="0.95"/>${markers}`;
+    }
+
+    function renderDailyTable(series) {
+      const tbody = document.getElementById("anDailyTableBody");
+      if (!tbody) return;
+      if (!series.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="admin-movies-empty">Brak danych w wybranym okresie.</td></tr>`;
+        return;
+      }
+      const rows = [...series].reverse();
+      tbody.innerHTML = rows
+        .map((d) => {
+          const views = Number(d.page_views) || 0;
+          const unique = Number(d.unique_visitors) || 0;
+          const peak = Number(d.peak_online) || 0;
+          const empty = views === 0 && unique === 0 && peak === 0;
+          return `<tr class="${empty ? "admin-analytics__row--empty" : ""}">
+            <td>${formatChartDay(d.day, true)}</td>
+            <td>${views}</td>
+            <td>${unique}</td>
+            <td>${peak}</td>
+          </tr>`;
         })
         .join("");
-      svgEl.innerHTML = `<polyline fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="${points.join(" ")}" opacity="0.95"/>${dots}${labels}`;
     }
 
     function sliceDailySeries(daily, days) {
@@ -1061,6 +1121,7 @@
       renderBarChart(document.getElementById("anChartViews"), series, "page_views", "#6ac045");
       renderLineChart(document.getElementById("anChartUnique"), series, "unique_visitors", "#5eb8ff");
       renderBarChart(document.getElementById("anChartPeak"), series, "peak_online", "#e8b84a");
+      renderDailyTable(series);
 
       document.querySelectorAll(".admin-analytics-periods__btn").forEach((btn) => {
         const active = parseInt(btn.dataset.days, 10) === days;

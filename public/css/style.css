@@ -1382,9 +1382,24 @@ a:hover {
 .admin-chart__svg {
   display: block;
   width: 100%;
-  height: 140px;
+  height: 180px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
   border-radius: 6px;
+}
+
+.admin-analytics-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+
+.admin-analytics th:nth-child(n + 2),
+.admin-analytics td:nth-child(n + 2) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-analytics__row--empty td {
+  color: var(--text-muted);
 }
 
 .admin-section h2 {
