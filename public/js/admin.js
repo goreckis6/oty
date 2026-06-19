@@ -349,6 +349,19 @@
               </table>
             </div>
 
+            <h3 class="admin-tab__subtitle">Kraje</h3>
+            <p class="admin-hint" id="anCountriesHint">Odsłony wg kraju w wybranym okresie (UTC). Kraj z Cloudflare lub geolokalizacji IP.</p>
+            <div class="admin-analytics-table-wrap">
+              <table class="admin-analytics admin-analytics--countries" id="anCountriesTable">
+                <thead>
+                  <tr><th></th><th>Kraj</th><th>Odsłony</th><th>Udział</th></tr>
+                </thead>
+                <tbody id="anCountriesBody">
+                  <tr><td colspan="4" class="admin-movies-empty">Ładowanie…</td></tr>
+                </tbody>
+              </table>
+            </div>
+
             <h3 class="admin-tab__subtitle">Aktywne strony</h3>
             <table class="admin-analytics" id="adminAnalyticsPages">
               <thead>
@@ -976,6 +989,23 @@
     let analyticsPeriodDays = parseInt(sessionStorage.getItem(ANALYTICS_PERIOD_KEY) || "3", 10);
     if (![3, 7, 30].includes(analyticsPeriodDays)) analyticsPeriodDays = 3;
 
+    let countryNames = null;
+    function getCountryName(code) {
+      if (!code || code === "UN") return "Nieznany";
+      try {
+        if (!countryNames) countryNames = new Intl.DisplayNames(["pl"], { type: "region" });
+        return countryNames.of(code) || code;
+      } catch {
+        return code;
+      }
+    }
+
+    function countryFlag(code) {
+      if (!code || code === "UN" || code.length !== 2) return "🌐";
+      const c = code.toUpperCase();
+      return String.fromCodePoint(...[...c].map((ch) => 127397 + ch.charCodeAt(0)));
+    }
+
     function formatChartDay(day, full) {
       if (!day) return "";
       const parts = String(day).split("-");
@@ -1096,6 +1126,30 @@
         .join("");
     }
 
+    function renderCountriesTable(countries) {
+      const tbody = document.getElementById("anCountriesBody");
+      if (!tbody) return;
+      const list = Array.isArray(countries) ? countries : [];
+      if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="admin-movies-empty">Brak danych o krajach w wybranym okresie.</td></tr>`;
+        return;
+      }
+      const total = list.reduce((sum, c) => sum + (Number(c.page_views) || 0), 0) || 1;
+      tbody.innerHTML = list
+        .map((c) => {
+          const code = String(c.country_code || "UN");
+          const views = Number(c.page_views) || 0;
+          const share = ((views / total) * 100).toFixed(1);
+          return `<tr>
+            <td class="admin-analytics__flag" title="${escapeAttr(code)}">${countryFlag(code)}</td>
+            <td>${escapeHtml(getCountryName(code))} <span class="admin-analytics__code">${escapeHtml(code)}</span></td>
+            <td>${views}</td>
+            <td>${share}%</td>
+          </tr>`;
+        })
+        .join("");
+    }
+
     function sliceDailySeries(daily, days) {
       const list = Array.isArray(daily) ? daily : [];
       if (list.length <= days) return list;
@@ -1122,6 +1176,7 @@
       renderLineChart(document.getElementById("anChartUnique"), series, "unique_visitors", "#5eb8ff");
       renderBarChart(document.getElementById("anChartPeak"), series, "peak_online", "#e8b84a");
       renderDailyTable(series);
+      renderCountriesTable((analyticsCache.countries || {})[String(days)] || []);
 
       document.querySelectorAll(".admin-analytics-periods__btn").forEach((btn) => {
         const active = parseInt(btn.dataset.days, 10) === days;

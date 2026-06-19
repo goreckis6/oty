@@ -103,6 +103,22 @@ def client_ip(request: Request) -> str:
     return peer
 
 
+def client_country(request: Request) -> str:
+    for key in (
+        "cf-ipcountry",
+        "x-country-code",
+        "x-vercel-ip-country",
+        "cloudfront-viewer-country",
+    ):
+        raw = request.headers.get(key)
+        if not raw:
+            continue
+        code = raw.strip().upper()
+        if len(code) == 2 and code not in ("XX", "T1", "A1", "A2"):
+            return code
+    return "UN"
+
+
 def assert_admin_client(request: Request) -> None:
     if not ADMIN_ALLOWED_IPS:
         return

@@ -1,5 +1,7 @@
 import hashlib
+import json
 import re
+import urllib.request
 from datetime import datetime, timedelta, timezone
 
 from database import Database
@@ -64,6 +66,19 @@ class AnalyticsTracker:
                     visitor_hash TEXT NOT NULL,
                     PRIMARY KEY (day, visitor_hash)
                 );
+
+                CREATE TABLE IF NOT EXISTS analytics_country_daily (
+                    day TEXT NOT NULL,
+                    country_code TEXT NOT NULL,
+                    page_views INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (day, country_code)
+                );
+
+                CREATE TABLE IF NOT EXISTS analytics_ip_country (
+                    ip TEXT PRIMARY KEY,
+                    country_code TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
                 """
             )
 
@@ -78,7 +93,73 @@ class AnalyticsTracker:
         raw = f"{ip}|{ua or ''}"
         return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
-    def record_ping(self, session_id: str, path: str, ip: str, ua: str | None) -> None:
+    @staticmethod
+    def _is_private_ip(ip: str) -> bool:
+        if not ip:
+            return True
+        if ip == "::1" or ip.startswith("127."):
+            return True
+        if ip.startswith("10.") or ip.startswith("192.168.") or ip.startswith("169.254."):
+            return True
+        if ip.startswith("fc") or ip.startswith("fd"):
+            return True
+        if ip.startswith("fe80:"):
+            return True
+        parts = ip.split(".")
+        if len(parts) == 4 and parts[0] == "172":
+            try:
+                second = int(parts[1])
+                if 16 <= second <= 31:
+                    return True
+            except ValueError:
+                pass
+        return False
+
+    @staticmethod
+    def _lookup_country_ip(ip: str) -> str:
+        if AnalyticsTracker._is_private_ip(ip):
+            return "UN"
+        try:
+            req = urllib.request.Request(
+                f"http://ip-api.com/json/{ip}?fields=countryCode",
+                headers={"User-Agent": "yts-analytics/1.0"},
+            )
+            with urllib.request.urlopen(req, timeout=2.5) as resp:
+                data = json.loads(resp.read().decode())
+            code = str(data.get("countryCode") or "").upper()
+            if len(code) == 2:
+                return code
+        except Exception:
+            pass
+        return "UN"
+
+    def _resolve_country(self, conn, ip: str, header_country: str | None) -> str:
+        if header_country and header_country != "UN":
+            return header_country
+        row = conn.execute(
+            "SELECT country_code FROM analytics_ip_country WHERE ip = ?",
+            (ip,),
+        ).fetchone()
+        if row:
+            return str(row["country_code"])
+        code = self._lookup_country_ip(ip)
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO analytics_ip_country (ip, country_code, updated_at)
+            VALUES (?, ?, ?)
+            """,
+            (ip, code, _now_iso()),
+        )
+        return code
+
+    def record_ping(
+        self,
+        session_id: str,
+        path: str,
+        ip: str,
+        ua: str | None,
+        country: str | None = None,
+    ) -> None:
         if not session_id or len(session_id) > 64 or self.is_bot(ua):
             return
 
@@ -89,6 +170,8 @@ class AnalyticsTracker:
         cutoff_active = (datetime.now(timezone.utc) - timedelta(seconds=ACTIVE_TTL_SECONDS)).isoformat()
 
         with self.db.connect() as conn:
+            country_code = self._resolve_country(conn, ip, country)
+
             row = conn.execute(
                 "SELECT last_path, page_views FROM analytics_sessions WHERE session_id = ?",
                 (session_id,),
@@ -125,6 +208,14 @@ class AnalyticsTracker:
                     """,
                     (day,),
                 )
+                conn.execute(
+                    """
+                    INSERT INTO analytics_country_daily (day, country_code, page_views)
+                    VALUES (?, ?, 1)
+                    ON CONFLICT(day, country_code) DO UPDATE SET page_views = page_views + 1
+                    """,
+                    (day, country_code),
+                )
 
             if conn.execute(
                 "INSERT OR IGNORE INTO analytics_daily_visitors (day, visitor_hash) VALUES (?, ?)",
@@ -160,6 +251,26 @@ class AnalyticsTracker:
         old_day = (datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)).strftime("%Y-%m-%d")
         conn.execute("DELETE FROM analytics_daily_visitors WHERE day < ?", (old_day,))
         conn.execute("DELETE FROM analytics_daily WHERE day < ?", (old_day,))
+        conn.execute("DELETE FROM analytics_country_daily WHERE day < ?", (old_day,))
+
+    def _countries_for_period(self, conn, days: int) -> list[dict[str, int | str]]:
+        day_keys = _day_list(days)
+        start_day, end_day = day_keys[0], day_keys[-1]
+        rows = conn.execute(
+            """
+            SELECT country_code, SUM(page_views) AS page_views
+            FROM analytics_country_daily
+            WHERE day >= ? AND day <= ?
+            GROUP BY country_code
+            ORDER BY page_views DESC
+            LIMIT 40
+            """,
+            (start_day, end_day),
+        ).fetchall()
+        return [
+            {"country_code": str(r["country_code"]), "page_views": int(r["page_views"])}
+            for r in rows
+        ]
 
     def active_count(self) -> int:
         cutoff = (datetime.now(timezone.utc) - timedelta(seconds=ACTIVE_TTL_SECONDS)).isoformat()
@@ -288,6 +399,11 @@ class AnalyticsTracker:
                 "30": self._period_summary(conn, 30),
             }
             daily = self._daily_series(conn, 30)
+            countries = {
+                "3": self._countries_for_period(conn, 3),
+                "7": self._countries_for_period(conn, 7),
+                "30": self._countries_for_period(conn, 30),
+            }
 
         avg_seconds = int(avg_row["avg_sec"] or 0) if avg_row else 0
 
@@ -300,4 +416,5 @@ class AnalyticsTracker:
             "active_pages": [{"path": r["last_path"] or "/", "count": r["c"]} for r in recent],
             "periods": periods,
             "daily": daily,
+            "countries": countries,
         }

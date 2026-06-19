@@ -1402,6 +1402,19 @@ a:hover {
   color: var(--text-muted);
 }
 
+.admin-analytics--countries .admin-analytics__flag {
+  font-size: 1.35rem;
+  line-height: 1;
+  text-align: center;
+  width: 2.5rem;
+}
+
+.admin-analytics__code {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-left: 0.35rem;
+}
+
 .admin-section h2 {
   font-size: 0.95rem;
   color: var(--green);

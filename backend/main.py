@@ -28,6 +28,7 @@ from auth import (
     assert_admin_client,
     authenticate,
     client_ip,
+    client_country,
     create_token,
     require_admin,
 )
@@ -398,7 +399,8 @@ async def analytics_ping(request: Request, body: AnalyticsPingRequest) -> dict[s
     if analytics is not None:
         ip = client_ip(request)
         ua = request.headers.get("user-agent")
-        await asyncio.to_thread(analytics.record_ping, body.session_id, body.path, ip, ua)
+        country = client_country(request)
+        await asyncio.to_thread(analytics.record_ping, body.session_id, body.path, ip, ua, country)
     return {"status": "ok"}
 
 
