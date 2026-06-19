@@ -274,22 +274,6 @@ a:hover {
   background: var(--green-hover);
 }
 
-/* ── Native ad banner ── */
-.native-banner-wrap {
-  padding: 0.75rem 0 0.25rem;
-}
-
-.native-banner-wrap .container {
-  display: flex;
-  justify-content: center;
-}
-
-#container-6aa4489f06d0408962cdc3614dfaeb47 {
-  width: 100%;
-  max-width: 100%;
-  min-height: 0;
-}
-
 /* ── Main ── */
 .main {
   flex: 1 0 auto;
