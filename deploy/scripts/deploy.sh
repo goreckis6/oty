@@ -76,7 +76,7 @@ if ! grep -q './backend/data:/app/data' docker-compose.yml; then
   exit 1
 fi
 
-echo "==> Deploy preserves on VPS: backend/data/ (movies.db + scraped data), admin site files, uploads/, downloads/, .well-known/"
+echo "==> Deploy preserves on VPS: backend/data/ (movies.db + scraped data), admin site files (html/xml/json/js/manifest), uploads/, downloads/, .well-known/"
 
 cat > public/js/config.js <<EOF
 window.YTS_CONFIG = {

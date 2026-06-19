@@ -434,7 +434,7 @@
 
           <section class="admin-tab admin-section" data-tab="files" id="adminTabFiles" role="tabpanel" hidden>
             <h2>Pliki witryny</h2>
-            <p class="admin-hint">Dodaj pliki weryfikacyjne (Google, Bing) w katalogu głównym witryny. Będą dostępne pod adresem <code>https://twoja-domena/nazwa-pliku.html</code>. Chronione: <code>index.html</code>, katalogi <code>js/</code> i <code>css/</code>.</p>
+            <p class="admin-hint">Pliki w katalogu głównym witryny (weryfikacja Google/Bing, <code>sw.js</code>, <code>manifest.json</code>, <code>manifest.webmanifest</code>). Dostępne pod <code>https://twoja-domena/nazwa-pliku</code>. Chronione: <code>index.html</code>, katalogi <code>js/</code> i <code>css/</code>.</p>
             <div class="admin-files-toolbar">
               <button type="button" class="btn-admin-outline" id="adminFilesRefresh">Odśwież</button>
             </div>
@@ -443,7 +443,7 @@
               <form id="adminFileCreateForm" class="admin-file-form">
                 <label>
                   Nazwa pliku
-                  <input type="text" id="adminFileName" placeholder="google123abc.html" pattern="[A-Za-z0-9._-]+" required />
+                  <input type="text" id="adminFileName" placeholder="sw.js lub manifest.webmanifest" pattern="[A-Za-z0-9._-]+" required />
                 </label>
                 <label>
                   Treść
@@ -459,7 +459,7 @@
                 </label>
                 <label>
                   Plik
-                  <input type="file" id="adminUploadFile" accept=".html,.htm,.txt,.xml,.json" required />
+                  <input type="file" id="adminUploadFile" accept=".html,.htm,.txt,.xml,.json,.js,.webmanifest" required />
                 </label>
                 <button type="submit" class="btn-browse">Wyślij plik</button>
               </form>

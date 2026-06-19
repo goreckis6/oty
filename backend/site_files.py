@@ -10,7 +10,8 @@ from typing import Any
 
 PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "/app/public")).resolve()
 MAX_FILE_SIZE = 256 * 1024
-ALLOWED_EXTENSIONS = {".html", ".htm", ".txt", ".xml", ".json"}
+ALLOWED_EXTENSIONS = {".html", ".htm", ".txt", ".xml", ".json", ".js", ".webmanifest"}
+EDITABLE_EXTENSIONS = {".html", ".htm", ".txt", ".xml", ".json", ".js", ".webmanifest"}
 PROTECTED_NAMES = {"index.html"}
 SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 
@@ -61,7 +62,7 @@ def _file_info(path: Path, rel_path: str) -> dict[str, Any]:
         "modified_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
         "url": f"/{rel_path}",
         "protected": is_protected(rel_path),
-        "editable": path.suffix.lower() in {".html", ".htm", ".txt", ".xml", ".json"},
+        "editable": path.suffix.lower() in EDITABLE_EXTENSIONS,
     }
 
 

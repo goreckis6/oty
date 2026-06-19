@@ -73,6 +73,8 @@ jobs:
             --exclude 'public/*.xml' \
             --exclude 'public/*.txt' \
             --exclude 'public/*.json' \
+            --exclude 'public/*.js' \
+            --exclude 'public/*.webmanifest' \
             --include 'public/uploads/.gitkeep' \
             --exclude 'public/uploads/*' \
             --include 'public/downloads/.gitkeep' \
