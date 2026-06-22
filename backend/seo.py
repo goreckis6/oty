@@ -302,19 +302,8 @@ def render_movie_page(movie: dict[str, Any]) -> str:
     return out
 
 
-def collect_home_sitemap_urls() -> list[tuple[str, str, str]]:
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    return [(f"{SITE_URL}/", today, "1.0")]
-
-
-def collect_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> list[tuple[str, str, str]]:
-    """Homepage only — for Google and Bing."""
-    del entries
-    return collect_home_sitemap_urls()
-
-
-def collect_yandex_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> list[tuple[str, str, str]]:
-    """Homepage + all movie pages — for Yandex."""
+def collect_full_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> list[tuple[str, str, str]]:
+    """Homepage + all movie pages."""
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     urls: list[tuple[str, str, str]] = [(f"{SITE_URL}/", today, "1.0")]
     for entry in entries or []:
@@ -324,6 +313,16 @@ def collect_yandex_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> 
         lastmod = format_lastmod(entry.get("updated_at"))
         urls.append((movie_canonical(slug), lastmod, "0.8"))
     return urls
+
+
+def collect_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> list[tuple[str, str, str]]:
+    """Google/Bing — homepage + all movies."""
+    return collect_full_sitemap_urls(entries)
+
+
+def collect_yandex_sitemap_urls(entries: list[dict[str, Any]] | None = None) -> list[tuple[str, str, str]]:
+    """Yandex — homepage + all movies (separate sitemap URL)."""
+    return collect_full_sitemap_urls(entries)
 
 
 def chunk_sitemap_urls(urls: list[tuple[str, str, str]], size: int = SITEMAP_MAX_URLS) -> list[list[tuple[str, str, str]]]:
@@ -362,14 +361,20 @@ def yandex_sitemap_chunks(entries: list[dict[str, Any]] | None = None) -> list[l
 
 
 def build_sitemap(entries: list[dict[str, Any]] | None = None) -> str:
-    """Google/Bing root sitemap — homepage only."""
-    del entries
-    return build_sitemap_urlset(collect_home_sitemap_urls())
+    """Google/Bing root sitemap — homepage + all movies."""
+    chunks = sitemap_chunks(entries)
+    if len(chunks) <= 1 and len(chunks[0]) <= SITEMAP_MAX_URLS:
+        return build_sitemap_urlset(chunks[0])
+    return build_sitemap_index(len(chunks), prefix="sitemap")
 
 
 def build_sitemap_part(entries: list[dict[str, Any]] | None, index: int) -> str | None:
-    del entries, index
-    return None
+    chunks = sitemap_chunks(entries)
+    if index < 1 or index > len(chunks):
+        return None
+    if len(chunks) == 1 and len(chunks[0]) <= SITEMAP_MAX_URLS:
+        return None
+    return build_sitemap_urlset(chunks[index - 1])
 
 
 def build_yandex_sitemap(entries: list[dict[str, Any]] | None = None) -> str:
@@ -390,7 +395,7 @@ def build_yandex_sitemap_part(entries: list[dict[str, Any]] | None, index: int) 
 
 
 def register_movies_for_seo(db: Any, movies: list[dict[str, Any]]) -> list[str]:
-    """Track freshly stored movies; Yandex sitemap includes all movie URLs on next request."""
+    """Track freshly stored movies; sitemaps include all movie URLs on next request."""
     urls = movie_seo_urls(movies)
     if urls:
         db.set_meta("seo_last_update", datetime.now(timezone.utc).isoformat())
