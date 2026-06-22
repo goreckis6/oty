@@ -11,7 +11,7 @@ Trigger: **push na `main`** lub **Actions → Deploy → Run workflow**
 | `DEPLOY_SSH_KEY` | `-----BEGIN OPENSSH...` | ✅ |
 | `DEPLOY_USER` | `root` | ✅ |
 | `DEPLOY_HOST` | `167.233.112.233` | ✅ |
-| `DEPLOY_PORT` | `22` | opcjonalnie |
+| `DEPLOY_PORT` | `20203` (Virtuozzo; wewnętrznie sshd na 22) | opcjonalnie |
 | `DEPLOY_PATH` | `/opt/ytdown` | opcjonalnie |
 | `DOMAIN` | `yts.cool` | opcjonalnie (HTTPS + health check) |
 | `ACME_EMAIL` | `admin@example.com` | opcjonalnie (Let's Encrypt) |
@@ -42,10 +42,21 @@ Firewall: TCP **80**, **443**, **22** (port 22 must be open to GitHub Actions, n
 
 ## SSH: Connection refused w Actions
 
-1. Na VPS: `curl -4 ifconfig.me` — to musi być **DEPLOY_HOST** w GitHub (sam IP, bez spacji/entera).
-2. Panel hostingu (Virtuozzo): otwórz **TCP 22** dla wszystkich (0.0.0.0/0).
-3. Nie używaj domeny w `DEPLOY_HOST`, jeśli ma rekord AAAA a IPv6 nie działa — wpisz **IPv4**.
-4. Test z zewnątrz: port checker na IP + port 22.
+1. Na VPS: `curl -4 ifconfig.me` → **DEPLOY_HOST** (u Ciebie: `103.155.93.120`, sam IP, bez enterów).
+2. **Port SSH z internetu ≠ zawsze 22.** Sprawdź z laptopa (nie z VPS):
+   ```bash
+   nc -zv 103.155.93.120 22      # refused
+   nc -zv 103.155.93.120 20203   # succeeded → DEPLOY_PORT=20203
+   ```
+   Virtuozzo często wystawia SSH tylko na niestandardowym porcie (np. **20203**).
+3. Klucz deploy **musi** być w `authorized_keys` (pusty `grep deploy` = brak klucza → później Permission denied):
+   ```bash
+   mkdir -p /root/.ssh/deploy
+   ssh-keygen -t ed25519 -f /root/.ssh/deploy/id_ed25519 -N ""
+   cat /root/.ssh/deploy/id_ed25519.pub >> /root/.ssh/authorized_keys
+   cat /root/.ssh/deploy/id_ed25519   # cały plik → GitHub Secret DEPLOY_SSH_KEY
+   ```
+4. Nie używaj domeny w `DEPLOY_HOST`, jeśli ma AAAA a IPv6 nie działa — wpisz **IPv4**.
 
 ## Autostart po restarcie VPS
 
