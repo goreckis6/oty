@@ -37,7 +37,7 @@ def _clean_text(value: str, limit: int = 160) -> str:
 
 def home_page_title(site_name: str | None = None) -> str:
     name = site_name or SITE_NAME
-    return f"{name} - The Official Home of YIFY Movies Torrents"
+    return f"{name} - The Official Home of YIFY Movies"
 
 
 def home_page_description(site_name: str | None = None, site_tagline: str | None = None) -> str:

@@ -48,7 +48,7 @@
   }
 
   function homeTitle() {
-    return `${siteName()} - The Official Home of YIFY Movies Torrents`;
+    return `${siteName()} - The Official Home of YIFY Movies`;
   }
 
   function homeDescription() {
