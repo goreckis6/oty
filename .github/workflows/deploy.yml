@@ -37,17 +37,35 @@ jobs:
           test -n "$DEPLOY_USER" || (echo "Missing DEPLOY_USER" && exit 1)
           test -n "${{ secrets.DEPLOY_SSH_KEY }}" || (echo "Missing DEPLOY_SSH_KEY" && exit 1)
           test -n "$DEPLOY_HOST" || (echo "Missing DEPLOY_HOST" && exit 1)
+          DEPLOY_HOST="$(printf '%s' "$DEPLOY_HOST" | tr -d '[:space:]' | sed 's|https\?://||' | sed 's|/$||')"
+          DEPLOY_PORT="$(printf '%s' "$DEPLOY_PORT" | tr -d '[:space:]')"
+          DEPLOY_USER="$(printf '%s' "$DEPLOY_USER" | tr -d '[:space:]')"
+          echo "DEPLOY_HOST=$DEPLOY_HOST" >> "$GITHUB_ENV"
+          echo "DEPLOY_PORT=$DEPLOY_PORT" >> "$GITHUB_ENV"
+          echo "DEPLOY_USER=$DEPLOY_USER" >> "$GITHUB_ENV"
+          echo "SSH_OPTS=-4 -o AddressFamily=inet -o ConnectTimeout=20 -o StrictHostKeyChecking=accept-new" >> "$GITHUB_ENV"
 
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p "$DEPLOY_PORT" "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -4 -p "$DEPLOY_PORT" "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Preflight SSH (IPv4)
+        run: |
+          echo "Checking TCP ${DEPLOY_HOST}:${DEPLOY_PORT} over IPv4..."
+          getent ahostsv4 "$DEPLOY_HOST" | head -3 || true
+          nc -4 -zv -w 8 "$DEPLOY_HOST" "$DEPLOY_PORT" || {
+            echo "FATAL: cannot reach ${DEPLOY_HOST}:${DEPLOY_PORT} (IPv4)."
+            echo "On VPS run: curl -4 ifconfig.me  — must match GitHub secret DEPLOY_HOST exactly."
+            echo "Also open TCP 22 in provider firewall (not only ufw) for 0.0.0.0/0."
+            exit 1
+          }
 
       - name: Prepare server
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=accept-new \
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" $SSH_OPTS \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "mkdir -p '${DEPLOY_PATH}' && \
              if ! command -v rsync >/dev/null 2>&1; then \
@@ -80,12 +98,12 @@ jobs:
             --include 'public/downloads/.gitkeep' \
             --exclude 'public/downloads/*' \
             --exclude 'public/.well-known/***' \
-            -e "ssh -i ~/.ssh/deploy_key -p $DEPLOY_PORT -o StrictHostKeyChecking=accept-new" \
+            -e "ssh -i ~/.ssh/deploy_key -p $DEPLOY_PORT $SSH_OPTS" \
             ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
 
       - name: Verify database not removed by rsync
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o StrictHostKeyChecking=accept-new \
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" $SSH_OPTS \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "if [ -f '${DEPLOY_PATH}/backend/data/movies.db' ]; then
                echo \"movies.db OK: \$(du -h '${DEPLOY_PATH}/backend/data/movies.db' | awk '{print \$1}')\"
@@ -96,7 +114,7 @@ jobs:
       - name: Remote deploy
         timeout-minutes: 30
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o ServerAliveInterval=30 "${DEPLOY_USER}@${DEPLOY_HOST}" \
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" $SSH_OPTS -o ServerAliveInterval=30 "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "chmod +x ${DEPLOY_PATH}/deploy/scripts/*.sh && \
              APP_DIR='${DEPLOY_PATH}' DOMAIN='${DOMAIN}' ACME_EMAIL='${ACME_EMAIL}' \
              DATA_SOURCE='${DATA_SOURCE}' TMDB_API_KEY='${TMDB_API_KEY}' TORRENT_SOURCE='${TORRENT_SOURCE}' \

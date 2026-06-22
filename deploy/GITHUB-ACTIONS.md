@@ -38,7 +38,14 @@ cat /root/.ssh/deploy/id_ed25519   # → GitHub Secret DEPLOY_SSH_KEY
 twoja-domena  A  →  IP VPS
 ```
 
-Firewall: TCP **80**, **443**, **22**.
+Firewall: TCP **80**, **443**, **22** (port 22 must be open to GitHub Actions, not only your home IP).
+
+## SSH: Connection refused w Actions
+
+1. Na VPS: `curl -4 ifconfig.me` — to musi być **DEPLOY_HOST** w GitHub (sam IP, bez spacji/entera).
+2. Panel hostingu (Virtuozzo): otwórz **TCP 22** dla wszystkich (0.0.0.0/0).
+3. Nie używaj domeny w `DEPLOY_HOST`, jeśli ma rekord AAAA a IPv6 nie działa — wpisz **IPv4**.
+4. Test z zewnątrz: port checker na IP + port 22.
 
 ## Autostart po restarcie VPS
 
