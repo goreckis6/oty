@@ -1,6 +1,7 @@
 import hashlib
 import json
 import re
+import time
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
@@ -8,6 +9,8 @@ from database import Database
 
 ACTIVE_TTL_SECONDS = 90
 RETENTION_DAYS = 35
+PEAK_UPDATE_SECONDS = 60
+PRUNE_INTERVAL_SECONDS = 3600
 
 _BOT_RE = re.compile(
     r"bot|crawl|spider|slurp|mediapartners|headless|python-requests|curl/|wget/|"
@@ -37,6 +40,8 @@ def _day_list(days: int) -> list[str]:
 class AnalyticsTracker:
     def __init__(self, db: Database) -> None:
         self.db = db
+        self._last_prune_at = 0.0
+        self._last_peak_at = 0.0
         self._init_schema()
 
     def _init_schema(self) -> None:
@@ -142,15 +147,7 @@ class AnalyticsTracker:
         ).fetchone()
         if row:
             return str(row["country_code"])
-        code = self._lookup_country_ip(ip)
-        conn.execute(
-            """
-            INSERT OR REPLACE INTO analytics_ip_country (ip, country_code, updated_at)
-            VALUES (?, ?, ?)
-            """,
-            (ip, code, _now_iso()),
-        )
-        return code
+        return "UN"
 
     def record_ping(
         self,
@@ -230,20 +227,25 @@ class AnalyticsTracker:
                     (day,),
                 )
 
-            active = conn.execute(
-                "SELECT COUNT(*) AS c FROM analytics_sessions WHERE last_seen >= ? AND is_bot = 0",
-                (cutoff_active,),
-            ).fetchone()["c"]
-            conn.execute(
-                """
-                INSERT INTO analytics_daily (day, page_views, unique_visitors, peak_online)
-                VALUES (?, 0, 0, ?)
-                ON CONFLICT(day) DO UPDATE SET peak_online = MAX(peak_online, excluded.peak_online)
-                """,
-                (day, active),
-            )
+            now_mono = time.monotonic()
+            if now_mono - self._last_peak_at >= PEAK_UPDATE_SECONDS:
+                active = conn.execute(
+                    "SELECT COUNT(*) AS c FROM analytics_sessions WHERE last_seen >= ? AND is_bot = 0",
+                    (cutoff_active,),
+                ).fetchone()["c"]
+                conn.execute(
+                    """
+                    INSERT INTO analytics_daily (day, page_views, unique_visitors, peak_online)
+                    VALUES (?, 0, 0, ?)
+                    ON CONFLICT(day) DO UPDATE SET peak_online = MAX(peak_online, excluded.peak_online)
+                    """,
+                    (day, active),
+                )
+                self._last_peak_at = now_mono
 
-            self._prune_old(conn)
+            if now_mono - self._last_prune_at >= PRUNE_INTERVAL_SECONDS:
+                self._prune_old(conn)
+                self._last_prune_at = now_mono
 
     def _prune_old(self, conn) -> None:
         cutoff = (datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)).isoformat()

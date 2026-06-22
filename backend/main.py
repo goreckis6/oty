@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import (
     FileResponse,
@@ -395,12 +395,18 @@ async def admin_analytics(_: str = Depends(require_admin)) -> dict[str, Any]:
 
 
 @app.post(f"{API_PREFIX}/analytics/ping")
-async def analytics_ping(request: Request, body: AnalyticsPingRequest) -> dict[str, str]:
+async def analytics_ping(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    body: AnalyticsPingRequest,
+) -> dict[str, str]:
     if analytics is not None:
         ip = client_ip(request)
         ua = request.headers.get("user-agent")
         country = client_country(request)
-        await asyncio.to_thread(analytics.record_ping, body.session_id, body.path, ip, ua, country)
+        background_tasks.add_task(
+            analytics.record_ping, body.session_id, body.path, ip, ua, country
+        )
     return {"status": "ok"}
 
 

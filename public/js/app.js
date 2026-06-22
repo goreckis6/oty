@@ -609,15 +609,33 @@
   router();
 
   (function initVisitAnalytics() {
-    const PING_MS = 30000;
+    const PING_MS = 45000;
     const SID_KEY = "yts_sid";
-    let sid = sessionStorage.getItem(SID_KEY);
+    const LEADER_KEY = "yts_ping_leader";
+    const LEADER_TTL_MS = PING_MS + 10000;
+
+    let sid = localStorage.getItem(SID_KEY);
     if (!sid) {
       sid =
         typeof crypto !== "undefined" && crypto.randomUUID
           ? crypto.randomUUID()
           : `s${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-      sessionStorage.setItem(SID_KEY, sid);
+      localStorage.setItem(SID_KEY, sid);
+    }
+
+    function isPingLeader() {
+      const now = Date.now();
+      try {
+        const raw = localStorage.getItem(LEADER_KEY);
+        const leader = raw ? JSON.parse(raw) : null;
+        if (!leader || now - leader.ts > LEADER_TTL_MS || leader.id === sid) {
+          localStorage.setItem(LEADER_KEY, JSON.stringify({ id: sid, ts: now }));
+          return true;
+        }
+      } catch {
+        return true;
+      }
+      return false;
     }
 
     function currentPath() {
@@ -630,7 +648,7 @@
     }
 
     async function ping() {
-      if (!shouldTrack()) return;
+      if (!shouldTrack() || !isPingLeader()) return;
       const base = cfg().apiBase || "/api/v1";
       try {
         await fetch(`${base}/analytics/ping`, {
