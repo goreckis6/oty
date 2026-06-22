@@ -35,10 +35,12 @@ cat /root/.ssh/deploy/id_ed25519   # → GitHub Secret DEPLOY_SSH_KEY
 ## DNS
 
 ```
-twoja-domena  A  →  IP VPS
+yts.cool  A  →  IP VPS (curl -4 ifconfig.me na nowym serwerze)
 ```
 
-Firewall: TCP **80**, **443**, **22** (port 22 must be open to GitHub Actions, not only your home IP).
+**Po migracji VPS** zaktualizuj rekord A — stary IP = Let's Encrypt nie wyda certyfikatu, deploy pada na „API not reachable through Caddy”.
+
+Firewall: TCP **80**, **443**, **20203** (SSH Virtuozzo).
 
 ## SSH: Connection refused w Actions
 

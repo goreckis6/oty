@@ -25,6 +25,53 @@ caddy_url() {
   curl -4 -sfk --max-time "${1:-20}" --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}${2}"
 }
 
+server_public_ip() {
+  curl -4 -sf --max-time 5 ifconfig.me 2>/dev/null || true
+}
+
+dns_a_record() {
+  if command -v dig >/dev/null 2>&1; then
+    dig +short A "$DOMAIN" 2>/dev/null | head -1
+  elif command -v getent >/dev/null 2>&1; then
+    getent ahostsv4 "$DOMAIN" 2>/dev/null | awk '{print $1; exit}'
+  else
+    true
+  fi
+}
+
+warn_dns_mismatch() {
+  local vps_ip dns_ip
+  vps_ip="$(server_public_ip)"
+  dns_ip="$(dns_a_record)"
+  [ -n "$vps_ip" ] || return 0
+  [ -n "$dns_ip" ] || return 0
+  if [ "$dns_ip" != "$vps_ip" ]; then
+    echo "WARN: DNS A for ${DOMAIN} is ${dns_ip} but this VPS is ${vps_ip}" >&2
+    echo "      Let's Encrypt cannot issue a cert until DNS points here." >&2
+  fi
+}
+
+wait_caddy_https() {
+  local path="$1" needle="$2" label="$3"
+  local i
+  warn_dns_mismatch
+  echo "==> Waiting for Caddy HTTPS (${label})..."
+  for i in $(seq 1 90); do
+    if response_contains "$needle" caddy_url 8 "$path"; then
+      echo "    Caddy HTTPS OK (${i}x2s)"
+      return 0
+    fi
+    if [ "$((i % 5))" -eq 0 ]; then
+      echo "    still waiting (${i}x2s) — ACME cert may need DNS on this VPS..."
+    fi
+    sleep 2
+  done
+  echo "FATAL: ${label} not reachable through Caddy (HTTPS) after 180s" >&2
+  warn_dns_mismatch
+  docker compose logs caddy --tail 60 || true
+  return 1
+}
+
 response_contains() {
   local needle="$1"
   shift
@@ -319,13 +366,10 @@ if [ "$FAST_DEPLOY" -eq 0 ]; then
   echo "==> Homepage HTML OK"
 fi
 
-if ! response_contains '"status"' caddy_url 10 /api/v1/health; then
-  echo "FATAL: API not reachable through Caddy (HTTPS)" >&2
-  docker compose logs caddy --tail 40 || true
+if ! wait_caddy_https /api/v1/health '"status"' "API health"; then
   exit 1
 fi
-if [ "$FAST_DEPLOY" -eq 0 ] && ! response_contains '<!DOCTYPE html' caddy_url 10 /; then
-  echo "FATAL: homepage not serving HTML through Caddy" >&2
+if [ "$FAST_DEPLOY" -eq 0 ] && ! wait_caddy_https / '<!DOCTYPE html' "homepage"; then
   exit 1
 fi
 echo "==> API routing through Caddy OK"
