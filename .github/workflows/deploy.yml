@@ -15,7 +15,7 @@ jobs:
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '20203' }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/ytdown' }}
       DOMAIN: ${{ secrets.DOMAIN || '' }}
       ACME_EMAIL: ${{ secrets.ACME_EMAIL || '' }}
@@ -60,7 +60,7 @@ jobs:
             echo "FATAL: cannot reach ${DEPLOY_HOST}:${DEPLOY_PORT} (IPv4)."
             echo "On VPS run: curl -4 ifconfig.me  — must match GitHub secret DEPLOY_HOST exactly."
             echo "Also check provider SSH port (Virtuozzo often uses 20203, not 22): nc -zv IP 20203"
-            echo "Set GitHub secret DEPLOY_PORT to the port that succeeds from outside."
+            echo "Standard VPS uses port 22. Set GitHub secret DEPLOY_PORT accordingly."
             exit 1
           }
 
