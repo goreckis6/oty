@@ -133,9 +133,9 @@ jobs:
           echo "Checking https://${DOMAIN_CLEAN}..."
 
           check_site() {
-            body=$(curl -4 -sfL --max-time 8 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/api/v1/health" 2>/dev/null || true)
+            body=$(curl -4 -sfL --max-time 12 "https://${DOMAIN_CLEAN}/api/v1/health" 2>/dev/null || true)
             echo "$body" | grep -q '"status"' || return 1
-            body=$(curl -4 -sfL --max-time 8 --resolve "${DOMAIN_CLEAN}:443:${DEPLOY_HOST}" "https://${DOMAIN_CLEAN}/" 2>/dev/null || true)
+            body=$(curl -4 -sfL --max-time 12 "https://${DOMAIN_CLEAN}/" 2>/dev/null || true)
             case "$body" in *'<!DOCTYPE html'*) return 0 ;; *) return 1 ;; esac
           }
 

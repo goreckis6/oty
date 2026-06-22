@@ -53,22 +53,27 @@ warn_dns_mismatch() {
 
 wait_caddy_https() {
   local path="$1" needle="$2" label="$3"
-  local i
+  local i restarted=0
   warn_dns_mismatch
   echo "==> Waiting for Caddy HTTPS (${label})..."
-  for i in $(seq 1 90); do
+  for i in $(seq 1 120); do
     if response_contains "$needle" caddy_url 8 "$path"; then
       echo "    Caddy HTTPS OK (${i}x2s)"
       return 0
     fi
-    if [ "$((i % 5))" -eq 0 ]; then
-      echo "    still waiting (${i}x2s) — ACME cert may need DNS on this VPS..."
+    if [ "$i" -eq 30 ] && [ "$restarted" -eq 0 ]; then
+      echo "    retrying ACME (http-01) — restarting Caddy once..."
+      docker compose restart caddy 2>/dev/null || true
+      restarted=1
+    fi
+    if [ "$((i % 10))" -eq 0 ]; then
+      echo "    still waiting (${i}x2s) — Let's Encrypt cert may take 1–3 min..."
     fi
     sleep 2
   done
-  echo "FATAL: ${label} not reachable through Caddy (HTTPS) after 180s" >&2
+  echo "FATAL: ${label} not reachable through Caddy (HTTPS) after 240s" >&2
   warn_dns_mismatch
-  docker compose logs caddy --tail 60 || true
+  docker compose logs caddy --tail 80 || true
   return 1
 }
 
@@ -191,6 +196,12 @@ cat > "$CADDY_TMP" <<EOF
 ${GLOBAL_BLOCK}
 
 ${DOMAIN} {
+	tls {
+		issuer acme {
+			disable_tlsalpn_challenge
+		}
+	}
+
 	encode gzip
 
 	handle /api/v1/* {
