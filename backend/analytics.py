@@ -2,7 +2,6 @@ import hashlib
 import json
 import re
 import time
-import urllib.request
 from datetime import datetime, timedelta, timezone
 
 from database import Database
@@ -97,46 +96,6 @@ class AnalyticsTracker:
     def visitor_hash(ip: str, ua: str | None) -> str:
         raw = f"{ip}|{ua or ''}"
         return hashlib.sha256(raw.encode()).hexdigest()[:32]
-
-    @staticmethod
-    def _is_private_ip(ip: str) -> bool:
-        if not ip:
-            return True
-        if ip == "::1" or ip.startswith("127."):
-            return True
-        if ip.startswith("10.") or ip.startswith("192.168.") or ip.startswith("169.254."):
-            return True
-        if ip.startswith("fc") or ip.startswith("fd"):
-            return True
-        if ip.startswith("fe80:"):
-            return True
-        parts = ip.split(".")
-        if len(parts) == 4 and parts[0] == "172":
-            try:
-                second = int(parts[1])
-                if 16 <= second <= 31:
-                    return True
-            except ValueError:
-                pass
-        return False
-
-    @staticmethod
-    def _lookup_country_ip(ip: str) -> str:
-        if AnalyticsTracker._is_private_ip(ip):
-            return "UN"
-        try:
-            req = urllib.request.Request(
-                f"http://ip-api.com/json/{ip}?fields=countryCode",
-                headers={"User-Agent": "yts-analytics/1.0"},
-            )
-            with urllib.request.urlopen(req, timeout=2.5) as resp:
-                data = json.loads(resp.read().decode())
-            code = str(data.get("countryCode") or "").upper()
-            if len(code) == 2:
-                return code
-        except Exception:
-            pass
-        return "UN"
 
     def _resolve_country(self, conn, ip: str, header_country: str | None) -> str:
         if header_country and header_country != "UN":
