@@ -21,6 +21,34 @@ SITE_TAGLINE="${SITE_TAGLINE:-HD movies at the smallest file size}"
 SITE_URL="${SITE_URL:-https://${DOMAIN}}"
 SITE_URL="$(printf '%s' "$SITE_URL" | tr -d '\n\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's|/$||')"
 
+write_compose_env() {
+  env_line() {
+    local key="$1" val="$2"
+    if [[ "$val" =~ [^A-Za-z0-9_./:@-] ]]; then
+      val="${val//\\/\\\\}"
+      val="${val//\"/\\\"}"
+      printf '%s="%s"\n' "$key" "$val"
+    else
+      printf '%s=%s\n' "$key" "$val"
+    fi
+  }
+  {
+    env_line COMPOSE_PROJECT_NAME ytdown
+    env_line DATA_SOURCE "$DATA_SOURCE"
+    env_line SITE_URL "$SITE_URL"
+    env_line SITE_NAME "$SITE_NAME"
+    env_line SITE_TAGLINE "$SITE_TAGLINE"
+    env_line TMDB_API_KEY "$TMDB_API_KEY"
+    env_line TORRENT_SOURCE "$TORRENT_SOURCE"
+    env_line ADMIN_USER "$ADMIN_USER"
+    env_line ADMIN_PASSWORD "$ADMIN_PASSWORD"
+    env_line JWT_SECRET "$JWT_SECRET"
+    env_line TOKEN_TTL_HOURS "$TOKEN_TTL_HOURS"
+    env_line ADMIN_ALLOWED_IPS "$ADMIN_ALLOWED_IPS"
+  } > "${APP_DIR}/.env"
+  chmod 600 "${APP_DIR}/.env"
+}
+
 caddy_url() {
   curl -4 -sfk --max-time "${1:-20}" --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}${2}"
 }
@@ -113,6 +141,7 @@ reload_caddy() {
 
 cd "$APP_DIR"
 mkdir -p deploy/caddy public/js public/css public/downloads public/uploads backend/data
+write_compose_env
 
 DB_FILE="backend/data/movies.db"
 DB_SIZE_BEFORE=0
@@ -327,6 +356,9 @@ if [ "$(docker inspect -f '{{.State.Running}}' site-caddy 2>/dev/null || echo fa
   exit 1
 fi
 
+echo "==> Installing autostart (systemd ytdown.service)..."
+bash "${APP_DIR}/deploy/scripts/install-boot-service.sh"
+
 echo "==> Waiting for services on VPS..."
 WAIT_API=0
 if [ "$FAST_DEPLOY" -eq 1 ]; then
@@ -401,13 +433,5 @@ fi
 echo "==> Deploy OK — https://${DOMAIN} ($(($(date +%s) - DEPLOY_START))s)"
 echo "    API: https://${DOMAIN}/api/v1/"
 echo "    Admin: https://${DOMAIN}/twojastara"
+echo "    Autostart: systemctl is-enabled docker ytdown"
 docker compose ps
-
-if [ ! -f "backend/data/.deploy-boot-installed" ] || ! cmp -s "deploy/systemd/ytdown.service" "backend/data/.deploy-boot-unit-src" 2>/dev/null; then
-  echo "==> Installing boot service (auto-start after VPS reboot)..."
-  bash "${APP_DIR}/deploy/scripts/install-boot-service.sh"
-  cp "deploy/systemd/ytdown.service" "backend/data/.deploy-boot-unit-src"
-  touch "backend/data/.deploy-boot-installed"
-else
-  echo "==> Boot service unchanged — skipping"
-fi

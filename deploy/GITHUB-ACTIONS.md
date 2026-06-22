@@ -62,11 +62,24 @@ Firewall: TCP **80**, **443**, **20203** (SSH Virtuozzo).
 
 ## Autostart po restarcie VPS
 
-Każdy deploy instaluje `ytdown.service` (systemd) + `restart: always` w Dockerze.
+Każdy deploy:
+
+1. Zapisuje `/opt/ytdown/.env` (sekrety + konfiguracja dla Docker Compose)
+2. Instaluje `ytdown.service` (systemd) — **włącza się zawsze**, nie czeka na końcowy health check
+3. Kontenery mają `restart: always` w `docker-compose.yml`
+
+Po rebootie: `docker.service` → `ytdown.service` → `docker compose up -d`.
 
 ```bash
 systemctl is-enabled docker ytdown   # oba: enabled
+systemctl status ytdown
 docker ps                            # site-api + site-caddy: Up
+```
+
+Ręczna instalacja (bez pełnego deployu):
+
+```bash
+APP_DIR=/opt/ytdown bash /opt/ytdown/deploy/scripts/install-boot-service.sh
 ```
 
 ## Ręczny deploy na VPS

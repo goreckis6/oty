@@ -9,9 +9,10 @@ Wants=network-online.target
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=@APP_DIR@
+EnvironmentFile=-@APP_DIR@/.env
 Environment=COMPOSE_PROJECT_NAME=ytdown
 ExecStart=/usr/bin/docker compose up -d --remove-orphans
-ExecStop=/usr/bin/docker compose down
+ExecStop=/usr/bin/docker compose stop
 TimeoutStartSec=300
 
 [Install]
