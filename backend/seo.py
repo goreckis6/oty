@@ -37,17 +37,18 @@ def _clean_text(value: str, limit: int = 160) -> str:
 
 def home_page_title(site_name: str | None = None) -> str:
     name = site_name or SITE_NAME
-    return f"{name} - The Official Home of YIFY Movies"
+    return f"{name}: The Official Home of YIFY Movies Download"
 
 
 def home_page_description(site_name: str | None = None, site_tagline: str | None = None) -> str:
     name = site_name or SITE_NAME
-    tagline = site_tagline or SITE_TAGLINE
+    _ = site_tagline or SITE_TAGLINE
     return _clean_text(
-        f"The official {name} YIFY movies torrents website. "
-        "Download free YIFY movies in 720p, 1080p, 2160p 4K and 3D quality at the smallest file size. "
-        f"{tagline}",
-        300,
+        f"{name} YIFY movies download — official YIFY torrents and YTS movies site. "
+        "Free YIFY films, movie torrents in 720p, 1080p, 1080p x265, 2160p 4K Ultra HD, 3D BluRay and WEBRip. "
+        "Download smallest file size YIFY releases with magnet links and subtitles. "
+        "Browse latest YIFY catalog, HD movie downloads, new releases by genre.",
+        320,
     )
 
 

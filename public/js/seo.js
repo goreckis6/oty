@@ -48,15 +48,17 @@
   }
 
   function homeTitle() {
-    return `${siteName()} - The Official Home of YIFY Movies`;
+    return `${siteName()}: The Official Home of YIFY Movies Download`;
   }
 
   function homeDescription() {
+    const name = siteName();
     return cleanText(
-      `The official ${siteName()} YIFY movies torrents website. ` +
-        "Download free YIFY movies in 720p, 1080p, 2160p 4K and 3D quality at the smallest file size. " +
-        tagline(),
-      300
+      `${name} YIFY movies download — official YIFY torrents and YTS movies site. ` +
+        "Free YIFY films, movie torrents in 720p, 1080p, 1080p x265, 2160p 4K Ultra HD, 3D BluRay and WEBRip. " +
+        "Download smallest file size YIFY releases with magnet links and subtitles. " +
+        "Browse latest YIFY catalog, HD movie downloads, new releases by genre.",
+      320
     );
   }
 
