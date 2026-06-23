@@ -141,6 +141,22 @@ reload_caddy() {
 
 cd "$APP_DIR"
 mkdir -p deploy/caddy public/js public/css public/downloads public/uploads backend/data
+
+if [ -d public/files ]; then
+  echo "==> Moving site files from public/files/ to site root (BingSiteAuth.xml itd.)..."
+  find public/files -maxdepth 1 -type f -print0 | while IFS= read -r -d '' f; do
+    base="$(basename "$f")"
+    if [ -f "public/$base" ]; then
+      rm -f "$f"
+      echo "    removed duplicate public/files/$base (already in root)"
+    else
+      mv "$f" "public/$base"
+      echo "    moved $base -> public/$base"
+    fi
+  done
+  rmdir public/files 2>/dev/null || true
+fi
+
 write_compose_env
 
 DB_FILE="backend/data/movies.db"
@@ -272,6 +288,10 @@ ${DOMAIN} {
 			header_up X-Forwarded-For {remote_host}
 			header_up X-Real-IP {remote_host}
 		}
+	}
+
+	handle_path /files/* {
+		redir * /{path} permanent
 	}
 
 	handle {

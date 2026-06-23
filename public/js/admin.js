@@ -447,7 +447,7 @@
 
           <section class="admin-tab admin-section" data-tab="files" id="adminTabFiles" role="tabpanel" hidden>
             <h2>Pliki witryny</h2>
-            <p class="admin-hint">Pliki w katalogu głównym witryny (weryfikacja Google/Bing, <code>sw.js</code>, <code>manifest.json</code>, <code>manifest.webmanifest</code>). Dostępne pod <code>https://twoja-domena/nazwa-pliku</code>. Chronione: <code>index.html</code>, katalogi <code>js/</code> i <code>css/</code>.</p>
+            <p class="admin-hint">Pliki w katalogu głównym witryny (weryfikacja Google/Bing, <code>sw.js</code>, <code>manifest.json</code>). Adres: <code>https://twoja-domena/BingSiteAuth.xml</code> — <strong>bez</strong> <code>/files/</code>. Chronione: <code>index.html</code>, katalogi <code>js/</code> i <code>css/</code>.</p>
             <div class="admin-files-toolbar">
               <button type="button" class="btn-admin-outline" id="adminFilesRefresh">Odśwież</button>
             </div>

@@ -52,7 +52,15 @@ from seo import (
     register_movies_for_seo,
     render_movie_page,
 )
-from site_files import delete_site_file, list_site_files, read_site_file, upload_site_file, write_site_file
+from site_files import (
+    delete_site_file,
+    file_response_for_root,
+    list_site_files,
+    migrate_legacy_files_subdirectory,
+    read_site_file,
+    upload_site_file,
+    write_site_file,
+)
 from site_branding import get_branding, remove_logo, save_branding, save_logo
 from sources import (
     APIBAY_URL,
@@ -91,6 +99,9 @@ async def lifespan(_: FastAPI):
     await torrent_proxy.start()
     if DATA_SOURCE in ("sqlite", "scrape"):
         start_auto_scraper(db)
+    migrated = migrate_legacy_files_subdirectory()
+    if migrated:
+        print(f"Moved site files from public/files/ to root: {', '.join(migrated)}")
     asyncio.create_task(asyncio.to_thread(db.run_startup_maintenance), name="db-startup-maintenance")
     yield
     await stop_auto_scraper()
@@ -781,6 +792,15 @@ async def movie_seo_page(slug: str) -> HTMLResponse:
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return HTMLResponse(render_movie_page(data["movie"]))
+
+
+@app.get("/{site_file}")
+async def site_root_file(site_file: str) -> Response:
+    """Pliki weryfikacji (BingSiteAuth.xml itd.) bezpośrednio pod domeną."""
+    resp = file_response_for_root(site_file)
+    if resp is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    return resp
 
 
 for _static_name in ("css", "js", "uploads", "downloads"):

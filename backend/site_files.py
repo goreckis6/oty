@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from fastapi.responses import FileResponse
+
 PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "/app/public")).resolve()
 MAX_FILE_SIZE = 256 * 1024
 ALLOWED_EXTENSIONS = {".html", ".htm", ".txt", ".xml", ".json", ".js", ".webmanifest"}
@@ -123,6 +125,59 @@ def upload_site_file(rel_path: str, data: bytes, *, overwrite: bool = True) -> d
         raise ValueError("File already exists")
     path.write_bytes(data)
     return _file_info(path, rel_path)
+
+
+def migrate_legacy_files_subdirectory() -> list[str]:
+    """Przenieś pliki z public/files/ do katalogu głównego witryny (np. BingSiteAuth.xml)."""
+    legacy = PUBLIC_DIR / "files"
+    if not legacy.is_dir():
+        return []
+    moved: list[str] = []
+    for entry in sorted(legacy.iterdir()):
+        if not entry.is_file():
+            continue
+        if not _is_safe_name(entry.name):
+            continue
+        target = PUBLIC_DIR / entry.name
+        if target.exists() and target.stat().st_size != entry.stat().st_size:
+            continue
+        if not target.exists():
+            entry.rename(target)
+            moved.append(entry.name)
+        else:
+            entry.unlink()
+            moved.append(f"{entry.name} (duplicate removed from files/)")
+    try:
+        legacy.rmdir()
+    except OSError:
+        pass
+    return moved
+
+
+def media_type_for(name: str) -> str:
+    ext = Path(name).suffix.lower()
+    return {
+        ".xml": "application/xml",
+        ".html": "text/html",
+        ".htm": "text/html",
+        ".txt": "text/plain",
+        ".json": "application/json",
+        ".js": "application/javascript",
+        ".webmanifest": "application/manifest+json",
+    }.get(ext, "application/octet-stream")
+
+
+def file_response_for_root(name: str) -> FileResponse | None:
+    if not _is_safe_name(name):
+        return None
+    path = PUBLIC_DIR / name
+    if not path.is_file():
+        return None
+    return FileResponse(
+        path,
+        media_type=media_type_for(name),
+        headers={"Cache-Control": "public, max-age=300"},
+    )
 
 
 def delete_site_file(rel_path: str) -> None:
