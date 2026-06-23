@@ -44,8 +44,8 @@ def home_page_description(site_name: str | None = None, site_tagline: str | None
     name = site_name or SITE_NAME
     _ = site_tagline or SITE_TAGLINE
     return _clean_text(
-        f"{name} YIFY movies download — official YIFY torrents and YTS movies site. "
-        "Free YIFY films, movie torrents in 720p, 1080p, 1080p x265, 2160p 4K Ultra HD, 3D BluRay and WEBRip. "
+        f"{name} YIFY movies download — official YIFY and YTS movies site. "
+        "Free YIFY films, HD downloads in 720p, 1080p, 1080p x265, 2160p 4K Ultra HD, 3D BluRay and WEBRip. "
         "Download smallest file size YIFY releases with magnet links and subtitles. "
         "Browse latest YIFY catalog, HD movie downloads, new releases by genre.",
         320,
@@ -74,7 +74,7 @@ def movie_page_title(movie: dict[str, Any]) -> str:
     title = movie.get("title") or "Movie"
     year = movie.get("year") or ""
     site_name = get_branding().get("siteName") or SITE_NAME
-    return f"{title} ({year}) YIFY Torrent - {site_name}"
+    return f"{title} ({year}) YIFY Download - {site_name}"
 
 
 def movie_description(movie: dict[str, Any]) -> str:
@@ -82,7 +82,7 @@ def movie_description(movie: dict[str, Any]) -> str:
     year = movie.get("year")
     label = movie.get("title_long") or (f"{title} ({year})" if year else title)
     site_name = get_branding().get("siteName") or SITE_NAME
-    parts = [f"Download {label} YIFY movie torrent in 720p, 1080p, 2160p 4K and x265."]
+    parts = [f"Download {label} YIFY movie in 720p, 1080p, 2160p 4K and x265."]
 
     rating = movie.get("rating")
     if rating:
@@ -233,7 +233,7 @@ def build_movie_prerender(movie: dict[str, Any]) -> str:
 
     return f"""
     <article class="seo-prerender">
-      <h1>{_esc(title)} ({_esc(year)}) YIFY HD Torrent</h1>
+      <h1>{_esc(title)} ({_esc(year)}) YIFY HD Download</h1>
       {f'<img src="{_esc(poster)}" alt="{_esc(title)} poster" width="300" />' if poster else ""}
       <p>{rating_text}{_esc(summary)}</p>
       {f'<p>Genres: {_esc(genres)}</p>' if genres else ""}

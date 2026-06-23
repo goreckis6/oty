@@ -250,7 +250,7 @@
           <div class="container">
             <h1>Download YIFY movies: HD smallest size</h1>
             <p>
-              Welcome to <strong>${escapeHtml(name)}</strong>, the official home of YIFY movie torrents.
+              Welcome to <strong>${escapeHtml(name)}</strong>, the official home of YIFY movie downloads.
               Browse and download movies in excellent 720p, 1080p, 2160p 4K and 3D quality
               at the smallest file size.
             </p>
@@ -267,7 +267,7 @@
 
         <section class="section-block">
           <div class="section-head">
-            <h2>Latest YIFY Movie Torrents</h2>
+            <h2>Latest YIFY Movie Downloads</h2>
             <a href="/browse">Browse All →</a>
           </div>
           ${renderGrid(latest)}
@@ -397,7 +397,7 @@
                       )
                       .join("")}
                   </div>
-                  <p class="subtitle-note">Included subtitle languages in YIFY torrent.</p>
+                  <p class="subtitle-note">Included subtitle languages in YIFY downloads.</p>
                 </section>`
         : "";
 
@@ -439,7 +439,7 @@
                 <section class="movie-section">
                   <h2 class="movie-section__title">Available in:</h2>
                   <div class="dl-boxes">
-                    ${torrentCards || '<p class="empty-msg">No torrents available.</p>'}
+                    ${torrentCards || '<p class="empty-msg">No downloads available.</p>'}
                   </div>
                 </section>
 

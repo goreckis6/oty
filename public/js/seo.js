@@ -54,8 +54,8 @@
   function homeDescription() {
     const name = siteName();
     return cleanText(
-      `${name} YIFY movies download — official YIFY torrents and YTS movies site. ` +
-        "Free YIFY films, movie torrents in 720p, 1080p, 1080p x265, 2160p 4K Ultra HD, 3D BluRay and WEBRip. " +
+      `${name} YIFY movies download — official YIFY and YTS movies site. ` +
+        "Free YIFY films, HD downloads in 720p, 1080p, 1080p x265, 2160p 4K Ultra HD, 3D BluRay and WEBRip. " +
         "Download smallest file size YIFY releases with magnet links and subtitles. " +
         "Browse latest YIFY catalog, HD movie downloads, new releases by genre.",
       320
@@ -85,7 +85,7 @@
     const label = movie.title_long || (year ? `${title} (${year})` : title);
     const name = siteName();
     const parts = [
-      `Download ${label} YIFY movie torrent in 720p, 1080p, 2160p 4K and x265.`,
+      `Download ${label} YIFY movie in 720p, 1080p, 2160p 4K and x265.`,
     ];
 
     if (movie.rating) {
@@ -185,8 +185,8 @@
       ? `Search: ${query} - ${siteName()}`
       : `Browse YIFY Movies - ${siteName()}`;
     const description = query
-      ? `YIFY movie search results for "${query}". Download HD torrents at the smallest file size.`
-      : "Browse the full YIFY movie catalog. Download HD torrents in 720p, 1080p, 2160p 4K and x265.";
+      ? `YIFY movie search results for "${query}". Download HD movies at the smallest file size.`
+      : "Browse the full YIFY movie catalog. Download HD movies in 720p, 1080p, 2160p 4K and x265.";
     const canonical = query
       ? `${siteUrl()}/browse?q=${encodeURIComponent(query)}`
       : `${siteUrl()}/browse`;
@@ -204,7 +204,7 @@
   function setMovie(movie) {
     const slug = movie.slug || `movie-${movie.id}`;
     const canonical = `${siteUrl()}/movies/${slug}`;
-    const title = `${movie.title || "Movie"} (${movie.year || ""}) YIFY Torrent - ${siteName()}`;
+    const title = `${movie.title || "Movie"} (${movie.year || ""}) YIFY Download - ${siteName()}`;
     setPage({
       title,
       description: movieDescription(movie),
